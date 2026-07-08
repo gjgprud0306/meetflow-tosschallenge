@@ -1,4 +1,3 @@
-import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { ChatMessage } from "@/components/ChatMessage";
@@ -127,13 +126,6 @@ function RequestedRightPanel() {
         </div>
       </section>
 
-      <button
-        className="mt-5 flex h-14 w-full items-center justify-center gap-1 rounded-xl border border-[#E0E4EB] bg-white text-sm font-bold leading-[21px] text-[#475467]"
-        type="button"
-      >
-        참여자 초대 화면 보기
-        <ArrowRight className="h-4 w-4" />
-      </button>
     </aside>
   );
 }
