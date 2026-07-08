@@ -482,48 +482,42 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
           </Button>
         </div>
 
-        <div className="mt-10 flex w-[824px] flex-col gap-5">
-          <div className="flex h-[76px] items-start gap-8">
-            <TitleField
-              onChange={(title) => updateMeeting({ title })}
-              value={meeting.title}
-            />
-            <Field
-              action="참석자 편집"
-              badge
-              label="2. 참석자"
-              onClick={() => setModal("attendees")}
-              value={summaries.attendeesLabel}
-            />
-          </div>
-          <div className="flex h-[76px] items-start gap-8">
-            <Field
-              label="3. 후보 기간"
-              onClick={() => setModal("dateRange")}
-              placeholder={summaries.dateRange === "후보 기간 선택"}
-              value={summaries.dateRange}
-            />
-            <Field
-              helper="2~5개 선택"
-              label="4. 후보 시간"
-              onClick={() => setModal("times")}
-              placeholder={meeting.timeIds.length === 0}
-              value={summaries.timeCount}
-            />
-          </div>
-          <div className="flex h-[76px] items-start gap-8">
-            <Field
-              label="5. 필수 참석자"
-              onClick={() => setModal("attendees")}
-              value={summaries.requiredLabel}
-            />
-            <Field
-              label="6. 응답 마감"
-              onClick={() => setModal("deadline")}
-              placeholder={summaries.deadline === "응답 마감 선택"}
-              value={summaries.deadline}
-            />
-          </div>
+        <div className="mt-10 grid w-[824px] grid-cols-2 grid-rows-3 gap-x-8 gap-y-5">
+          <TitleField
+            onChange={(title) => updateMeeting({ title })}
+            value={meeting.title}
+          />
+          <Field
+            action="참석자 편집"
+            badge
+            label="2. 참석자"
+            onClick={() => setModal("attendees")}
+            value={summaries.attendeesLabel}
+          />
+          <Field
+            label="3. 후보 기간"
+            onClick={() => setModal("dateRange")}
+            placeholder={summaries.dateRange === "후보 기간 선택"}
+            value={summaries.dateRange}
+          />
+          <Field
+            helper="2~5개 선택"
+            label="4. 후보 시간"
+            onClick={() => setModal("times")}
+            placeholder={meeting.timeIds.length === 0}
+            value={summaries.timeCount}
+          />
+          <Field
+            label="5. 필수 참석자"
+            onClick={() => setModal("attendees")}
+            value={summaries.requiredLabel}
+          />
+          <Field
+            label="6. 응답 마감"
+            onClick={() => setModal("deadline")}
+            placeholder={summaries.deadline === "응답 마감 선택"}
+            value={summaries.deadline}
+          />
         </div>
 
         <div className="mt-10 w-[824px]">
