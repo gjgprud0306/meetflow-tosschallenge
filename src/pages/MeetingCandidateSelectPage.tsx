@@ -1,5 +1,6 @@
 import { Check } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ function formatCandidateTime(label: string) {
 
 export function MeetingCandidateSelectPage() {
   const { meeting } = useMeetingFlow();
+  const navigate = useNavigate();
   const [answers, setAnswers] = useState<Record<string, CandidateAnswer>>({});
   const candidateOptions = [
     ...createCandidateTimeOptions(meeting),
@@ -36,11 +38,11 @@ export function MeetingCandidateSelectPage() {
           <div className="flex flex-col gap-6">
             <div className="space-y-6">
               <article className="flex items-start">
-                <AvatarBadge color="muted" initial="혜" />
+                <AvatarBadge initial="M" />
                 <div className="ml-3">
                   <div className="flex h-[21px] items-center gap-1.5">
                     <span className="text-sm font-bold leading-[21px] text-[#101828]">
-                      혜경
+                      MeetFlow
                     </span>
                     <span className="text-xs font-normal leading-[18px] text-[#98A2B3]">
                       오전 10:12
@@ -230,7 +232,10 @@ export function MeetingCandidateSelectPage() {
                       입력한 일정과 후보 시간의 일치 여부를 확인합니다.
                     </p>
                   </div>
-                  <Button className="h-12 w-32 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]">
+                  <Button
+                    className="h-12 w-32 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+                    onClick={() => navigate("/meetings/response-status")}
+                  >
                     응답 제출
                   </Button>
                 </div>

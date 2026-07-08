@@ -1,53 +1,404 @@
-import { ChatMessage } from "@/components/ChatMessage";
+import { Check } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { AvatarBadge } from "@/components/AvatarBadge";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
+import { Button } from "@/components/ui/button";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
-import { attendees, meetingCreateIntro } from "@/mocks";
+import { cn } from "@/lib/utils";
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
+type ResponseStage = "partial" | "reminded" | "complete";
+
+const baseMessages = [
+  {
+    id: "shared",
+    author: "혜경",
+    initial: "혜",
+    time: "오전 10:12",
+    message: "회의 카드가 채팅에 공유되었습니다.",
+  },
+  {
+    id: "seo-available",
+    author: "서연",
+    initial: "서",
+    time: "오전 10:14",
+    message: "수요일 15:00 이후 가능합니다.",
+  },
+  {
+    id: "min-responded",
+    author: "민수",
+    initial: "민",
+    time: "오전 10:15",
+    message: "응답 남겼습니다.",
+  },
+  {
+    id: "seo-card",
+    author: "서연",
+    initial: "서",
+    time: "오전 10:18",
+    message: "생성된 카드에서 바로 응답하면 됩니다.",
+  },
+];
+
+const responseNames = [
+  { id: "owner", label: "혜경" },
+  { id: "min", label: "민수" },
+  { id: "jun", label: "준혁" },
+  { id: "seo", label: "서연" },
+  { id: "ji", label: "지수" },
+  { id: "tae", label: "태민" },
+];
+
+function ProgressBar({ complete }: { complete: boolean }) {
   return (
-    <div className="flex items-start justify-between border-b border-[#EEF2F6] py-3 last:border-b-0">
-      <span className="text-[13px] font-bold leading-5 text-[#667085]">
-        {label}
-      </span>
-      <span className="max-w-[520px] text-right text-sm font-medium leading-[21px] text-[#101828]">
-        {value}
-      </span>
+    <div className="relative pb-[44px]">
+      <div className="absolute left-0 right-0 top-3 h-1 rounded-full bg-[#E5E7EB]">
+        <div
+          className={cn(
+            "h-1 rounded-full bg-[#635BFF]",
+            complete ? "w-full" : "w-2/3",
+          )}
+        />
+      </div>
+      <div className="absolute inset-x-0 top-0">
+        {["회의 생성", "응답 수집", "회의 확정"].map((label, index) => {
+          const done = complete ? index < 2 : index === 0;
+          const active = complete ? index === 2 : index === 1;
+          const position =
+            index === 0
+              ? "left-0 items-start text-left"
+              : index === 1
+                ? "left-1/2 -translate-x-1/2 items-center text-center"
+                : "right-0 items-end text-right";
+
+          return (
+            <div className={cn("absolute flex w-24 flex-col", position)} key={label}>
+              <div
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold",
+                  done && "bg-[#635BFF] text-white",
+                  active && "bg-white text-[#635BFF] ring-4 ring-[#F0EFFF]",
+                  !done && !active && "bg-[#E5E7EB] text-[#98A2B3]",
+                )}
+              >
+                {done ? (
+                  <Check className="h-4 w-4" strokeWidth={3} />
+                ) : active ? (
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#635BFF]" />
+                ) : (
+                  index + 1
+                )}
+              </div>
+              <span
+                className={cn(
+                  "mt-3 whitespace-nowrap text-xs font-medium leading-[18px]",
+                  done || active ? "text-[#635BFF]" : "text-[#98A2B3]",
+                )}
+              >
+                {label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ChatLine({
+  author,
+  initial,
+  message,
+  time,
+}: {
+  author: string;
+  initial: string;
+  message: string;
+  time: string;
+}) {
+  const isSystem = author === "MeetFlow";
+
+  return (
+    <article className="flex items-start">
+      <AvatarBadge color={isSystem ? "primary" : "muted"} initial={initial} />
+      <div className="ml-3">
+        <div className="flex h-[21px] items-center gap-1.5">
+          <span className="text-sm font-bold leading-[21px] text-[#101828]">
+            {author}
+          </span>
+          <span className="text-xs font-normal leading-[18px] text-[#98A2B3]">
+            {time}
+          </span>
+        </div>
+        {isSystem ? (
+          <div className="mt-2 inline-flex h-11 items-center rounded-lg bg-[#F0EFFF] px-4 text-sm font-medium leading-[21px] text-[#635BFF]">
+            {message}
+          </div>
+        ) : (
+          <p className="mt-1 text-base font-normal leading-6 text-[#1D2939]">
+            {message}
+          </p>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function ManagementCard({ stage }: { stage: ResponseStage }) {
+  const { meeting, summaries } = useMeetingFlow();
+  const complete = stage === "complete";
+  const responseCount = complete ? 6 : 4;
+
+  return (
+    <section className="w-full max-w-[680px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
+      <div className="flex h-[74px] items-center justify-between bg-[#F0EFFF] px-6">
+        <div className="flex min-w-0 items-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#635BFF] text-xl font-bold leading-[30px] text-white">
+            15
+          </div>
+          <div className="ml-4 min-w-0">
+            <h2 className="truncate text-lg font-bold leading-7 text-[#101828]">
+              {meeting.title || "리뷰회의"}
+            </h2>
+            <p className="text-sm font-medium leading-[21px] text-[#475467]">
+              1시간 · 마감 {summaries.deadline} · {responseCount}/6명 응답
+            </p>
+          </div>
+        </div>
+        <span className="rounded-full bg-[#635BFF] px-3 py-1 text-xs font-bold leading-[18px] text-white">
+          {complete ? "응답 완료" : "응답 수집"}
+        </span>
+      </div>
+
+      <div className="grid h-[92px] grid-cols-2 border-b border-[#E0E4EB]">
+        <div className="flex flex-col justify-center px-6">
+          <span className="text-sm font-bold leading-[21px] text-[#98A2B3]">
+            응답 현황
+          </span>
+          <span className="mt-1 text-[28px] font-bold leading-10 text-[#635BFF]">
+            {responseCount}/6명 응답
+          </span>
+        </div>
+        <div className="flex flex-col justify-center border-l border-[#E0E4EB] px-6">
+          <span className="text-sm font-bold leading-[21px] text-[#98A2B3]">
+            {complete ? "모두 응답 완료" : "미응답자 2명"}
+          </span>
+          <span className="mt-2 text-lg font-bold leading-7 text-[#101828]">
+            {complete ? "-" : "민수, 태민"}
+          </span>
+        </div>
+      </div>
+
+      <div className="border-b border-[#E0E4EB] px-6 py-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-sm font-bold leading-[21px] text-[#101828]">
+            응답 진행
+          </h3>
+          <span className="text-xs font-medium leading-[18px] text-[#98A2B3]">
+            {complete ? "회의 확정 가능" : "4명 제출 · 마감 전까지 응답 대기"}
+          </span>
+        </div>
+        <ProgressBar complete={complete} />
+      </div>
+
+      <div className="flex items-center justify-between px-6 py-5">
+        <div>
+          <h3 className="text-base font-bold leading-6 text-[#101828]">
+            {complete
+              ? "응답이 모두 모였습니다. 회의를 확정하세요."
+              : "미응답자에게 마감 시간을 확인하세요"}
+          </h3>
+          <p className="mt-1 text-[13px] font-medium leading-5 text-[#98A2B3]">
+            {complete
+              ? "회의 확정 후 참여자에게 알림이 전송됩니다."
+              : "응답이 모두 모이면 회의 확정으로 진행합니다."}
+          </p>
+        </div>
+        <Button
+          className="h-12 w-36 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+        >
+          {complete ? "회의 확정" : "응답 현황 보기"}
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function StatusPanel({
+  onReminder,
+  stage,
+}: {
+  onReminder: () => void;
+  stage: ResponseStage;
+}) {
+  const complete = stage === "complete";
+  const reminded = stage === "reminded";
+  const responseCount = complete ? 6 : 4;
+
+  return (
+    <aside className="h-full w-[328px] shrink-0 border-l border-[#E5E7EB] bg-[#F9FAFB] px-6 pt-7">
+      <h2 className="text-[26px] font-bold leading-9 text-[#101828]">
+        응답 현황
+      </h2>
+      <p className="mt-2 text-sm font-medium leading-[21px] text-[#475467]">
+        {complete ? "모든 참여자가 응답했습니다" : "마감 전 응답 현황만 확인합니다"}
+      </p>
+
+      <section className="mt-6 rounded-xl border border-[#E0E4EB] bg-white p-5">
+        <span className="rounded-full bg-[#F0EFFF] px-3 py-1 text-xs font-bold leading-[18px] text-[#635BFF]">
+          {complete ? "응답 완료" : "응답 수집"}
+        </span>
+        <h3 className="mt-5 text-[30px] font-bold leading-10 text-[#635BFF]">
+          {responseCount}/6명 응답
+        </h3>
+        <p className="mt-5 text-sm font-bold leading-[21px] text-[#475467]">
+          {complete ? "회의 확정" : "미응답자 2명: 민수, 태민"}
+        </p>
+        <div className="mt-4 h-1.5 rounded-full bg-[#E5E7EB]">
+          <div
+            className={cn(
+              "h-1.5 rounded-full bg-[#635BFF]",
+              complete ? "w-full" : "w-2/3",
+            )}
+          />
+        </div>
+        <p className="mt-3 text-xs font-medium leading-[18px] text-[#98A2B3]">
+          {complete ? "100% 완료" : "67% 완료"}
+        </p>
+
+        <div className="mt-5 space-y-3">
+          {responseNames.map((attendee, index) => {
+            const done = complete || [0, 2, 3, 4].includes(index);
+
+            return (
+              <div
+                className="flex items-center justify-between text-sm font-medium leading-[21px]"
+                key={attendee.id}
+              >
+                <span className="text-[#475467]">{attendee.label}</span>
+                <span className={done ? "text-[#635BFF]" : "text-[#98A2B3]"}>
+                  {done ? "응답 완료" : "대기 중"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {!complete && !reminded && (
+        <>
+          <div className="mt-5 rounded-lg border border-[#F5C16C] bg-[#FFF8E7] px-5 py-4 text-sm font-bold leading-[21px] text-[#A25C18]">
+            미응답자 2명이 아직 응답하지 않았습니다.
+          </div>
+          <Button
+            className="mt-3 h-14 w-full rounded-lg border border-[#E0E4EB] bg-white text-sm font-bold leading-[21px] text-[#475467] hover:bg-[#F9FAFB]"
+            onClick={onReminder}
+          >
+            리마인드 보내기 (2명)
+          </Button>
+        </>
+      )}
+
+      {reminded && (
+        <div className="mt-5 rounded-lg border border-[#C7C2FF] bg-[#F0EFFF] px-5 py-4">
+          <h3 className="text-sm font-bold leading-[21px] text-[#635BFF]">
+            리마인드 전송됨
+          </h3>
+          <p className="mt-2 text-sm font-medium leading-[21px] text-[#635BFF]">
+            미응답자 2명에게 리마인드를 보냈습니다. 응답을 기다리는 중입니다.
+          </p>
+        </div>
+      )}
+    </aside>
+  );
+}
+
+function ResponseComposer() {
+  return (
+    <div className="absolute bottom-0 left-0 flex h-[104px] w-full items-center gap-[34px] border-t border-[#E0E4EB] bg-white px-8 py-4">
+      <div className="flex h-12 min-w-0 flex-1 items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB]/80 px-4">
+        <span className="text-sm font-medium leading-[21px] text-[#C9CED8]">
+          채팅 중 일정 조율이 필요하면 회의를 만들어보세요
+        </span>
+      </div>
+      <Button className="h-12 w-40 rounded-lg bg-[#AAA3FF] text-base font-bold leading-6 text-white hover:bg-[#9B93FF]">
+        회의 만들기
+      </Button>
     </div>
   );
 }
 
 export function ResponseStatusPage() {
-  const { meeting, summaries } = useMeetingFlow();
-  const attendeeNames = attendees
-    .filter((attendee) => meeting.attendeeIds.includes(attendee.id))
-    .map((attendee) => attendee.name)
-    .join(", ");
-  const requiredNames = attendees
-    .filter((attendee) => meeting.requiredAttendeeIds.includes(attendee.id))
-    .map((attendee) => attendee.name)
-    .join(", ");
+  const [stage, setStage] = useState<ResponseStage>("partial");
+  const [reminderStarted, setReminderStarted] = useState(false);
+
+  useEffect(() => {
+    if (!reminderStarted) return undefined;
+
+    const participantTimer = window.setTimeout(() => {
+      setStage("reminded");
+    }, 500);
+    const completeTimer = window.setTimeout(() => {
+      setStage("complete");
+    }, 2200);
+
+    return () => {
+      window.clearTimeout(participantTimer);
+      window.clearTimeout(completeTimer);
+    };
+  }, [reminderStarted]);
+
+  const visibleMessages = useMemo(() => {
+    if (!reminderStarted) return baseMessages;
+
+    return [
+      ...baseMessages,
+      {
+        id: "reminder",
+        author: "MeetFlow",
+        initial: "M",
+        time: "오전 10:20",
+        message: "미응답자에게 리마인드를 보냈습니다.",
+      },
+      ...(stage !== "partial"
+        ? [
+            {
+              id: "tae-response",
+              author: "태민",
+              initial: "태",
+              time: "오전 10:21",
+              message: "응답을 남겼습니다.",
+            },
+          ]
+        : []),
+    ];
+  }, [reminderStarted, stage]);
+
+  function sendReminder() {
+    if (reminderStarted) return;
+    setReminderStarted(true);
+  }
 
   return (
     <MeetFlowLayout>
-      <div className="h-[927px] w-full px-8 pt-7">
-        <ChatMessage large message={meetingCreateIntro} />
-        <div className="mt-6 w-[880px] rounded-xl border border-[#E0E4EB] bg-white px-7 py-6">
-          <h2 className="text-xl font-bold leading-[30px] text-[#101828]">
-            응답 요청을 보냈습니다
-          </h2>
-          <p className="mt-1 text-[13px] font-medium leading-5 text-[#475467]">
-            참여자에게 가능한 시간 응답 요청이 전송되었습니다.
-          </p>
-          <div className="mt-5 rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-5 py-2">
-            <SummaryRow label="회의 제목" value={meeting.title} />
-            <SummaryRow label="참석자" value={attendeeNames} />
-            <SummaryRow label="필수 참석자" value={requiredNames} />
-            <SummaryRow label="후보 기간" value={summaries.dateRange} />
-            <SummaryRow label="후보 시간" value={summaries.selectedTimes} />
-            <SummaryRow label="응답 마감" value={summaries.deadline} />
-            <SummaryRow label="리마인드" value={summaries.reminderText} />
+      <div className="flex h-full w-full min-w-0 bg-white">
+        <div className="relative min-w-0 flex-1">
+          <div className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7">
+            <div className="flex flex-col gap-6">
+              {visibleMessages.map((message) => (
+                <ChatLine
+                  author={message.author}
+                  initial={message.initial}
+                  key={message.id}
+                  message={message.message}
+                  time={message.time}
+                />
+              ))}
+              <ManagementCard stage={stage} />
+            </div>
           </div>
+          <ResponseComposer />
         </div>
+        <StatusPanel onReminder={sendReminder} stage={stage} />
       </div>
     </MeetFlowLayout>
   );
