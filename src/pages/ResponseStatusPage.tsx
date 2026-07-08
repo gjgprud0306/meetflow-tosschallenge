@@ -402,11 +402,10 @@ export function ResponseStatusPage() {
     };
   }, [reminderStarted]);
 
-  const visibleMessages = useMemo(() => {
-    if (!reminderStarted) return baseMessages;
+  const followUpMessages = useMemo(() => {
+    if (!reminderStarted) return [];
 
     return [
-      ...baseMessages,
       {
         id: "reminder",
         author: "MeetFlow",
@@ -483,7 +482,7 @@ export function ResponseStatusPage() {
         <div className="relative min-w-0 flex-1">
           <div className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7">
             <div className="flex flex-col gap-6">
-              {visibleMessages.map((message) => (
+              {baseMessages.map((message) => (
                 <ChatLine
                   author={message.author}
                   initial={message.initial}
@@ -493,6 +492,15 @@ export function ResponseStatusPage() {
                 />
               ))}
               <ManagementCard onConfirm={confirmMeeting} stage={stage} />
+              {followUpMessages.map((message) => (
+                <ChatLine
+                  author={message.author}
+                  initial={message.initial}
+                  key={message.id}
+                  message={message.message}
+                  time={message.time}
+                />
+              ))}
             </div>
           </div>
           <ResponseComposer />
