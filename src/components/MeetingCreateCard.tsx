@@ -493,7 +493,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
           <Button
             className="h-12 w-40 rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 disabled:bg-[#C9CED8] disabled:text-white"
             disabled={!canSubmit}
-            onClick={() => navigate("/meetings/response-status")}
+            onClick={() => navigate("/meetings/requested")}
           >
             응답 요청 보내기
           </Button>
