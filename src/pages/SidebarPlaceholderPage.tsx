@@ -51,10 +51,13 @@ export function SidebarPlaceholderPage({
           </p>
 
           {empty ? (
-            <div className="mt-8 flex h-[180px] w-full max-w-[520px] items-center justify-center rounded-xl border border-dashed border-[#D0D5DD] bg-[#F9FAFB]">
-              <span className="text-sm font-medium leading-[21px] text-[#98A2B3]">
+            <div className="mt-8 flex w-full max-w-[520px] flex-col items-center text-center">
+              <p className="text-sm font-bold leading-[21px] text-[#667085]">
                 최근 대화가 없습니다.
-              </span>
+              </p>
+              <p className="mt-1 text-[13px] font-medium leading-5 text-[#98A2B3]">
+                새로운 메시지가 등록되면 이곳에 표시됩니다.
+              </p>
             </div>
           ) : (
             <div className="mt-8 flex flex-col gap-4">
