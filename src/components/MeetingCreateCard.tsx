@@ -3,7 +3,10 @@ import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { Button } from "@/components/ui/button";
-import { createDeadlineOptions } from "@/context/meetingFlowUtils";
+import {
+  createCandidateTimeOptions,
+  createDeadlineOptions,
+} from "@/context/meetingFlowUtils";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { attendees } from "@/mocks";
 import { cn } from "@/lib/utils";
@@ -200,6 +203,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   const [showCustomDeadline, setShowCustomDeadline] = useState(false);
   const [customDeadlineInput, setCustomDeadlineInput] = useState("");
   const deadlineOptions = createDeadlineOptions(meeting);
+  const candidateTimeOptions = createCandidateTimeOptions(meeting);
   const canSubmit =
     meeting.title.trim().length > 0 &&
     summaries.dateRange !== "후보 기간 선택" &&
@@ -320,6 +324,8 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             onSelect={(id) => {
               updateMeeting({
                 dateRangeId: id,
+                timeIds: [],
+                customTimeOptions: [],
                 deadlineId: "",
                 customDeadline: "",
               });
@@ -341,6 +347,8 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
               updateMeeting({
                 customDateRange: value,
                 dateRangeId: "custom-date-range",
+                timeIds: [],
+                customTimeOptions: [],
                 deadlineId: "",
                 customDeadline: "",
               });
@@ -362,50 +370,59 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
     if (modal === "times") {
       return (
         <ChoiceModal onClose={() => setModal(null)} title="후보 시간 선택">
-          <p className="mb-3 text-xs font-medium leading-[18px] text-[#94A3B8]">
-            2~5개까지 선택할 수 있습니다.
-          </p>
-          <OptionList
-            multiple
-            onSelect={toggleTime}
-            options={[...options.candidateTimes, ...meeting.customTimeOptions]}
-            selectedIds={meeting.timeIds}
-          />
-          <CustomInput
-            buttonLabel="직접 입력하기"
-            inputMode="text"
-            onCancel={() => {
-              setShowCustomTime(false);
-              setCustomTimeInput("");
-            }}
-            onSubmit={() => {
-              const value = customTimeInput.trim();
-              const alreadySelected = meeting.customTimeOptions.some(
-                (option) => option.label === value && meeting.timeIds.includes(option.id),
-              );
-              if (!value || (meeting.timeIds.length >= 5 && !alreadySelected)) return;
-              const id = `custom-time-${value.replace(/\s+/g, "-")}`;
-              const exists = meeting.customTimeOptions.some(
-                (option) => option.id === id,
-              );
-              updateMeeting({
-                customTimeOptions: exists
-                  ? meeting.customTimeOptions
-                  : [...meeting.customTimeOptions, { id, label: value }],
-                timeIds: meeting.timeIds.includes(id)
-                  ? meeting.timeIds
-                  : [...meeting.timeIds, id],
-              });
-              setCustomTimeInput("");
-              setShowCustomTime(false);
-            }}
-            onToggle={() => setShowCustomTime(true)}
-            placeholder="예: 금 17:00"
-            setValue={setCustomTimeInput}
-            show={showCustomTime}
-            suffix=""
-            value={customTimeInput}
-          />
+          {candidateTimeOptions.length > 0 ? (
+            <>
+              <p className="mb-3 text-xs font-medium leading-[18px] text-[#94A3B8]">
+                2~5개까지 선택할 수 있습니다.
+              </p>
+              <OptionList
+                multiple
+                onSelect={toggleTime}
+                options={[...candidateTimeOptions, ...meeting.customTimeOptions]}
+                selectedIds={meeting.timeIds}
+              />
+              <CustomInput
+                buttonLabel="직접 입력하기"
+                inputMode="text"
+                onCancel={() => {
+                  setShowCustomTime(false);
+                  setCustomTimeInput("");
+                }}
+                onSubmit={() => {
+                  const value = customTimeInput.trim();
+                  const alreadySelected = meeting.customTimeOptions.some(
+                    (option) =>
+                      option.label === value && meeting.timeIds.includes(option.id),
+                  );
+                  if (!value || (meeting.timeIds.length >= 5 && !alreadySelected)) return;
+                  const id = `custom-time-${value.replace(/\s+/g, "-")}`;
+                  const exists = meeting.customTimeOptions.some(
+                    (option) => option.id === id,
+                  );
+                  updateMeeting({
+                    customTimeOptions: exists
+                      ? meeting.customTimeOptions
+                      : [...meeting.customTimeOptions, { id, label: value }],
+                    timeIds: meeting.timeIds.includes(id)
+                      ? meeting.timeIds
+                      : [...meeting.timeIds, id],
+                  });
+                  setCustomTimeInput("");
+                  setShowCustomTime(false);
+                }}
+                onToggle={() => setShowCustomTime(true)}
+                placeholder="예: 7/10 (금) 17:00"
+                setValue={setCustomTimeInput}
+                show={showCustomTime}
+                suffix=""
+                value={customTimeInput}
+              />
+            </>
+          ) : (
+            <p className="text-sm font-medium leading-[21px] text-[#667085]">
+              후보 기간을 먼저 선택해주세요.
+            </p>
+          )}
         </ChoiceModal>
       );
     }

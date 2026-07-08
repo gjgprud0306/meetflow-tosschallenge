@@ -22,13 +22,60 @@ function getDateRangeLabel(meeting: MeetingCreateMock) {
   return optionLabel(meetingCreateOptions.dateRanges, meeting.dateRangeId);
 }
 
-function getDateRangeStartDate(meeting: MeetingCreateMock) {
+function getDateRangeDates(meeting: MeetingCreateMock) {
   const label = getDateRangeLabel(meeting);
-  const match = label.match(/(\d{1,2})\/(\d{1,2})/);
+  const matches = [...label.matchAll(/(\d{1,2})\/(\d{1,2})/g)];
 
-  if (!match) return null;
+  if (matches.length < 2) return null;
 
-  return new Date(2026, Number(match[1]) - 1, Number(match[2]));
+  const start = new Date(2026, Number(matches[0][1]) - 1, Number(matches[0][2]));
+  const end = new Date(2026, Number(matches[1][1]) - 1, Number(matches[1][2]));
+
+  return { start, end };
+}
+
+function getDateRangeStartDate(meeting: MeetingCreateMock) {
+  return getDateRangeDates(meeting)?.start ?? null;
+}
+
+function formatDateTimeOption(date: Date, time: string) {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const weekday = weekdays[date.getDay()];
+
+  return {
+    id: `time-${month}-${day}-${time.replace(":", "")}`,
+    label: `${month}/${day} (${weekday}) ${time}`,
+  };
+}
+
+function timesForWeekday(weekday: number) {
+  if (weekday === 1) return ["10:00", "14:00"];
+  if (weekday === 2) return ["10:00", "15:00"];
+  if (weekday === 3) return ["11:00", "14:00"];
+  if (weekday === 4) return ["11:00", "16:00"];
+  if (weekday === 5) return ["10:00", "15:00"];
+  return ["10:00", "14:00"];
+}
+
+export function createCandidateTimeOptions(
+  meeting: MeetingCreateMock,
+): SelectOption[] {
+  const range = getDateRangeDates(meeting);
+
+  if (!range) return [];
+
+  const options: SelectOption[] = [];
+  const current = new Date(range.start);
+
+  while (current.getTime() <= range.end.getTime()) {
+    timesForWeekday(current.getDay()).forEach((time) => {
+      options.push(formatDateTimeOption(current, time));
+    });
+    current.setDate(current.getDate() + 1);
+  }
+
+  return options;
 }
 
 export function createDeadlineOptions(meeting: MeetingCreateMock): SelectOption[] {
@@ -56,7 +103,7 @@ export function createDeadlineOptions(meeting: MeetingCreateMock): SelectOption[
 
 export function createMeetingSummaries(meeting: MeetingCreateMock) {
   const candidateTimes = [
-    ...meetingCreateOptions.candidateTimes,
+    ...createCandidateTimeOptions(meeting),
     ...meeting.customTimeOptions,
   ];
   const firstRequired = attendees.find(
