@@ -34,10 +34,6 @@ function getDateRangeDates(meeting: MeetingCreateMock) {
   return { start, end };
 }
 
-function getDateRangeStartDate(meeting: MeetingCreateMock) {
-  return getDateRangeDates(meeting)?.start ?? null;
-}
-
 function formatDateTimeOption(date: Date, time: string) {
   const month = date.getMonth() + 1;
   const day = date.getDate();
@@ -47,6 +43,15 @@ function formatDateTimeOption(date: Date, time: string) {
     id: `time-${month}-${day}-${time.replace(":", "")}`,
     label: `${month}/${day} (${weekday}) ${time}`,
   };
+}
+
+function getDateWithTime(date: Date, time: string) {
+  const [hours, minutes] = time.split(":").map(Number);
+  const dateTime = new Date(date);
+
+  dateTime.setHours(hours, minutes, 0, 0);
+
+  return dateTime;
 }
 
 function timesForWeekday(weekday: number) {
@@ -79,26 +84,31 @@ export function createCandidateTimeOptions(
 }
 
 export function createDeadlineOptions(meeting: MeetingCreateMock): SelectOption[] {
-  const startDate = getDateRangeStartDate(meeting);
+  const range = getDateRangeDates(meeting);
 
-  if (!startDate) return [];
+  if (!range) return [];
 
-  return [-3, -2, -1].flatMap((offset) => {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + offset);
-    const times = offset === -3 ? ["18:00"] : ["12:00", "18:00"];
+  const options: SelectOption[] = [];
+  const current = new Date(range.start);
+  const now = new Date();
 
-    return times.map((time) => {
-      const month = date.getMonth() + 1;
-      const day = date.getDate();
-      const weekday = weekdays[date.getDay()];
+  while (current.getTime() <= range.end.getTime()) {
+    ["12:00", "18:00"].forEach((time) => {
+      if (getDateWithTime(current, time).getTime() < now.getTime()) return;
 
-      return {
+      const month = current.getMonth() + 1;
+      const day = current.getDate();
+      const weekday = weekdays[current.getDay()];
+
+      options.push({
         id: `deadline-${month}-${day}-${time.replace(":", "")}`,
         label: `${month}/${day} (${weekday}) ${time}`,
-      };
+      });
     });
-  });
+    current.setDate(current.getDate() + 1);
+  }
+
+  return options;
 }
 
 export function createMeetingSummaries(meeting: MeetingCreateMock) {

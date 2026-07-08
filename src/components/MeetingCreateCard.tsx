@@ -183,13 +183,27 @@ function parseMonthDay(value: string) {
   return new Date(2026, Number(match[1]) - 1, Number(match[2]));
 }
 
-function isBeforeDate(value: string, rangeLabel: string) {
+function getDateRangeBounds(rangeLabel: string) {
+  const matches = [...rangeLabel.matchAll(/(\d{1,2})\/(\d{1,2})/g)];
+
+  if (matches.length < 2) return null;
+
+  return {
+    start: new Date(2026, Number(matches[0][1]) - 1, Number(matches[0][2])),
+    end: new Date(2026, Number(matches[1][1]) - 1, Number(matches[1][2])),
+  };
+}
+
+function isWithinDateRange(value: string, rangeLabel: string) {
   const deadline = parseMonthDay(value);
-  const start = parseMonthDay(rangeLabel);
+  const range = getDateRangeBounds(rangeLabel);
 
-  if (!deadline || !start) return false;
+  if (!deadline || !range) return false;
 
-  return deadline.getTime() < start.getTime();
+  return (
+    deadline.getTime() >= range.start.getTime() &&
+    deadline.getTime() <= range.end.getTime()
+  );
 }
 
 export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
@@ -469,7 +483,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
               }}
               onSubmit={() => {
                 const value = customDeadlineInput.trim();
-                if (!value || !isBeforeDate(value, summaries.dateRange)) return;
+                if (!value || !isWithinDateRange(value, summaries.dateRange)) return;
                 updateMeeting({
                   customDeadline: value,
                   deadlineId: "custom-deadline",
