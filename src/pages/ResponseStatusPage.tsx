@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/button";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { cn } from "@/lib/utils";
 
-type ResponseStage = "partial" | "reminded" | "minResponded" | "complete";
+type ResponseStage =
+  | "partial"
+  | "reminded"
+  | "minResponded"
+  | "complete"
+  | "confirmed";
 
 const baseMessages = [
   {
@@ -49,7 +54,7 @@ const responseNames = [
 ];
 
 function responseCountForStage(stage: ResponseStage) {
-  if (stage === "complete") return 6;
+  if (stage === "complete" || stage === "confirmed") return 6;
   if (stage === "minResponded") return 5;
   return 4;
 }
@@ -59,13 +64,13 @@ function progressPercentForStage(stage: ResponseStage) {
 }
 
 function missingNamesForStage(stage: ResponseStage) {
-  if (stage === "complete") return "";
+  if (stage === "complete" || stage === "confirmed") return "";
   if (stage === "minResponded") return "태민";
   return "민수, 태민";
 }
 
 function ProgressBar({ stage }: { stage: ResponseStage }) {
-  const complete = stage === "complete";
+  const complete = stage === "complete" || stage === "confirmed";
 
   return (
     <div className="relative pb-[44px]">
@@ -159,9 +164,16 @@ function ChatLine({
   );
 }
 
-function ManagementCard({ stage }: { stage: ResponseStage }) {
+function ManagementCard({
+  onConfirm,
+  stage,
+}: {
+  onConfirm: () => void;
+  stage: ResponseStage;
+}) {
   const { meeting, summaries } = useMeetingFlow();
-  const complete = stage === "complete";
+  const confirmed = stage === "confirmed";
+  const complete = stage === "complete" || confirmed;
   const responseCount = responseCountForStage(stage);
   const missingNames = missingNamesForStage(stage);
   const missingCount = 6 - responseCount;
@@ -183,7 +195,7 @@ function ManagementCard({ stage }: { stage: ResponseStage }) {
           </div>
         </div>
         <span className="rounded-full bg-[#635BFF] px-3 py-1 text-xs font-bold leading-[18px] text-white">
-          {complete ? "응답 완료" : "응답 수집"}
+          {confirmed ? "회의 확정" : complete ? "응답 완료" : "응답 수집"}
         </span>
       </div>
 
@@ -221,18 +233,24 @@ function ManagementCard({ stage }: { stage: ResponseStage }) {
       <div className="flex items-center justify-between px-6 py-5">
         <div>
           <h3 className="text-base font-bold leading-6 text-[#101828]">
-            {complete
-              ? "응답이 모두 모였습니다. 회의를 확정하세요."
-              : "미응답자에게 마감 시간을 확인하세요"}
+            {confirmed
+              ? "회의를 확정했습니다."
+              : complete
+                ? "응답이 모두 모였습니다. 회의를 확정하세요."
+                : "미응답자에게 마감 시간을 확인하세요"}
           </h3>
           <p className="mt-1 text-[13px] font-medium leading-5 text-[#98A2B3]">
-            {complete
-              ? "회의 확정 후 참여자에게 알림이 전송됩니다."
-              : "응답이 모두 모이면 회의 확정으로 진행합니다."}
+            {confirmed
+              ? "참여자에게 일정이 공유되었습니다."
+              : complete
+                ? "회의 확정 후 참여자에게 알림이 전송됩니다."
+                : "응답이 모두 모이면 회의 확정으로 진행합니다."}
           </p>
         </div>
         <Button
           className="h-12 w-36 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+          disabled={confirmed}
+          onClick={complete && !confirmed ? onConfirm : undefined}
         >
           {complete ? "회의 확정" : "응답 현황 보기"}
         </Button>
@@ -248,7 +266,8 @@ function StatusPanel({
   onReminder: () => void;
   stage: ResponseStage;
 }) {
-  const complete = stage === "complete";
+  const confirmed = stage === "confirmed";
+  const complete = stage === "complete" || confirmed;
   const reminded = stage !== "partial" && !complete;
   const responseCount = responseCountForStage(stage);
   const missingNames = missingNamesForStage(stage);
@@ -260,12 +279,16 @@ function StatusPanel({
         응답 현황
       </h2>
       <p className="mt-2 text-sm font-medium leading-[21px] text-[#475467]">
-        {complete ? "모든 참여자가 응답했습니다" : "마감 전 응답 현황만 확인합니다"}
+        {confirmed
+          ? "참여자에게 일정을 공유했습니다"
+          : complete
+            ? "모든 참여자가 응답했습니다"
+            : "마감 전 응답 현황만 확인합니다"}
       </p>
 
       <section className="mt-6 rounded-xl border border-[#E0E4EB] bg-white p-5">
         <span className="rounded-full bg-[#F0EFFF] px-3 py-1 text-xs font-bold leading-[18px] text-[#635BFF]">
-          {complete ? "응답 완료" : "응답 수집"}
+          {confirmed ? "회의 확정" : complete ? "응답 완료" : "응답 수집"}
         </span>
         <h3 className="mt-5 text-[30px] font-bold leading-10 text-[#635BFF]">
           {responseCount}/6명 응답
@@ -329,6 +352,17 @@ function StatusPanel({
           </p>
         </div>
       )}
+
+      {confirmed && (
+        <div className="mt-5 rounded-lg border border-[#C7C2FF] bg-[#F0EFFF] px-5 py-4">
+          <h3 className="text-sm font-bold leading-[21px] text-[#635BFF]">
+            일정 공유 완료
+          </h3>
+          <p className="mt-2 text-sm font-medium leading-[21px] text-[#635BFF]">
+            모든 참여자 6명에게 확정된 일정을 공유했습니다.
+          </p>
+        </div>
+      )}
     </aside>
   );
 }
@@ -380,7 +414,9 @@ export function ResponseStatusPage() {
         time: "오전 10:20",
         message: "미응답자에게 리마인드를 보냈습니다.",
       },
-      ...(stage === "minResponded" || stage === "complete"
+      ...(stage === "minResponded" ||
+      stage === "complete" ||
+      stage === "confirmed"
         ? [
             {
               id: "min-response",
@@ -402,6 +438,31 @@ export function ResponseStatusPage() {
             },
           ]
         : []),
+      ...(stage === "confirmed"
+        ? [
+            {
+              id: "tae-response",
+              author: "MeetFlow",
+              initial: "M",
+              time: "오전 10:22",
+              message: "태민님이 응답했습니다.",
+            },
+            {
+              id: "meeting-confirmed",
+              author: "MeetFlow",
+              initial: "M",
+              time: "오전 10:23",
+              message: "회의를 확정했습니다.",
+            },
+            {
+              id: "schedule-shared",
+              author: "MeetFlow",
+              initial: "M",
+              time: "오전 10:24",
+              message: "참여자에게 일정을 공유했습니다.",
+            },
+          ]
+        : []),
     ];
   }, [reminderStarted, stage]);
 
@@ -409,6 +470,11 @@ export function ResponseStatusPage() {
     if (reminderStarted) return;
     setStage("reminded");
     setReminderStarted(true);
+  }
+
+  function confirmMeeting() {
+    if (stage !== "complete") return;
+    setStage("confirmed");
   }
 
   return (
@@ -426,7 +492,7 @@ export function ResponseStatusPage() {
                   time={message.time}
                 />
               ))}
-              <ManagementCard stage={stage} />
+              <ManagementCard onConfirm={confirmMeeting} stage={stage} />
             </div>
           </div>
           <ResponseComposer />
