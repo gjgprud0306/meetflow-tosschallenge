@@ -67,7 +67,7 @@ function RequestedMeetingCard() {
       </div>
       <div className="border-t border-[#E0E4EB] p-5">
         <Button
-          className="h-12 w-full rounded-lg bg-[#AAA3FF] text-base font-bold leading-6 text-white hover:bg-[#9B93FF]"
+          className="h-12 w-full rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
           onClick={() => navigate("/meetings/invite")}
         >
           응답하기
@@ -140,8 +140,8 @@ function RequestedRightPanel() {
 
 function RequestedComposer() {
   return (
-    <div className="absolute bottom-0 left-0 flex h-[104px] w-[840px] items-center gap-[34px] border-t border-[#E0E4EB] bg-white px-8 py-4">
-      <div className="flex h-12 flex-1 items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB]/80 px-4">
+    <div className="absolute bottom-0 left-0 flex h-[104px] w-full items-center gap-[34px] border-t border-[#E0E4EB] bg-white px-8 py-4">
+      <div className="flex h-12 min-w-0 flex-1 items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB]/80 px-4">
         <span className="text-sm font-medium leading-[21px] text-[#667085]">
           채팅 중 일정 조율이 필요하면 회의를 만들어보세요
         </span>
@@ -158,20 +158,20 @@ export function MeetingRequestedPage() {
 
   return (
     <MeetFlowLayout>
-      <div className="relative h-full w-full bg-white">
-        <div className="h-full w-[840px] overflow-y-auto px-8 pb-[132px] pt-7">
-          <div className="flex flex-col gap-6">
-            {chatMessages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
-            ))}
-            <SystemMessage title={meeting.title || "회의"} />
-            <RequestedMeetingCard />
+      <div className="flex h-full w-full min-w-0 bg-white">
+        <div className="relative min-w-0 flex-1">
+          <div className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7">
+            <div className="flex flex-col gap-6">
+              {chatMessages.map((message) => (
+                <ChatMessage key={message.id} message={message} />
+              ))}
+              <SystemMessage title={meeting.title || "회의"} />
+              <RequestedMeetingCard />
+            </div>
           </div>
+          <RequestedComposer />
         </div>
-        <RequestedComposer />
-        <div className="absolute right-0 top-0 h-full">
-          <RequestedRightPanel />
-        </div>
+        <RequestedRightPanel />
       </div>
     </MeetFlowLayout>
   );

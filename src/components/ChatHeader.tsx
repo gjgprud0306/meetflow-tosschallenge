@@ -9,8 +9,8 @@ const headerAvatars = [
 
 export function ChatHeader() {
   return (
-    <header className="flex h-24 w-[1168px] shrink-0 items-center border-b border-[#E5E7EB] bg-white px-8 py-[22px]">
-      <div className="w-[828px]">
+    <header className="flex h-24 w-full shrink-0 items-center border-b border-[#E5E7EB] bg-white px-8 py-[22px]">
+      <div className="min-w-0 flex-1">
         <h1 className="text-[23px] font-bold leading-[35px] text-[#101828]">
           회의 조율
         </h1>
@@ -23,7 +23,7 @@ export function ChatHeader() {
           </span>
         </div>
       </div>
-      <div className="flex h-10 w-[260px] items-center gap-2">
+      <div className="flex h-10 w-[260px] shrink-0 items-center gap-2">
         {headerAvatars.map((avatar) => (
           <AvatarBadge
             color={avatar.color}

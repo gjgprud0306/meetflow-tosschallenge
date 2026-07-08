@@ -18,7 +18,7 @@ function Dot({ active = false, large = false }: { active?: boolean; large?: bool
 
 export function Sidebar() {
   return (
-    <aside className="relative h-[1024px] w-[272px] shrink-0 border border-[#E5E7EB] bg-white">
+    <aside className="relative h-full w-[272px] shrink-0 border border-[#E5E7EB] bg-white">
       <div className="flex h-full flex-col px-6 pb-6 pt-7">
         <div className="flex h-9 w-[184px] items-center">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#635BFF] text-xl font-extrabold leading-none text-white">
