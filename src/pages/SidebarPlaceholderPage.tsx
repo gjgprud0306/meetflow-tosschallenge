@@ -52,7 +52,7 @@ export function SidebarPlaceholderPage({
   return (
     <MeetFlowLayout>
       <div className="h-full w-full overflow-y-auto px-8 pt-7">
-        <div className="max-w-[760px]">
+        <div className={empty ? "flex min-h-full flex-col" : "max-w-[760px]"}>
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-[26px] font-bold leading-9 text-[#101828]">
@@ -73,7 +73,7 @@ export function SidebarPlaceholderPage({
           </div>
 
           {empty ? (
-            <div className="mt-8 flex w-full max-w-[520px] flex-col items-center text-center">
+            <div className="flex flex-1 flex-col items-center justify-center text-center">
               <p className="text-sm font-bold leading-[21px] text-[#667085]">
                 최근 대화가 없습니다.
               </p>
