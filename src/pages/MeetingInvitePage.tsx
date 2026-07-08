@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
@@ -107,6 +108,7 @@ function ParticipantProgress() {
 }
 
 function InviteMeetingCard() {
+  const navigate = useNavigate();
   const { meeting, summaries } = useMeetingFlow();
   const title = meeting.title || "회의";
 
@@ -144,14 +146,17 @@ function InviteMeetingCard() {
       <div className="flex h-20 items-center justify-between px-6">
         <div>
           <h3 className="text-base font-bold leading-6 text-[#101828]">
-            응답 제출을 눌러 내 일정을 확인하세요
+            내 일정을 확인한 뒤 후보 시간을 선택하세요
           </h3>
           <p className="mt-1 text-[13px] font-medium leading-5 text-[#98A2B3]">
             후보 시간은 일정 확인 후 선택할 수 있습니다.
           </p>
         </div>
-        <Button className="h-12 w-36 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90">
-          응답 제출
+        <Button
+          className="h-12 w-36 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90"
+          onClick={() => navigate("/meetings/my-schedule")}
+        >
+          내 일정 확인하기
         </Button>
       </div>
     </section>
