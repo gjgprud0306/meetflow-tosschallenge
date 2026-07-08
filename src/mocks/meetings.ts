@@ -18,7 +18,7 @@ export const meetingDrafts: MeetingDraft[] = [
 export const chatMessages: ChatMessage[] = [
   {
     id: "m1",
-    author: "이가영 (주최자)",
+    author: "허혜경 (주최자)",
     initial: "가",
     time: "오전 10:12",
     message: [
@@ -44,7 +44,7 @@ export const chatMessages: ChatMessage[] = [
   },
   {
     id: "m4",
-    author: "이가영 (주최자)",
+    author: "허혜경 (주최자)",
     initial: "가",
     time: "오전 10:17",
     message: ["그럼 회의 생성해서 일정 응답 요청드릴게요."],
@@ -54,7 +54,7 @@ export const chatMessages: ChatMessage[] = [
 
 export const meetingCreateIntro: ChatMessage = {
   id: "create-intro",
-  author: "이가영 (주최자)",
+  author: "허혜경 (주최자)",
   initial: "가",
   time: "오전 10:17",
   message: ["그럼 회의 생성해서 일정 응답 요청드릴게요."],
