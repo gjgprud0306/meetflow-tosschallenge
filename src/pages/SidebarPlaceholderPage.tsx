@@ -1,4 +1,6 @@
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 type MeetingCard = {
   title: string;
@@ -11,6 +13,7 @@ type SidebarPlaceholderPageProps = {
   description: string;
   cards?: MeetingCard[];
   empty?: boolean;
+  showAddSchedule?: boolean;
 };
 
 function PlaceholderMeetingCard({ card }: { card: MeetingCard }) {
@@ -37,18 +40,37 @@ export function SidebarPlaceholderPage({
   cards = [],
   description,
   empty = false,
+  showAddSchedule = false,
   title,
 }: SidebarPlaceholderPageProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  function closeModal() {
+    setIsModalOpen(false);
+  }
+
   return (
     <MeetFlowLayout>
       <div className="h-full w-full overflow-y-auto px-8 pt-7">
         <div className="max-w-[760px]">
-          <h1 className="text-[26px] font-bold leading-9 text-[#101828]">
-            {title}
-          </h1>
-          <p className="mt-2 text-sm font-medium leading-[21px] text-[#667085]">
-            {description}
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-[26px] font-bold leading-9 text-[#101828]">
+                {title}
+              </h1>
+              <p className="mt-2 text-sm font-medium leading-[21px] text-[#667085]">
+                {description}
+              </p>
+            </div>
+            {showAddSchedule && (
+              <Button
+                className="h-9 rounded-lg bg-[#635BFF] px-4 text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+                onClick={() => setIsModalOpen(true)}
+              >
+                + 일정 추가
+              </Button>
+            )}
+          </div>
 
           {empty ? (
             <div className="mt-8 flex w-full max-w-[520px] flex-col items-center text-center">
@@ -68,6 +90,60 @@ export function SidebarPlaceholderPage({
           )}
         </div>
       </div>
+
+      {isModalOpen && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#101828]/30">
+          <div className="w-[360px] rounded-xl border border-[#E0E4EB] bg-white p-6 shadow-[0_16px_40px_rgba(16,24,40,0.18)]">
+            <h2 className="text-lg font-bold leading-7 text-[#101828]">
+              일정 추가
+            </h2>
+            <div className="mt-5 space-y-4">
+              <label className="block">
+                <span className="text-sm font-bold leading-[21px] text-[#344054]">
+                  일정 제목
+                </span>
+                <input
+                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
+                  placeholder="일정 제목"
+                  type="text"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-bold leading-[21px] text-[#344054]">
+                  날짜
+                </span>
+                <input
+                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
+                  type="date"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-bold leading-[21px] text-[#344054]">
+                  시간
+                </span>
+                <input
+                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
+                  type="time"
+                />
+              </label>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                className="h-10 rounded-lg border border-[#D0D5DD] bg-white px-4 text-sm font-bold leading-[21px] text-[#475467] hover:bg-[#F9FAFB]"
+                onClick={closeModal}
+              >
+                취소
+              </Button>
+              <Button
+                className="h-10 rounded-lg bg-[#635BFF] px-4 text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+                onClick={closeModal}
+              >
+                저장
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </MeetFlowLayout>
   );
 }

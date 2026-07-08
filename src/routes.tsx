@@ -63,6 +63,7 @@ export const router = createBrowserRouter([
           <SidebarPlaceholderPage
             cards={upcomingMeetings}
             description="다가오는 회의를 확인합니다."
+            showAddSchedule
             title="내 일정"
           />
         ),
