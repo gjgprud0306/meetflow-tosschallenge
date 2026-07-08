@@ -101,7 +101,6 @@ export const meetingCreateOptions: MeetingCreateOptions = {
   ],
   deadlines: [],
   reminders: [
-    { id: "24h", label: "마감 24시간 전" },
     { id: "3h", label: "마감 3시간 전" },
     { id: "1h", label: "마감 1시간 전" },
   ],

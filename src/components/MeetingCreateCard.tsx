@@ -199,8 +199,6 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   const [customTimeInput, setCustomTimeInput] = useState("");
   const [showCustomDeadline, setShowCustomDeadline] = useState(false);
   const [customDeadlineInput, setCustomDeadlineInput] = useState("");
-  const [showCustomReminder, setShowCustomReminder] = useState(false);
-  const [customReminderInput, setCustomReminderInput] = useState("");
   const deadlineOptions = createDeadlineOptions(meeting);
   const canSubmit =
     meeting.title.trim().length > 0 &&
@@ -583,63 +581,101 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             </div>
 
             <div className="flex flex-col gap-2">
+              <CustomReminderOption
+                disabled={!meeting.reminderEnabled}
+                onSelect={() => updateMeeting({ reminderId: "custom-reminder" })}
+                onValueChange={(value) =>
+                  updateMeeting({
+                    customReminderHours: value,
+                    reminderId: "custom-reminder",
+                  })
+                }
+                selected={meeting.reminderId === "custom-reminder"}
+                value={meeting.customReminderHours}
+              />
               {options.reminders.map((option) => (
                 <ReminderOption
                   disabled={!meeting.reminderEnabled}
                   key={option.id}
                   label={option.label}
-                  onClick={() => updateMeeting({ reminderId: option.id })}
+                  onClick={() =>
+                    updateMeeting({
+                      customReminderHours: "",
+                      reminderId: option.id,
+                    })
+                  }
                   selected={option.id === meeting.reminderId}
                 />
               ))}
-              <button
-                className={cn(
-                  "flex h-12 w-[360px] items-center justify-between rounded-lg border px-[17px] text-left text-sm font-medium leading-[21px]",
-                  meeting.reminderId === "custom-reminder"
-                    ? "border-[#635BFF] bg-[#F0EFFF] text-[#635BFF]"
-                    : "border-[#E0E4EB] bg-[#F9FAFB] text-[#475467]",
-                  !meeting.reminderEnabled && "opacity-45",
-                )}
-                disabled={!meeting.reminderEnabled}
-                onClick={() => setShowCustomReminder(true)}
-                type="button"
-              >
-                직접 입력하기
-                {meeting.reminderId === "custom-reminder" &&
-                meeting.customReminderHours
-                  ? ` · 마감 ${meeting.customReminderHours}시간 전`
-                  : null}
-              </button>
-              <CustomInput
-                buttonLabel=""
-                inputMode="numeric"
-                onCancel={() => {
-                  setShowCustomReminder(false);
-                  setCustomReminderInput("");
-                }}
-                onSubmit={() => {
-                  const value = customReminderInput.trim();
-                  if (!value) return;
-                  updateMeeting({
-                    customReminderHours: value,
-                    reminderId: "custom-reminder",
-                  });
-                  setCustomReminderInput("");
-                  setShowCustomReminder(false);
-                }}
-                onToggle={() => setShowCustomReminder(true)}
-                placeholder="3"
-                setValue={setCustomReminderInput}
-                show={showCustomReminder}
-                suffix="시간 전"
-                value={customReminderInput}
-              />
             </div>
           </div>
         </div>
       </section>
       {renderModal()}
     </>
+  );
+}
+
+function CustomReminderOption({
+  selected,
+  disabled,
+  value,
+  onSelect,
+  onValueChange,
+}: {
+  selected: boolean;
+  disabled: boolean;
+  value: string;
+  onSelect: () => void;
+  onValueChange: (value: string) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "w-[360px] rounded-lg border px-[17px] text-left text-sm font-medium leading-[21px]",
+        selected
+          ? "border-[#635BFF] bg-[#F0EFFF] text-[#635BFF]"
+          : "border-[#E0E4EB] bg-[#F9FAFB] text-[#475467]",
+        disabled && "opacity-45",
+      )}
+    >
+      <button
+        className="flex h-12 w-full items-center gap-3 text-left"
+        disabled={disabled}
+        onClick={onSelect}
+        type="button"
+      >
+        <span
+          className={cn(
+            "flex h-[18px] w-[18px] items-center justify-center rounded-full border-2",
+            selected ? "border-[#635BFF]" : "border-[#D0D5DD]",
+          )}
+        >
+          {selected ? (
+            <span className="h-2 w-2 rounded-full bg-[#635BFF]" />
+          ) : null}
+        </span>
+        <span>직접 입력</span>
+      </button>
+      {selected ? (
+        <div className="flex items-center gap-2 pb-3 pl-[30px]">
+          <span className="text-sm font-medium leading-[21px] text-[#475467]">
+            마감
+          </span>
+          <input
+            className="h-9 w-16 rounded-lg border border-[#E0E4EB] bg-white px-3 text-center text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
+            inputMode="numeric"
+            onChange={(event) => onValueChange(event.target.value)}
+            placeholder="6"
+            type="number"
+            value={value}
+          />
+          <span className="text-sm font-medium leading-[21px] text-[#475467]">
+            시간 전
+          </span>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
