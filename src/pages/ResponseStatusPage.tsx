@@ -391,10 +391,10 @@ export function ResponseStatusPage() {
 
     const minResponseTimer = window.setTimeout(() => {
       setStage("minResponded");
-    }, 1000);
+    }, 3000);
     const taeResponseTimer = window.setTimeout(() => {
       setStage("complete");
-    }, 2000);
+    }, 6000);
 
     return () => {
       window.clearTimeout(minResponseTimer);
