@@ -83,6 +83,30 @@ function Field({
   );
 }
 
+function TitleField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="w-96">
+      <div className="mb-2 flex h-5 w-[360px] items-center justify-between">
+        <div className="text-[13px] font-bold leading-5 text-[#101828]">
+          1. 회의 제목
+        </div>
+      </div>
+      <input
+        className="flex h-12 w-[360px] items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-[17px] text-sm font-medium leading-[21px] text-[#101828] outline-none placeholder:text-[#98A2B3] focus:border-[#635BFF]"
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="회의 제목을 입력해주세요"
+        value={value}
+      />
+    </div>
+  );
+}
+
 function ReminderOption({
   label,
   selected = false,
@@ -460,54 +484,51 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
           </Button>
         </div>
 
-        <div className="mt-10 grid w-[824px] grid-cols-[384px_384px] gap-x-8 gap-y-5">
-          <div className="w-96">
-            <div className="mb-2 flex h-5 w-[360px] items-center justify-between">
-              <div className="text-[13px] font-bold leading-5 text-[#101828]">
-                1. 회의 제목
-              </div>
-            </div>
-            <input
-              className="flex h-12 w-[360px] items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-[17px] text-sm font-medium leading-[21px] text-[#101828] outline-none placeholder:text-[#98A2B3] focus:border-[#635BFF]"
-              onChange={(event) => updateMeeting({ title: event.target.value })}
-              placeholder="회의 제목을 입력해주세요"
+        <div className="mt-10 flex w-[824px] flex-col gap-5">
+          <div className="flex h-[76px] items-start gap-8">
+            <TitleField
+              onChange={(title) => updateMeeting({ title })}
               value={meeting.title}
             />
+            <Field
+              action="참석자 편집"
+              badge
+              label="2. 참석자"
+              onClick={() => setModal("attendees")}
+              value={summaries.attendeesLabel}
+            />
           </div>
-          <Field
-            action="참석자 편집"
-            badge
-            label="2. 참석자"
-            onClick={() => setModal("attendees")}
-            value={summaries.attendeesLabel}
-          />
-          <Field
-            label="3. 후보 기간"
-            onClick={() => setModal("dateRange")}
-            placeholder={summaries.dateRange === "후보 기간 선택"}
-            value={summaries.dateRange}
-          />
-          <Field
-            helper="2~5개 선택"
-            label="4. 후보 시간"
-            onClick={() => setModal("times")}
-            placeholder={meeting.timeIds.length === 0}
-            value={summaries.timeCount}
-          />
-          <Field
-            label="5. 필수 참석자"
-            onClick={() => setModal("attendees")}
-            value={summaries.requiredLabel}
-          />
-          <Field
-            label="6. 응답 마감"
-            onClick={() => setModal("deadline")}
-            placeholder={summaries.deadline === "응답 마감 선택"}
-            value={summaries.deadline}
-          />
+          <div className="flex h-[76px] items-start gap-8">
+            <Field
+              label="3. 후보 기간"
+              onClick={() => setModal("dateRange")}
+              placeholder={summaries.dateRange === "후보 기간 선택"}
+              value={summaries.dateRange}
+            />
+            <Field
+              helper="2~5개 선택"
+              label="4. 후보 시간"
+              onClick={() => setModal("times")}
+              placeholder={meeting.timeIds.length === 0}
+              value={summaries.timeCount}
+            />
+          </div>
+          <div className="flex h-[76px] items-start gap-8">
+            <Field
+              label="5. 필수 참석자"
+              onClick={() => setModal("attendees")}
+              value={summaries.requiredLabel}
+            />
+            <Field
+              label="6. 응답 마감"
+              onClick={() => setModal("deadline")}
+              placeholder={summaries.deadline === "응답 마감 선택"}
+              value={summaries.deadline}
+            />
+          </div>
         </div>
 
-        <div className="mt-10 h-64 w-[824px]">
+        <div className="mt-10 w-[824px]">
           <h3 className="text-base font-bold leading-6 text-[#101828]">
             응답 리마인드
           </h3>
