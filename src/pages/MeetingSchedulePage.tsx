@@ -120,11 +120,11 @@ function ScheduleCard() {
             </li>
             <li className="flex items-center gap-3">
               <span className="h-1.5 w-1.5 rounded-full bg-[#635BFF]" />
-              수요일 점심 제외
+              수요일 13:00 고객 미팅
             </li>
             <li className="flex items-center gap-3">
               <span className="h-1.5 w-1.5 rounded-full bg-[#635BFF]" />
-              목요일 오전 일정
+              목요일 오전 팀 회의
             </li>
           </ul>
         </div>
