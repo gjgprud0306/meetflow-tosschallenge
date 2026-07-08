@@ -29,11 +29,14 @@ export type MeetingCreateMock = {
   attendeeIds: string[];
   requiredAttendeeIds: string[];
   dateRangeId: string;
+  customDateRange: string;
   timeIds: string[];
+  customTimeOptions: SelectOption[];
   deadlineId: string;
   reminderEnabled: boolean;
   unansweredOnly: boolean;
   reminderId: string;
+  customReminderHours: string;
 };
 
 export type SelectOption = {

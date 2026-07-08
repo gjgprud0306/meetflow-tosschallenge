@@ -69,25 +69,34 @@ export const meetingCreateMock: MeetingCreateMock = {
   attendeeIds: ["owner", "min", "jun", "seo", "ji", "eun"],
   requiredAttendeeIds: ["owner", "min", "jun"],
   dateRangeId: "july-7-9",
+  customDateRange: "",
   timeIds: ["tue-10", "wed-14", "thu-16"],
+  customTimeOptions: [],
   deadlineId: "july-10-18",
   reminderEnabled: true,
   unansweredOnly: true,
   reminderId: "3h",
+  customReminderHours: "",
 };
 
 export const meetingCreateOptions: MeetingCreateOptions = {
   dateRanges: [
     { id: "july-7-9", label: "7/7 (화) ~ 7/9 (목)" },
     { id: "july-8-10", label: "7/8 (수) ~ 7/10 (금)" },
+    { id: "july-9-11", label: "7/9 (목) ~ 7/11 (토)" },
     { id: "july-13-15", label: "7/13 (월) ~ 7/15 (수)" },
   ],
   candidateTimes: [
+    { id: "mon-10", label: "월 10:00" },
+    { id: "mon-14", label: "월 14:00" },
     { id: "tue-10", label: "화 10:00" },
-    { id: "tue-14", label: "화 14:00" },
+    { id: "tue-15", label: "화 15:00" },
+    { id: "wed-11", label: "수 11:00" },
     { id: "wed-14", label: "수 14:00" },
     { id: "thu-11", label: "목 11:00" },
     { id: "thu-16", label: "목 16:00" },
+    { id: "fri-10", label: "금 10:00" },
+    { id: "fri-15", label: "금 15:00" },
   ],
   deadlines: [
     { id: "july-10-12", label: "7/10 (금) 12:00" },

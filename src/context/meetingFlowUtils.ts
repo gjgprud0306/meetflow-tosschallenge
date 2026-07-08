@@ -9,6 +9,10 @@ function optionLabel(
 }
 
 export function createMeetingSummaries(meeting: MeetingCreateMock) {
+  const candidateTimes = [
+    ...meetingCreateOptions.candidateTimes,
+    ...meeting.customTimeOptions,
+  ];
   const firstRequired = attendees.find(
     (attendee) => attendee.id === meeting.requiredAttendeeIds[0],
   );
@@ -19,9 +23,9 @@ export function createMeetingSummaries(meeting: MeetingCreateMock) {
   const reminder = optionLabel(
     meetingCreateOptions.reminders,
     meeting.reminderId,
-  );
+  ) || (meeting.customReminderHours ? `마감 ${meeting.customReminderHours}시간 전` : "");
   const selectedTimes = meeting.timeIds
-    .map((id) => optionLabel(meetingCreateOptions.candidateTimes, id))
+    .map((id) => optionLabel(candidateTimes, id))
     .filter(Boolean)
     .join(", ");
 
@@ -33,7 +37,10 @@ export function createMeetingSummaries(meeting: MeetingCreateMock) {
             meeting.requiredAttendeeIds.length - 1
           }명`
         : (firstRequired?.name ?? "선택 없음"),
-    dateRange: optionLabel(meetingCreateOptions.dateRanges, meeting.dateRangeId),
+    dateRange:
+      meeting.dateRangeId === "custom-date-range"
+        ? meeting.customDateRange
+        : optionLabel(meetingCreateOptions.dateRanges, meeting.dateRangeId),
     timeCount: `${meeting.timeIds.length}개 선택`,
     selectedTimes,
     deadline,

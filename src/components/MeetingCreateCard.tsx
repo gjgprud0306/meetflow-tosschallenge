@@ -18,7 +18,6 @@ type FieldProps = {
   label: string;
   value: string;
   helper?: string;
-  centered?: boolean;
   badge?: boolean;
   action?: string;
   offsetTop?: boolean;
@@ -29,7 +28,6 @@ function Field({
   label,
   value,
   helper,
-  centered = false,
   badge = false,
   action,
   offsetTop = false,
@@ -67,12 +65,7 @@ function Field({
             {value}
           </span>
         ) : (
-          <span
-            className={cn(
-              "text-sm font-medium leading-[21px] text-[#101828]",
-              centered && "w-[180px] text-center",
-            )}
-          >
+          <span className="min-w-0 flex-1 truncate text-sm font-medium leading-[21px] text-[#101828]">
             {value}
           </span>
         )}
@@ -153,6 +146,12 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   const navigate = useNavigate();
   const { meeting, updateMeeting, summaries } = useMeetingFlow();
   const [modal, setModal] = useState<ModalType>(null);
+  const [showCustomDate, setShowCustomDate] = useState(false);
+  const [customDateInput, setCustomDateInput] = useState("");
+  const [showCustomTime, setShowCustomTime] = useState(false);
+  const [customTimeInput, setCustomTimeInput] = useState("");
+  const [showCustomReminder, setShowCustomReminder] = useState(false);
+  const [customReminderInput, setCustomReminderInput] = useState("");
 
   function toggleAttendee(attendeeId: string) {
     const selected = meeting.attendeeIds.includes(attendeeId);
@@ -272,6 +271,31 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             options={options.dateRanges}
             selectedIds={[meeting.dateRangeId]}
           />
+          <CustomInput
+            buttonLabel="직접 입력하기"
+            inputMode="text"
+            onCancel={() => {
+              setShowCustomDate(false);
+              setCustomDateInput("");
+            }}
+            onSubmit={() => {
+              const value = customDateInput.trim();
+              if (!value) return;
+              updateMeeting({
+                customDateRange: value,
+                dateRangeId: "custom-date-range",
+              });
+              setCustomDateInput("");
+              setShowCustomDate(false);
+              setModal(null);
+            }}
+            onToggle={() => setShowCustomDate(true)}
+            placeholder="예: 7/16 (목) ~ 7/17 (금)"
+            setValue={setCustomDateInput}
+            show={showCustomDate}
+            suffix=""
+            value={customDateInput}
+          />
         </ChoiceModal>
       );
     }
@@ -285,8 +309,40 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
           <OptionList
             multiple
             onSelect={toggleTime}
-            options={options.candidateTimes}
+            options={[...options.candidateTimes, ...meeting.customTimeOptions]}
             selectedIds={meeting.timeIds}
+          />
+          <CustomInput
+            buttonLabel="직접 입력하기"
+            inputMode="text"
+            onCancel={() => {
+              setShowCustomTime(false);
+              setCustomTimeInput("");
+            }}
+            onSubmit={() => {
+              const value = customTimeInput.trim();
+              if (!value || meeting.timeIds.length >= 5) return;
+              const id = `custom-time-${value.replace(/\s+/g, "-")}`;
+              const exists = meeting.customTimeOptions.some(
+                (option) => option.id === id,
+              );
+              updateMeeting({
+                customTimeOptions: exists
+                  ? meeting.customTimeOptions
+                  : [...meeting.customTimeOptions, { id, label: value }],
+                timeIds: meeting.timeIds.includes(id)
+                  ? meeting.timeIds
+                  : [...meeting.timeIds, id],
+              });
+              setCustomTimeInput("");
+              setShowCustomTime(false);
+            }}
+            onToggle={() => setShowCustomTime(true)}
+            placeholder="예: 금 17:00"
+            setValue={setCustomTimeInput}
+            show={showCustomTime}
+            suffix=""
+            value={customTimeInput}
           />
         </ChoiceModal>
       );
@@ -346,14 +402,12 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             value={summaries.dateRange}
           />
           <Field
-            centered
             helper="2~5개 선택"
             label="4. 후보 시간"
             onClick={() => setModal("times")}
             value={summaries.timeCount}
           />
           <Field
-            centered
             label="5. 필수 참석자"
             onClick={() => setModal("attendees")}
             value={summaries.requiredLabel}
@@ -431,12 +485,131 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                   selected={option.id === meeting.reminderId}
                 />
               ))}
+              <button
+                className={cn(
+                  "flex h-12 w-[360px] items-center justify-between rounded-lg border px-[17px] text-left text-sm font-medium leading-[21px]",
+                  meeting.reminderId === "custom-reminder"
+                    ? "border-[#635BFF] bg-[#F0EFFF] text-[#635BFF]"
+                    : "border-[#E0E4EB] bg-[#F9FAFB] text-[#475467]",
+                  !meeting.reminderEnabled && "opacity-45",
+                )}
+                disabled={!meeting.reminderEnabled}
+                onClick={() => setShowCustomReminder(true)}
+                type="button"
+              >
+                직접 입력하기
+                {meeting.reminderId === "custom-reminder" &&
+                meeting.customReminderHours
+                  ? ` · 마감 ${meeting.customReminderHours}시간 전`
+                  : null}
+              </button>
+              <CustomInput
+                buttonLabel=""
+                inputMode="numeric"
+                onCancel={() => {
+                  setShowCustomReminder(false);
+                  setCustomReminderInput("");
+                }}
+                onSubmit={() => {
+                  const value = customReminderInput.trim();
+                  if (!value) return;
+                  updateMeeting({
+                    customReminderHours: value,
+                    reminderId: "custom-reminder",
+                  });
+                  setCustomReminderInput("");
+                  setShowCustomReminder(false);
+                }}
+                onToggle={() => setShowCustomReminder(true)}
+                placeholder="3"
+                setValue={setCustomReminderInput}
+                show={showCustomReminder}
+                suffix="시간 전"
+                value={customReminderInput}
+              />
             </div>
           </div>
         </div>
       </section>
       {renderModal()}
     </>
+  );
+}
+
+function CustomInput({
+  buttonLabel,
+  show,
+  value,
+  placeholder,
+  suffix,
+  inputMode,
+  setValue,
+  onToggle,
+  onSubmit,
+  onCancel,
+}: {
+  buttonLabel: string;
+  show: boolean;
+  value: string;
+  placeholder: string;
+  suffix: string;
+  inputMode: "text" | "numeric";
+  setValue: (value: string) => void;
+  onToggle: () => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+}) {
+  if (!show) {
+    return buttonLabel ? (
+      <button
+        className="mt-3 flex h-11 w-full items-center justify-center rounded-lg border border-dashed border-[#C9CED8] bg-white text-sm font-bold leading-[21px] text-[#635BFF]"
+        onClick={onToggle}
+        type="button"
+      >
+        {buttonLabel}
+      </button>
+    ) : null;
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] p-3">
+      <div className="flex items-center gap-2">
+        {inputMode === "numeric" ? (
+          <span className="text-sm font-medium leading-[21px] text-[#475467]">
+            마감
+          </span>
+        ) : null}
+        <input
+          className="h-10 min-w-0 flex-1 rounded-lg border border-[#E0E4EB] bg-white px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
+          inputMode={inputMode}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder={placeholder}
+          type={inputMode === "numeric" ? "number" : "text"}
+          value={value}
+        />
+        {suffix ? (
+          <span className="text-sm font-medium leading-[21px] text-[#475467]">
+            {suffix}
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-2 flex justify-end gap-2">
+        <button
+          className="h-8 rounded-md px-3 text-xs font-bold leading-[18px] text-[#667085]"
+          onClick={onCancel}
+          type="button"
+        >
+          취소
+        </button>
+        <button
+          className="h-8 rounded-md bg-[#635BFF] px-3 text-xs font-bold leading-[18px] text-white"
+          onClick={onSubmit}
+          type="button"
+        >
+          적용
+        </button>
+      </div>
+    </div>
   );
 }
 
