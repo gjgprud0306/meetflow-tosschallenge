@@ -54,14 +54,11 @@ export const chatMessages: ChatMessage[] = [
 
 export const meetingCreateIntro: ChatMessage = {
   id: "create-intro",
-  author: "혜경",
-  initial: "혜",
-  time: "오전 10:12",
-  message: [
-    "디자인 리뷰 회의를 최대한 빨리 잡아야 합니다.",
-    "가능한 시간 알려주세요.",
-  ],
-  color: "muted",
+  author: "이가영 (주최자)",
+  initial: "가",
+  time: "오전 10:17",
+  message: ["그럼 회의 생성해서 일정 응답 요청드릴게요."],
+  color: "primary",
 };
 
 export const meetingCreateMock: MeetingCreateMock = {
