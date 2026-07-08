@@ -1,11 +1,57 @@
 import { attendees, meetingCreateOptions } from "@/mocks";
-import type { MeetingCreateMock } from "@/types/meeting";
+import type { MeetingCreateMock, SelectOption } from "@/types/meeting";
+
+const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
 
 function optionLabel(
   options: { id: string; label: string }[],
   selectedId: string,
 ) {
   return options.find((option) => option.id === selectedId)?.label ?? "";
+}
+
+function shortName(name: string) {
+  return name.length > 2 ? name.slice(-2) : name;
+}
+
+function getDateRangeLabel(meeting: MeetingCreateMock) {
+  if (meeting.dateRangeId === "custom-date-range") {
+    return meeting.customDateRange;
+  }
+
+  return optionLabel(meetingCreateOptions.dateRanges, meeting.dateRangeId);
+}
+
+function getDateRangeStartDate(meeting: MeetingCreateMock) {
+  const label = getDateRangeLabel(meeting);
+  const match = label.match(/(\d{1,2})\/(\d{1,2})/);
+
+  if (!match) return null;
+
+  return new Date(2026, Number(match[1]) - 1, Number(match[2]));
+}
+
+export function createDeadlineOptions(meeting: MeetingCreateMock): SelectOption[] {
+  const startDate = getDateRangeStartDate(meeting);
+
+  if (!startDate) return [];
+
+  return [-3, -2, -1].flatMap((offset) => {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + offset);
+    const times = offset === -3 ? ["18:00"] : ["12:00", "18:00"];
+
+    return times.map((time) => {
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      const weekday = weekdays[date.getDay()];
+
+      return {
+        id: `deadline-${month}-${day}-${time.replace(":", "")}`,
+        label: `${month}/${day} (${weekday}) ${time}`,
+      };
+    });
+  });
 }
 
 export function createMeetingSummaries(meeting: MeetingCreateMock) {
@@ -16,10 +62,10 @@ export function createMeetingSummaries(meeting: MeetingCreateMock) {
   const firstRequired = attendees.find(
     (attendee) => attendee.id === meeting.requiredAttendeeIds[0],
   );
-  const deadline = optionLabel(
-    meetingCreateOptions.deadlines,
-    meeting.deadlineId,
-  );
+  const deadlineOptions = createDeadlineOptions(meeting);
+  const deadline =
+    optionLabel(deadlineOptions, meeting.deadlineId) ||
+    (meeting.deadlineId === "custom-deadline" ? meeting.customDeadline : "");
   const reminder = optionLabel(
     meetingCreateOptions.reminders,
     meeting.reminderId,
@@ -30,13 +76,16 @@ export function createMeetingSummaries(meeting: MeetingCreateMock) {
     .join(", ");
 
   return {
-    attendeesLabel: `${meeting.attendeeIds.length}명 선택 · 필수 ${meeting.requiredAttendeeIds.length}명`,
+    attendeesLabel: `${meeting.attendeeIds.length}명 선택`,
     requiredLabel:
       meeting.requiredAttendeeIds.length > 1
-        ? `${firstRequired?.name.slice(-2) ?? "혜경"} 외 ${
-            meeting.requiredAttendeeIds.length - 1
-          }명`
-        : (firstRequired?.name ?? "선택 없음"),
+        ? attendees
+            .filter((attendee) =>
+              meeting.requiredAttendeeIds.includes(attendee.id),
+            )
+            .map((attendee) => shortName(attendee.name))
+            .join(", ")
+        : (firstRequired ? shortName(firstRequired.name) : "선택 없음"),
     dateRange:
       meeting.dateRangeId === "custom-date-range"
         ? meeting.customDateRange

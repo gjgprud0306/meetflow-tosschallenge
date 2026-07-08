@@ -73,6 +73,7 @@ export const meetingCreateMock: MeetingCreateMock = {
   timeIds: [],
   customTimeOptions: [],
   deadlineId: "",
+  customDeadline: "",
   reminderEnabled: true,
   unansweredOnly: true,
   reminderId: "",
@@ -98,11 +99,7 @@ export const meetingCreateOptions: MeetingCreateOptions = {
     { id: "fri-10", label: "금 10:00" },
     { id: "fri-15", label: "금 15:00" },
   ],
-  deadlines: [
-    { id: "july-10-12", label: "7/10 (금) 12:00" },
-    { id: "july-10-18", label: "7/10 (금) 18:00" },
-    { id: "july-11-12", label: "7/11 (토) 12:00" },
-  ],
+  deadlines: [],
   reminders: [
     { id: "24h", label: "마감 24시간 전" },
     { id: "3h", label: "마감 3시간 전" },

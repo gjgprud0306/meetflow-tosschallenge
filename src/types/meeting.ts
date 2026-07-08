@@ -33,6 +33,7 @@ export type MeetingCreateMock = {
   timeIds: string[];
   customTimeOptions: SelectOption[];
   deadlineId: string;
+  customDeadline: string;
   reminderEnabled: boolean;
   unansweredOnly: boolean;
   reminderId: string;

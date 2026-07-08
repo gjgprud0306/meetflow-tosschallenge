@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { Button } from "@/components/ui/button";
+import { createDeadlineOptions } from "@/context/meetingFlowUtils";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { attendees } from "@/mocks";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,6 @@ type FieldProps = {
   placeholder?: boolean;
   badge?: boolean;
   action?: string;
-  offsetTop?: boolean;
   onClick?: () => void;
 };
 
@@ -32,11 +32,10 @@ function Field({
   placeholder = false,
   badge = false,
   action,
-  offsetTop = false,
   onClick,
 }: FieldProps) {
   return (
-    <div className={cn("w-96", offsetTop && "pt-5")}>
+    <div className="w-96">
       <div className="mb-2 flex h-5 w-[360px] items-center justify-between">
         <div className="text-[13px] font-bold leading-5 text-[#101828]">
           {label}
@@ -149,6 +148,23 @@ function ChoiceModal({
   );
 }
 
+function parseMonthDay(value: string) {
+  const match = value.match(/(\d{1,2})\/(\d{1,2})/);
+
+  if (!match) return null;
+
+  return new Date(2026, Number(match[1]) - 1, Number(match[2]));
+}
+
+function isBeforeDate(value: string, rangeLabel: string) {
+  const deadline = parseMonthDay(value);
+  const start = parseMonthDay(rangeLabel);
+
+  if (!deadline || !start) return false;
+
+  return deadline.getTime() < start.getTime();
+}
+
 export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   const navigate = useNavigate();
   const { meeting, updateMeeting, summaries } = useMeetingFlow();
@@ -157,8 +173,11 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   const [customDateInput, setCustomDateInput] = useState("");
   const [showCustomTime, setShowCustomTime] = useState(false);
   const [customTimeInput, setCustomTimeInput] = useState("");
+  const [showCustomDeadline, setShowCustomDeadline] = useState(false);
+  const [customDeadlineInput, setCustomDeadlineInput] = useState("");
   const [showCustomReminder, setShowCustomReminder] = useState(false);
   const [customReminderInput, setCustomReminderInput] = useState("");
+  const deadlineOptions = createDeadlineOptions(meeting);
   const canSubmit =
     meeting.title.trim().length > 0 &&
     summaries.dateRange !== "후보 기간 선택" &&
@@ -277,7 +296,11 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
         <ChoiceModal onClose={() => setModal(null)} title="후보 기간 선택">
           <OptionList
             onSelect={(id) => {
-              updateMeeting({ dateRangeId: id });
+              updateMeeting({
+                dateRangeId: id,
+                deadlineId: "",
+                customDeadline: "",
+              });
               setModal(null);
             }}
             options={options.dateRanges}
@@ -296,6 +319,8 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
               updateMeeting({
                 customDateRange: value,
                 dateRangeId: "custom-date-range",
+                deadlineId: "",
+                customDeadline: "",
               });
               setCustomDateInput("");
               setShowCustomDate(false);
@@ -366,14 +391,47 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
     if (modal === "deadline") {
       return (
         <ChoiceModal onClose={() => setModal(null)} title="응답 마감 선택">
-          <OptionList
-            onSelect={(id) => {
-              updateMeeting({ deadlineId: id });
-              setModal(null);
-            }}
-            options={options.deadlines}
-            selectedIds={[meeting.deadlineId]}
-          />
+          {deadlineOptions.length > 0 ? (
+            <OptionList
+              onSelect={(id) => {
+                updateMeeting({ deadlineId: id, customDeadline: "" });
+                setModal(null);
+              }}
+              options={deadlineOptions}
+              selectedIds={[meeting.deadlineId]}
+            />
+          ) : (
+            <p className="text-sm font-medium leading-[21px] text-[#667085]">
+              후보 기간을 먼저 선택해주세요.
+            </p>
+          )}
+          {deadlineOptions.length > 0 ? (
+            <CustomInput
+              buttonLabel="직접 입력하기"
+              inputMode="text"
+              onCancel={() => {
+                setShowCustomDeadline(false);
+                setCustomDeadlineInput("");
+              }}
+              onSubmit={() => {
+                const value = customDeadlineInput.trim();
+                if (!value || !isBeforeDate(value, summaries.dateRange)) return;
+                updateMeeting({
+                  customDeadline: value,
+                  deadlineId: "custom-deadline",
+                });
+                setCustomDeadlineInput("");
+                setShowCustomDeadline(false);
+                setModal(null);
+              }}
+              onToggle={() => setShowCustomDeadline(true)}
+              placeholder="예: 7/12 (일) 18:00"
+              setValue={setCustomDeadlineInput}
+              show={showCustomDeadline}
+              suffix=""
+              value={customDeadlineInput}
+            />
+          ) : null}
         </ChoiceModal>
       );
     }
@@ -402,8 +460,8 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
           </Button>
         </div>
 
-        <div className="mt-5 grid h-[360px] w-[824px] grid-cols-[384px_384px] gap-x-8">
-          <div className="w-96 pt-5">
+        <div className="mt-10 grid w-[824px] grid-cols-[384px_384px] gap-x-8 gap-y-5">
+          <div className="w-96">
             <div className="mb-2 flex h-5 w-[360px] items-center justify-between">
               <div className="text-[13px] font-bold leading-5 text-[#101828]">
                 1. 회의 제목
@@ -420,7 +478,6 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             action="참석자 편집"
             badge
             label="2. 참석자"
-            offsetTop
             onClick={() => setModal("attendees")}
             value={summaries.attendeesLabel}
           />
@@ -442,22 +499,20 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             onClick={() => setModal("attendees")}
             value={summaries.requiredLabel}
           />
-          <div className="pt-7">
-            <Field
-              label="6. 응답 마감"
-              onClick={() => setModal("deadline")}
-              placeholder={summaries.deadline === "응답 마감 선택"}
-              value={summaries.deadline}
-            />
-          </div>
+          <Field
+            label="6. 응답 마감"
+            onClick={() => setModal("deadline")}
+            placeholder={summaries.deadline === "응답 마감 선택"}
+            value={summaries.deadline}
+          />
         </div>
 
-        <div className="mt-5 h-64 w-[824px]">
+        <div className="mt-10 h-64 w-[824px]">
           <h3 className="text-base font-bold leading-6 text-[#101828]">
             응답 리마인드
           </h3>
-          <div className="mt-4 grid grid-cols-[360px_360px] gap-x-14">
-            <div>
+          <div className="mt-4 grid grid-cols-[360px_360px] items-start gap-x-14">
+            <div className="flex flex-col gap-5">
               <div className="flex h-8 items-center justify-between">
                 <span className="text-sm font-medium leading-[21px] text-[#101828]">
                   자동 리마인드 사용
@@ -481,7 +536,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                 </button>
               </div>
               <button
-                className="mt-5 flex items-center gap-2.5 rounded text-sm font-medium leading-[21px] text-[#101828]"
+                className="flex items-center gap-2.5 rounded text-sm font-medium leading-[21px] text-[#101828]"
                 onClick={() =>
                   updateMeeting({ unansweredOnly: !meeting.unansweredOnly })
                 }
@@ -499,7 +554,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                 </span>
                 응답하지 않은 사람에게만 발송
               </button>
-              <div className="mt-[15px] flex h-[70px] w-[360px] items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-[17px]">
+              <div className="flex h-[70px] w-[360px] items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-[17px]">
                 <p className="w-[231px] text-[13px] font-medium leading-5 text-[#475467]">
                   {summaries.reminderText}
                 </p>
