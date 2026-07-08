@@ -65,17 +65,17 @@ export const meetingCreateIntro: ChatMessage = {
 };
 
 export const meetingCreateMock: MeetingCreateMock = {
-  title: "리뷰회의",
+  title: "",
   attendeeIds: ["owner", "min", "jun", "seo", "ji", "eun"],
   requiredAttendeeIds: ["owner", "min", "jun"],
-  dateRangeId: "july-7-9",
+  dateRangeId: "",
   customDateRange: "",
-  timeIds: ["tue-10", "wed-14", "thu-16"],
+  timeIds: [],
   customTimeOptions: [],
-  deadlineId: "july-10-18",
+  deadlineId: "",
   reminderEnabled: true,
   unansweredOnly: true,
-  reminderId: "3h",
+  reminderId: "",
   customReminderHours: "",
 };
 

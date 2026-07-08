@@ -40,13 +40,16 @@ export function createMeetingSummaries(meeting: MeetingCreateMock) {
     dateRange:
       meeting.dateRangeId === "custom-date-range"
         ? meeting.customDateRange
-        : optionLabel(meetingCreateOptions.dateRanges, meeting.dateRangeId),
+        : optionLabel(meetingCreateOptions.dateRanges, meeting.dateRangeId) ||
+          "후보 기간 선택",
     timeCount: `${meeting.timeIds.length}개 선택`,
     selectedTimes,
-    deadline,
+    deadline: deadline || "응답 마감 선택",
     reminder,
     reminderText: meeting.reminderEnabled
-      ? `${meeting.unansweredOnly ? "미응답자에게" : "참석자에게"} ${reminder}에 자동 리마인드를 보냅니다. (마감: ${deadline})`
+      ? reminder && deadline
+        ? `${meeting.unansweredOnly ? "미응답자에게" : "참석자에게"} ${reminder}에 자동 리마인드를 보냅니다. (마감: ${deadline})`
+        : "리마인드 시간을 선택해주세요."
       : "자동 리마인드를 사용하지 않습니다.",
   };
 }

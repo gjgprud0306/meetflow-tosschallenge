@@ -18,6 +18,7 @@ type FieldProps = {
   label: string;
   value: string;
   helper?: string;
+  placeholder?: boolean;
   badge?: boolean;
   action?: string;
   offsetTop?: boolean;
@@ -28,6 +29,7 @@ function Field({
   label,
   value,
   helper,
+  placeholder = false,
   badge = false,
   action,
   offsetTop = false,
@@ -65,7 +67,12 @@ function Field({
             {value}
           </span>
         ) : (
-          <span className="min-w-0 flex-1 truncate text-sm font-medium leading-[21px] text-[#101828]">
+          <span
+            className={cn(
+              "min-w-0 flex-1 truncate text-sm font-medium leading-[21px]",
+              placeholder ? "text-[#98A2B3]" : "text-[#101828]",
+            )}
+          >
             {value}
           </span>
         )}
@@ -152,6 +159,11 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   const [customTimeInput, setCustomTimeInput] = useState("");
   const [showCustomReminder, setShowCustomReminder] = useState(false);
   const [customReminderInput, setCustomReminderInput] = useState("");
+  const canSubmit =
+    meeting.title.trim().length > 0 &&
+    summaries.dateRange !== "후보 기간 선택" &&
+    meeting.timeIds.length > 0 &&
+    summaries.deadline !== "응답 마감 선택";
 
   function toggleAttendee(attendeeId: string) {
     const selected = meeting.attendeeIds.includes(attendeeId);
@@ -321,7 +333,10 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             }}
             onSubmit={() => {
               const value = customTimeInput.trim();
-              if (!value || meeting.timeIds.length >= 5) return;
+              const alreadySelected = meeting.customTimeOptions.some(
+                (option) => option.label === value && meeting.timeIds.includes(option.id),
+              );
+              if (!value || (meeting.timeIds.length >= 5 && !alreadySelected)) return;
               const id = `custom-time-${value.replace(/\s+/g, "-")}`;
               const exists = meeting.customTimeOptions.some(
                 (option) => option.id === id,
@@ -379,7 +394,8 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             </p>
           </div>
           <Button
-            className="h-12 w-40 rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90"
+            className="h-12 w-40 rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 disabled:bg-[#C9CED8] disabled:text-white"
+            disabled={!canSubmit}
             onClick={() => navigate("/meetings/response-status")}
           >
             응답 요청 보내기
@@ -387,7 +403,19 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
         </div>
 
         <div className="mt-5 grid h-[360px] w-[824px] grid-cols-[384px_384px] gap-x-8">
-          <Field label="1. 회의 제목" offsetTop value={meeting.title} />
+          <div className="w-96 pt-5">
+            <div className="mb-2 flex h-5 w-[360px] items-center justify-between">
+              <div className="text-[13px] font-bold leading-5 text-[#101828]">
+                1. 회의 제목
+              </div>
+            </div>
+            <input
+              className="flex h-12 w-[360px] items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-[17px] text-sm font-medium leading-[21px] text-[#101828] outline-none placeholder:text-[#98A2B3] focus:border-[#635BFF]"
+              onChange={(event) => updateMeeting({ title: event.target.value })}
+              placeholder="회의 제목을 입력해주세요"
+              value={meeting.title}
+            />
+          </div>
           <Field
             action="참석자 편집"
             badge
@@ -399,12 +427,14 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
           <Field
             label="3. 후보 기간"
             onClick={() => setModal("dateRange")}
+            placeholder={summaries.dateRange === "후보 기간 선택"}
             value={summaries.dateRange}
           />
           <Field
             helper="2~5개 선택"
             label="4. 후보 시간"
             onClick={() => setModal("times")}
+            placeholder={meeting.timeIds.length === 0}
             value={summaries.timeCount}
           />
           <Field
@@ -416,6 +446,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             <Field
               label="6. 응답 마감"
               onClick={() => setModal("deadline")}
+              placeholder={summaries.deadline === "응답 마감 선택"}
               value={summaries.deadline}
             />
           </div>
