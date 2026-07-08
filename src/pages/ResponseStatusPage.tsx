@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
@@ -385,6 +385,7 @@ function ResponseComposer() {
 export function ResponseStatusPage() {
   const [stage, setStage] = useState<ResponseStage>("partial");
   const [reminderStarted, setReminderStarted] = useState(false);
+  const followUpEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!reminderStarted) return undefined;
@@ -465,6 +466,16 @@ export function ResponseStatusPage() {
     ];
   }, [reminderStarted, stage]);
 
+  useEffect(() => {
+    if (followUpMessages.length === 0) return;
+    if (!["reminded", "minResponded", "complete"].includes(stage)) return;
+
+    followUpEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "end",
+    });
+  }, [followUpMessages.length, stage]);
+
   function sendReminder() {
     if (reminderStarted) return;
     setStage("reminded");
@@ -501,6 +512,7 @@ export function ResponseStatusPage() {
                   time={message.time}
                 />
               ))}
+              <div ref={followUpEndRef} />
             </div>
           </div>
           <ResponseComposer />
