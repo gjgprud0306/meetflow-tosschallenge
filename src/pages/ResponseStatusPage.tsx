@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { cn } from "@/lib/utils";
 
-type ResponseStage = "partial" | "reminded" | "complete";
+type ResponseStage = "partial" | "reminded" | "minResponded" | "complete";
 
 const baseMessages = [
   {
@@ -48,15 +48,31 @@ const responseNames = [
   { id: "tae", label: "태민" },
 ];
 
-function ProgressBar({ complete }: { complete: boolean }) {
+function responseCountForStage(stage: ResponseStage) {
+  if (stage === "complete") return 6;
+  if (stage === "minResponded") return 5;
+  return 4;
+}
+
+function progressPercentForStage(stage: ResponseStage) {
+  return `${(responseCountForStage(stage) / 6) * 100}%`;
+}
+
+function missingNamesForStage(stage: ResponseStage) {
+  if (stage === "complete") return "";
+  if (stage === "minResponded") return "태민";
+  return "민수, 태민";
+}
+
+function ProgressBar({ stage }: { stage: ResponseStage }) {
+  const complete = stage === "complete";
+
   return (
     <div className="relative pb-[44px]">
       <div className="absolute left-0 right-0 top-3 h-1 rounded-full bg-[#E5E7EB]">
         <div
-          className={cn(
-            "h-1 rounded-full bg-[#635BFF]",
-            complete ? "w-full" : "w-2/3",
-          )}
+          className="h-1 rounded-full bg-[#635BFF] transition-all duration-500 ease-out"
+          style={{ width: complete ? "100%" : progressPercentForStage(stage) }}
         />
       </div>
       <div className="absolute inset-x-0 top-0">
@@ -146,7 +162,9 @@ function ChatLine({
 function ManagementCard({ stage }: { stage: ResponseStage }) {
   const { meeting, summaries } = useMeetingFlow();
   const complete = stage === "complete";
-  const responseCount = complete ? 6 : 4;
+  const responseCount = responseCountForStage(stage);
+  const missingNames = missingNamesForStage(stage);
+  const missingCount = 6 - responseCount;
 
   return (
     <section className="w-full max-w-[680px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
@@ -180,10 +198,10 @@ function ManagementCard({ stage }: { stage: ResponseStage }) {
         </div>
         <div className="flex flex-col justify-center border-l border-[#E0E4EB] px-6">
           <span className="text-sm font-bold leading-[21px] text-[#98A2B3]">
-            {complete ? "모두 응답 완료" : "미응답자 2명"}
+            {complete ? "모두 응답 완료" : `미응답자 ${missingCount}명`}
           </span>
           <span className="mt-2 text-lg font-bold leading-7 text-[#101828]">
-            {complete ? "-" : "민수, 태민"}
+            {complete ? "-" : missingNames}
           </span>
         </div>
       </div>
@@ -194,10 +212,10 @@ function ManagementCard({ stage }: { stage: ResponseStage }) {
             응답 진행
           </h3>
           <span className="text-xs font-medium leading-[18px] text-[#98A2B3]">
-            {complete ? "회의 확정 가능" : "4명 제출 · 마감 전까지 응답 대기"}
+            {complete ? "회의 확정 가능" : `${responseCount}명 제출 · 마감 전까지 응답 대기`}
           </span>
         </div>
-        <ProgressBar complete={complete} />
+        <ProgressBar stage={stage} />
       </div>
 
       <div className="flex items-center justify-between px-6 py-5">
@@ -231,8 +249,10 @@ function StatusPanel({
   stage: ResponseStage;
 }) {
   const complete = stage === "complete";
-  const reminded = stage === "reminded";
-  const responseCount = complete ? 6 : 4;
+  const reminded = stage !== "partial" && !complete;
+  const responseCount = responseCountForStage(stage);
+  const missingNames = missingNamesForStage(stage);
+  const missingCount = 6 - responseCount;
 
   return (
     <aside className="h-full w-[328px] shrink-0 border-l border-[#E5E7EB] bg-[#F9FAFB] px-6 pt-7">
@@ -251,23 +271,24 @@ function StatusPanel({
           {responseCount}/6명 응답
         </h3>
         <p className="mt-5 text-sm font-bold leading-[21px] text-[#475467]">
-          {complete ? "회의 확정" : "미응답자 2명: 민수, 태민"}
+          {complete ? "회의 확정" : `미응답자 ${missingCount}명: ${missingNames}`}
         </p>
         <div className="mt-4 h-1.5 rounded-full bg-[#E5E7EB]">
           <div
-            className={cn(
-              "h-1.5 rounded-full bg-[#635BFF]",
-              complete ? "w-full" : "w-2/3",
-            )}
+            className="h-1.5 rounded-full bg-[#635BFF] transition-all duration-500 ease-out"
+            style={{ width: complete ? "100%" : progressPercentForStage(stage) }}
           />
         </div>
         <p className="mt-3 text-xs font-medium leading-[18px] text-[#98A2B3]">
-          {complete ? "100% 완료" : "67% 완료"}
+          {complete ? "100% 완료" : `${Math.round((responseCount / 6) * 100)}% 완료`}
         </p>
 
         <div className="mt-5 space-y-3">
           {responseNames.map((attendee, index) => {
-            const done = complete || [0, 2, 3, 4].includes(index);
+            const done =
+              complete ||
+              [0, 2, 3, 4].includes(index) ||
+              (stage === "minResponded" && attendee.id === "min");
 
             return (
               <div
@@ -287,7 +308,7 @@ function StatusPanel({
       {!complete && !reminded && (
         <>
           <div className="mt-5 rounded-lg border border-[#F5C16C] bg-[#FFF8E7] px-5 py-4 text-sm font-bold leading-[21px] text-[#A25C18]">
-            미응답자 2명이 아직 응답하지 않았습니다.
+            미응답자 {missingCount}명이 아직 응답하지 않았습니다.
           </div>
           <Button
             className="mt-3 h-14 w-full rounded-lg border border-[#E0E4EB] bg-white text-sm font-bold leading-[21px] text-[#475467] hover:bg-[#F9FAFB]"
@@ -334,16 +355,16 @@ export function ResponseStatusPage() {
   useEffect(() => {
     if (!reminderStarted) return undefined;
 
-    const participantTimer = window.setTimeout(() => {
-      setStage("reminded");
-    }, 500);
-    const completeTimer = window.setTimeout(() => {
+    const minResponseTimer = window.setTimeout(() => {
+      setStage("minResponded");
+    }, 1000);
+    const taeResponseTimer = window.setTimeout(() => {
       setStage("complete");
-    }, 2200);
+    }, 2000);
 
     return () => {
-      window.clearTimeout(participantTimer);
-      window.clearTimeout(completeTimer);
+      window.clearTimeout(minResponseTimer);
+      window.clearTimeout(taeResponseTimer);
     };
   }, [reminderStarted]);
 
@@ -359,14 +380,25 @@ export function ResponseStatusPage() {
         time: "오전 10:20",
         message: "미응답자에게 리마인드를 보냈습니다.",
       },
-      ...(stage !== "partial"
+      ...(stage === "minResponded" || stage === "complete"
+        ? [
+            {
+              id: "min-response",
+              author: "MeetFlow",
+              initial: "M",
+              time: "오전 10:21",
+              message: "민수님이 응답했습니다.",
+            },
+          ]
+        : []),
+      ...(stage === "complete"
         ? [
             {
               id: "tae-response",
-              author: "태민",
-              initial: "태",
-              time: "오전 10:21",
-              message: "응답을 남겼습니다.",
+              author: "MeetFlow",
+              initial: "M",
+              time: "오전 10:22",
+              message: "태민님이 응답했습니다.",
             },
           ]
         : []),
@@ -375,6 +407,7 @@ export function ResponseStatusPage() {
 
   function sendReminder() {
     if (reminderStarted) return;
+    setStage("reminded");
     setReminderStarted(true);
   }
 
