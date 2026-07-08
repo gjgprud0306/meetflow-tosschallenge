@@ -146,7 +146,7 @@ function RequestedComposer() {
 }
 
 export function MeetingRequestedPage() {
-  const { meeting } = useMeetingFlow();
+  const hostMessage = chatMessages[chatMessages.length - 1];
 
   return (
     <MeetFlowLayout>
@@ -154,10 +154,10 @@ export function MeetingRequestedPage() {
         <div className="relative min-w-0 flex-1">
           <div className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7">
             <div className="flex flex-col gap-6">
-              {chatMessages.map((message) => (
-                <ChatMessage key={message.id} message={message} />
-              ))}
-              <SystemMessage title={meeting.title || "회의"} />
+              {hostMessage && (
+                <ChatMessage key={hostMessage.id} message={hostMessage} />
+              )}
+              <SystemMessage title="디자인" />
               <RequestedMeetingCard />
             </div>
           </div>
