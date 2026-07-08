@@ -26,11 +26,24 @@ export type ChatMessage = {
 
 export type MeetingCreateMock = {
   title: string;
-  attendeesLabel: string;
-  dateRange: string;
-  timeCount: string;
-  requiredAttendees: string;
-  deadline: string;
-  reminderText: string;
-  selectedReminder: string;
+  attendeeIds: string[];
+  requiredAttendeeIds: string[];
+  dateRangeId: string;
+  timeIds: string[];
+  deadlineId: string;
+  reminderEnabled: boolean;
+  unansweredOnly: boolean;
+  reminderId: string;
+};
+
+export type SelectOption = {
+  id: string;
+  label: string;
+};
+
+export type MeetingCreateOptions = {
+  dateRanges: SelectOption[];
+  candidateTimes: SelectOption[];
+  deadlines: SelectOption[];
+  reminders: SelectOption[];
 };

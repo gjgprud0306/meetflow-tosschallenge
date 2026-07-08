@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 import { RootLayout } from "@/layouts/RootLayout";
 import { HomePage } from "@/pages/HomePage";
 import { MeetingCreatePage } from "@/pages/MeetingCreatePage";
+import { ResponseStatusPage } from "@/pages/ResponseStatusPage";
 
 export const router = createBrowserRouter([
   {
@@ -15,6 +16,10 @@ export const router = createBrowserRouter([
       {
         path: "meetings/new",
         element: <MeetingCreatePage />,
+      },
+      {
+        path: "meetings/response-status",
+        element: <ResponseStatusPage />,
       },
     ],
   },

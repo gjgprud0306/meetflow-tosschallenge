@@ -1,4 +1,9 @@
-import type { ChatMessage, MeetingCreateMock, MeetingDraft } from "@/types/meeting";
+import type {
+  ChatMessage,
+  MeetingCreateMock,
+  MeetingCreateOptions,
+  MeetingDraft,
+} from "@/types/meeting";
 
 export const meetingDrafts: MeetingDraft[] = [
   {
@@ -6,7 +11,7 @@ export const meetingDrafts: MeetingDraft[] = [
     title: "MeetFlow kickoff",
     durationMinutes: 60,
     timezone: "Asia/Seoul",
-    attendeeIds: ["owner", "designer", "pm"],
+    attendeeIds: ["owner", "min", "jun"],
   },
 ];
 
@@ -61,12 +66,37 @@ export const meetingCreateIntro: ChatMessage = {
 
 export const meetingCreateMock: MeetingCreateMock = {
   title: "리뷰회의",
-  attendeesLabel: "6명 선택 · 필수 3명",
-  dateRange: "7/7 (화) ~ 7/9 (목)",
-  timeCount: "3개 선택",
-  requiredAttendees: "혜경 외 2명",
-  deadline: "7/10 (금) 18:00",
-  reminderText:
-    "미응답자에게 마감 3시간 전에 자동 리마인드를 보냅니다. (마감: 7/10 (금) 18:00)",
-  selectedReminder: "마감 3시간 전",
+  attendeeIds: ["owner", "min", "jun", "seo", "ji", "eun"],
+  requiredAttendeeIds: ["owner", "min", "jun"],
+  dateRangeId: "july-7-9",
+  timeIds: ["tue-10", "wed-14", "thu-16"],
+  deadlineId: "july-10-18",
+  reminderEnabled: true,
+  unansweredOnly: true,
+  reminderId: "3h",
+};
+
+export const meetingCreateOptions: MeetingCreateOptions = {
+  dateRanges: [
+    { id: "july-7-9", label: "7/7 (화) ~ 7/9 (목)" },
+    { id: "july-8-10", label: "7/8 (수) ~ 7/10 (금)" },
+    { id: "july-13-15", label: "7/13 (월) ~ 7/15 (수)" },
+  ],
+  candidateTimes: [
+    { id: "tue-10", label: "화 10:00" },
+    { id: "tue-14", label: "화 14:00" },
+    { id: "wed-14", label: "수 14:00" },
+    { id: "thu-11", label: "목 11:00" },
+    { id: "thu-16", label: "목 16:00" },
+  ],
+  deadlines: [
+    { id: "july-10-12", label: "7/10 (금) 12:00" },
+    { id: "july-10-18", label: "7/10 (금) 18:00" },
+    { id: "july-11-12", label: "7/11 (토) 12:00" },
+  ],
+  reminders: [
+    { id: "24h", label: "마감 24시간 전" },
+    { id: "3h", label: "마감 3시간 전" },
+    { id: "1h", label: "마감 1시간 전" },
+  ],
 };
