@@ -200,6 +200,10 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   const [customDateInput, setCustomDateInput] = useState("");
   const [showCustomTime, setShowCustomTime] = useState(false);
   const [customTimeInput, setCustomTimeInput] = useState("");
+  const [draftTimeIds, setDraftTimeIds] = useState<string[]>([]);
+  const [draftCustomTimeOptions, setDraftCustomTimeOptions] = useState<
+    SelectOption[]
+  >([]);
   const [showCustomDeadline, setShowCustomDeadline] = useState(false);
   const [customDeadlineInput, setCustomDeadlineInput] = useState("");
   const deadlineOptions = createDeadlineOptions(meeting);
@@ -233,22 +237,21 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
     });
   }
 
-  function toggleTime(timeId: string) {
-    if (meeting.timeIds.includes(timeId)) {
-      updateMeeting({
-        timeIds:
-          meeting.timeIds.length > 2
-            ? meeting.timeIds.filter((id) => id !== timeId)
-            : meeting.timeIds,
-      });
-      return;
-    }
+  function openTimesModal() {
+    setDraftTimeIds(meeting.timeIds);
+    setDraftCustomTimeOptions(meeting.customTimeOptions);
+    setShowCustomTime(false);
+    setCustomTimeInput("");
+    setModal("times");
+  }
 
-    updateMeeting({
-      timeIds:
-        meeting.timeIds.length < 5
-          ? [...meeting.timeIds, timeId]
-          : meeting.timeIds,
+  function toggleTime(timeId: string) {
+    setDraftTimeIds((current) => {
+      if (current.includes(timeId)) {
+        return current.filter((id) => id !== timeId);
+      }
+
+      return current.length < 5 ? [...current, timeId] : current;
     });
   }
 
@@ -378,8 +381,8 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
               <OptionList
                 multiple
                 onSelect={toggleTime}
-                options={[...candidateTimeOptions, ...meeting.customTimeOptions]}
-                selectedIds={meeting.timeIds}
+                options={[...candidateTimeOptions, ...draftCustomTimeOptions]}
+                selectedIds={draftTimeIds}
               />
               <CustomInput
                 buttonLabel="직접 입력하기"
@@ -390,23 +393,22 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                 }}
                 onSubmit={() => {
                   const value = customTimeInput.trim();
-                  const alreadySelected = meeting.customTimeOptions.some(
+                  const alreadySelected = draftCustomTimeOptions.some(
                     (option) =>
-                      option.label === value && meeting.timeIds.includes(option.id),
+                      option.label === value && draftTimeIds.includes(option.id),
                   );
-                  if (!value || (meeting.timeIds.length >= 5 && !alreadySelected)) return;
+                  if (!value || (draftTimeIds.length >= 5 && !alreadySelected)) return;
                   const id = `custom-time-${value.replace(/\s+/g, "-")}`;
-                  const exists = meeting.customTimeOptions.some(
-                    (option) => option.id === id,
+                  setDraftCustomTimeOptions((current) =>
+                    current.some((option) => option.id === id)
+                      ? current
+                      : [...current, { id, label: value }],
                   );
-                  updateMeeting({
-                    customTimeOptions: exists
-                      ? meeting.customTimeOptions
-                      : [...meeting.customTimeOptions, { id, label: value }],
-                    timeIds: meeting.timeIds.includes(id)
-                      ? meeting.timeIds
-                      : [...meeting.timeIds, id],
-                  });
+                  setDraftTimeIds((current) =>
+                    current.includes(id) || current.length >= 5
+                      ? current
+                      : [...current, id],
+                  );
                   setCustomTimeInput("");
                   setShowCustomTime(false);
                 }}
@@ -417,6 +419,19 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                 suffix=""
                 value={customTimeInput}
               />
+              <Button
+                className="mt-4 h-12 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 disabled:bg-[#C9CED8] disabled:text-white"
+                disabled={draftTimeIds.length < 2}
+                onClick={() => {
+                  updateMeeting({
+                    timeIds: draftTimeIds,
+                    customTimeOptions: draftCustomTimeOptions,
+                  });
+                  setModal(null);
+                }}
+              >
+                선택 완료
+              </Button>
             </>
           ) : (
             <p className="text-sm font-medium leading-[21px] text-[#667085]">
@@ -520,7 +535,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
           <Field
             helper="2~5개 선택"
             label="4. 후보 시간"
-            onClick={() => setModal("times")}
+            onClick={openTimesModal}
             placeholder={meeting.timeIds.length === 0}
             value={summaries.timeCount}
           />
