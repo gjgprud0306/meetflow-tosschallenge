@@ -4,28 +4,21 @@ import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
-import { createCandidateTimeOptions } from "@/context/meetingFlowUtils";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { cn } from "@/lib/utils";
 
 type CandidateAnswer = "available" | "unavailable";
 
-function formatCandidateTime(label: string) {
-  return label.replace(/\d{1,2}\/\d{1,2} \([^)]+\) /, "");
-}
+const candidateOptions = [
+  { id: "candidate-1", label: "7/9(수) 11:00" },
+  { id: "candidate-2", label: "7/10(금) 10:00" },
+  { id: "candidate-3", label: "7/10(금) 15:00" },
+];
 
 export function MeetingCandidateSelectPage() {
   const { meeting } = useMeetingFlow();
   const navigate = useNavigate();
   const [answers, setAnswers] = useState<Record<string, CandidateAnswer>>({});
-  const candidateOptions = [
-    ...createCandidateTimeOptions(meeting),
-    ...meeting.customTimeOptions,
-  ]
-    .filter((option) =>
-      meeting.timeIds.length > 0 ? meeting.timeIds.includes(option.id) : true,
-    )
-    .slice(0, 3);
 
   function selectAnswer(optionId: string, answer: CandidateAnswer) {
     setAnswers((current) => ({ ...current, [optionId]: answer }));
@@ -157,7 +150,7 @@ export function MeetingCandidateSelectPage() {
                   후보 시간
                 </h3>
                 <p className="mt-2 text-sm font-medium leading-[21px] text-[#475467]">
-                  입력한 일정과 후보 시간을 비교해 선택하세요.
+                  입력한 일정을 제외한 후보 시간입니다. 가능한 시간을 선택하세요.
                 </p>
 
                 <div className="mt-4 grid grid-cols-3 gap-4">
@@ -174,7 +167,7 @@ export function MeetingCandidateSelectPage() {
                             후보 {index + 1}
                           </p>
                           <p className="mt-1 text-base font-bold leading-6 text-[#101828]">
-                            {formatCandidateTime(option.label)}
+                            {option.label}
                           </p>
                         </div>
                         <button
