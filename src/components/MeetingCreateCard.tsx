@@ -3,16 +3,12 @@ import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { Button } from "@/components/ui/button";
+import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { attendees } from "@/mocks";
 import { cn } from "@/lib/utils";
-import type {
-  MeetingCreateMock,
-  MeetingCreateOptions,
-  SelectOption,
-} from "@/types/meeting";
+import type { MeetingCreateOptions, SelectOption } from "@/types/meeting";
 
 type MeetingCreateCardProps = {
-  meeting: MeetingCreateMock;
   options: MeetingCreateOptions;
 };
 
@@ -28,10 +24,6 @@ type FieldProps = {
   offsetTop?: boolean;
   onClick?: () => void;
 };
-
-function byId(options: SelectOption[], id: string) {
-  return options.find((option) => option.id === id)?.label ?? "";
-}
 
 function Field({
   label,
@@ -157,67 +149,50 @@ function ChoiceModal({
   );
 }
 
-export function MeetingCreateCard({ meeting, options }: MeetingCreateCardProps) {
+export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   const navigate = useNavigate();
+  const { meeting, updateMeeting, summaries } = useMeetingFlow();
   const [modal, setModal] = useState<ModalType>(null);
-  const [attendeeIds, setAttendeeIds] = useState(meeting.attendeeIds);
-  const [requiredAttendeeIds, setRequiredAttendeeIds] = useState(
-    meeting.requiredAttendeeIds,
-  );
-  const [dateRangeId, setDateRangeId] = useState(meeting.dateRangeId);
-  const [timeIds, setTimeIds] = useState(meeting.timeIds);
-  const [deadlineId, setDeadlineId] = useState(meeting.deadlineId);
-  const [reminderEnabled, setReminderEnabled] = useState(
-    meeting.reminderEnabled,
-  );
-  const [unansweredOnly, setUnansweredOnly] = useState(meeting.unansweredOnly);
-  const [reminderId, setReminderId] = useState(meeting.reminderId);
-
-  const attendeeLabel = `${attendeeIds.length}명 선택 · 필수 ${requiredAttendeeIds.length}명`;
-  const requiredLabel =
-    requiredAttendeeIds.length > 1
-      ? `${attendees.find((attendee) => attendee.id === requiredAttendeeIds[0])?.name.slice(-2) ?? "혜경"} 외 ${
-          requiredAttendeeIds.length - 1
-        }명`
-      : (attendees.find((attendee) => attendee.id === requiredAttendeeIds[0])
-          ?.name ?? "선택 없음");
-  const selectedReminder = byId(options.reminders, reminderId);
-  const deadline = byId(options.deadlines, deadlineId);
-  const reminderText = reminderEnabled
-    ? `${unansweredOnly ? "미응답자에게" : "참석자에게"} ${selectedReminder}에 자동 리마인드를 보냅니다. (마감: ${deadline})`
-    : "자동 리마인드를 사용하지 않습니다.";
 
   function toggleAttendee(attendeeId: string) {
-    setAttendeeIds((current) => {
-      if (current.includes(attendeeId)) {
-        setRequiredAttendeeIds((required) =>
-          required.filter((id) => id !== attendeeId),
-        );
-        return current.filter((id) => id !== attendeeId);
-      }
+    const selected = meeting.attendeeIds.includes(attendeeId);
 
-      return [...current, attendeeId];
+    updateMeeting({
+      attendeeIds: selected
+        ? meeting.attendeeIds.filter((id) => id !== attendeeId)
+        : [...meeting.attendeeIds, attendeeId],
+      requiredAttendeeIds: selected
+        ? meeting.requiredAttendeeIds.filter((id) => id !== attendeeId)
+        : meeting.requiredAttendeeIds,
     });
   }
 
   function toggleRequired(attendeeId: string) {
-    if (!attendeeIds.includes(attendeeId)) return;
-    setRequiredAttendeeIds((current) =>
-      current.includes(attendeeId)
-        ? current.filter((id) => id !== attendeeId)
-        : [...current, attendeeId],
-    );
+    if (!meeting.attendeeIds.includes(attendeeId)) return;
+
+    updateMeeting({
+      requiredAttendeeIds: meeting.requiredAttendeeIds.includes(attendeeId)
+        ? meeting.requiredAttendeeIds.filter((id) => id !== attendeeId)
+        : [...meeting.requiredAttendeeIds, attendeeId],
+    });
   }
 
   function toggleTime(timeId: string) {
-    setTimeIds((current) => {
-      if (current.includes(timeId)) {
-        return current.length > 2
-          ? current.filter((id) => id !== timeId)
-          : current;
-      }
+    if (meeting.timeIds.includes(timeId)) {
+      updateMeeting({
+        timeIds:
+          meeting.timeIds.length > 2
+            ? meeting.timeIds.filter((id) => id !== timeId)
+            : meeting.timeIds,
+      });
+      return;
+    }
 
-      return current.length < 5 ? [...current, timeId] : current;
+    updateMeeting({
+      timeIds:
+        meeting.timeIds.length < 5
+          ? [...meeting.timeIds, timeId]
+          : meeting.timeIds,
     });
   }
 
@@ -227,8 +202,8 @@ export function MeetingCreateCard({ meeting, options }: MeetingCreateCardProps) 
         <ChoiceModal onClose={() => setModal(null)} title="참석자 선택">
           <div className="space-y-3">
             {attendees.map((attendee) => {
-              const selected = attendeeIds.includes(attendee.id);
-              const required = requiredAttendeeIds.includes(attendee.id);
+              const selected = meeting.attendeeIds.includes(attendee.id);
+              const required = meeting.requiredAttendeeIds.includes(attendee.id);
 
               return (
                 <div
@@ -291,11 +266,11 @@ export function MeetingCreateCard({ meeting, options }: MeetingCreateCardProps) 
         <ChoiceModal onClose={() => setModal(null)} title="후보 기간 선택">
           <OptionList
             onSelect={(id) => {
-              setDateRangeId(id);
+              updateMeeting({ dateRangeId: id });
               setModal(null);
             }}
             options={options.dateRanges}
-            selectedIds={[dateRangeId]}
+            selectedIds={[meeting.dateRangeId]}
           />
         </ChoiceModal>
       );
@@ -311,7 +286,7 @@ export function MeetingCreateCard({ meeting, options }: MeetingCreateCardProps) 
             multiple
             onSelect={toggleTime}
             options={options.candidateTimes}
-            selectedIds={timeIds}
+            selectedIds={meeting.timeIds}
           />
         </ChoiceModal>
       );
@@ -322,11 +297,11 @@ export function MeetingCreateCard({ meeting, options }: MeetingCreateCardProps) 
         <ChoiceModal onClose={() => setModal(null)} title="응답 마감 선택">
           <OptionList
             onSelect={(id) => {
-              setDeadlineId(id);
+              updateMeeting({ deadlineId: id });
               setModal(null);
             }}
             options={options.deadlines}
-            selectedIds={[deadlineId]}
+            selectedIds={[meeting.deadlineId]}
           />
         </ChoiceModal>
       );
@@ -363,31 +338,31 @@ export function MeetingCreateCard({ meeting, options }: MeetingCreateCardProps) 
             label="2. 참석자"
             offsetTop
             onClick={() => setModal("attendees")}
-            value={attendeeLabel}
+            value={summaries.attendeesLabel}
           />
           <Field
             label="3. 후보 기간"
             onClick={() => setModal("dateRange")}
-            value={byId(options.dateRanges, dateRangeId)}
+            value={summaries.dateRange}
           />
           <Field
             centered
             helper="2~5개 선택"
             label="4. 후보 시간"
             onClick={() => setModal("times")}
-            value={`${timeIds.length}개 선택`}
+            value={summaries.timeCount}
           />
           <Field
             centered
             label="5. 필수 참석자"
             onClick={() => setModal("attendees")}
-            value={requiredLabel}
+            value={summaries.requiredLabel}
           />
           <div className="pt-7">
             <Field
               label="6. 응답 마감"
               onClick={() => setModal("deadline")}
-              value={deadline}
+              value={summaries.deadline}
             />
           </div>
         </div>
@@ -405,28 +380,32 @@ export function MeetingCreateCard({ meeting, options }: MeetingCreateCardProps) 
                 <button
                   className={cn(
                     "relative h-6 w-11 rounded-full transition-colors",
-                    reminderEnabled ? "bg-[#635BFF]" : "bg-[#D0D5DD]",
+                    meeting.reminderEnabled ? "bg-[#635BFF]" : "bg-[#D0D5DD]",
                   )}
-                  onClick={() => setReminderEnabled((current) => !current)}
+                  onClick={() =>
+                    updateMeeting({ reminderEnabled: !meeting.reminderEnabled })
+                  }
                   type="button"
                 >
                   <span
                     className={cn(
                       "absolute top-[3px] h-[18px] w-[18px] rounded-full bg-white shadow transition-all",
-                      reminderEnabled ? "left-[23px]" : "left-[3px]",
+                      meeting.reminderEnabled ? "left-[23px]" : "left-[3px]",
                     )}
                   />
                 </button>
               </div>
               <button
                 className="mt-5 flex items-center gap-2.5 rounded text-sm font-medium leading-[21px] text-[#101828]"
-                onClick={() => setUnansweredOnly((current) => !current)}
+                onClick={() =>
+                  updateMeeting({ unansweredOnly: !meeting.unansweredOnly })
+                }
                 type="button"
               >
                 <span
                   className={cn(
                     "flex h-[18px] w-[18px] items-center justify-center rounded border",
-                    unansweredOnly
+                    meeting.unansweredOnly
                       ? "border-[#635BFF] bg-[#635BFF] text-white"
                       : "border-[#D0D5DD] bg-white text-transparent",
                   )}
@@ -437,7 +416,7 @@ export function MeetingCreateCard({ meeting, options }: MeetingCreateCardProps) 
               </button>
               <div className="mt-[15px] flex h-[70px] w-[360px] items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-[17px]">
                 <p className="w-[231px] text-[13px] font-medium leading-5 text-[#475467]">
-                  {reminderText}
+                  {summaries.reminderText}
                 </p>
               </div>
             </div>
@@ -445,11 +424,11 @@ export function MeetingCreateCard({ meeting, options }: MeetingCreateCardProps) 
             <div className="flex flex-col gap-2">
               {options.reminders.map((option) => (
                 <ReminderOption
-                  disabled={!reminderEnabled}
+                  disabled={!meeting.reminderEnabled}
                   key={option.id}
                   label={option.label}
-                  onClick={() => setReminderId(option.id)}
-                  selected={option.id === reminderId}
+                  onClick={() => updateMeeting({ reminderId: option.id })}
+                  selected={option.id === meeting.reminderId}
                 />
               ))}
             </div>
