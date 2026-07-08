@@ -54,23 +54,6 @@ export function MeetingCandidateSelectPage() {
                   </p>
                 </div>
               </article>
-
-              <article className="flex items-start">
-                <AvatarBadge color="muted" initial="민" />
-                <div className="ml-3">
-                  <div className="flex h-[21px] items-center gap-1.5">
-                    <span className="text-sm font-bold leading-[21px] text-[#101828]">
-                      민수
-                    </span>
-                    <span className="text-xs font-normal leading-[18px] text-[#98A2B3]">
-                      오전 10:15
-                    </span>
-                  </div>
-                  <p className="mt-1 text-base font-normal leading-6 text-[#1D2939]">
-                    회의 요청을 확인했습니다.
-                  </p>
-                </div>
-              </article>
             </div>
 
             <section className="w-full max-w-[880px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
