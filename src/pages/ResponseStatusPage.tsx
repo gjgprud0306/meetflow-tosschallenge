@@ -329,17 +329,12 @@ function StatusPanel({
       </section>
 
       {!complete && !reminded && (
-        <>
-          <div className="mt-5 rounded-lg border border-[#F5C16C] bg-[#FFF8E7] px-5 py-4 text-sm font-bold leading-[21px] text-[#A25C18]">
-            미응답자 {missingCount}명이 아직 응답하지 않았습니다.
-          </div>
-          <Button
-            className="mt-3 h-14 w-full rounded-lg border border-[#E0E4EB] bg-white text-sm font-bold leading-[21px] text-[#475467] hover:bg-[#F9FAFB]"
-            onClick={onReminder}
-          >
-            리마인드 보내기 (2명)
-          </Button>
-        </>
+        <Button
+          className="mt-5 h-14 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+          onClick={onReminder}
+        >
+          미응답자에게 리마인드 보내기 (2명)
+        </Button>
       )}
 
       {reminded && (
