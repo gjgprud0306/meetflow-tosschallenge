@@ -17,6 +17,8 @@ type SidebarPlaceholderPageProps = {
 };
 
 function PlaceholderMeetingCard({ card }: { card: MeetingCard }) {
+  const isPastMeeting = card.status === "지난 회의";
+
   return (
     <article className="w-full max-w-[520px] rounded-xl border border-[#E0E4EB] bg-white px-5 py-4 shadow-[0_4px_16px_rgba(16,24,40,0.06)]">
       <div className="flex items-start justify-between gap-4">
@@ -28,8 +30,14 @@ function PlaceholderMeetingCard({ card }: { card: MeetingCard }) {
             {card.meta}
           </p>
         </div>
-        <span className="shrink-0 rounded-full bg-[#F0EFFF] px-3 py-1 text-xs font-bold leading-[18px] text-[#635BFF]">
-          {card.status}
+        <span
+          className={
+            isPastMeeting
+              ? "shrink-0 rounded-full bg-[#F2F4F7] px-3 py-1 text-xs font-bold leading-[18px] text-[#667085]"
+              : "shrink-0 rounded-full bg-[#F0EFFF] px-3 py-1 text-xs font-bold leading-[18px] text-[#635BFF]"
+          }
+        >
+          {isPastMeeting ? "완료" : card.status}
         </span>
       </div>
     </article>
