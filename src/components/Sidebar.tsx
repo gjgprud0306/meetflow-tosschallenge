@@ -45,7 +45,7 @@ export function Sidebar() {
             M
           </div>
           <div className="ml-2.5 text-lg font-bold leading-[22px] text-[#101828]">
-            MeetFlow
+            MFlow
           </div>
         </div>
 

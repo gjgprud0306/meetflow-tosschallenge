@@ -8,7 +8,7 @@ import type {
 export const meetingDrafts: MeetingDraft[] = [
   {
     id: "meetflow-kickoff",
-    title: "MeetFlow kickoff",
+    title: "MFlow kickoff",
     durationMinutes: 60,
     timezone: "Asia/Seoul",
     attendeeIds: ["owner", "min", "jun"],

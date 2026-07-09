@@ -1,6 +1,6 @@
-# MeetFlow Web Prototype
+# MFlow Web Prototype
 
-토스 2026 디자이너 챌린지 제출용 MeetFlow 웹 프로토타입입니다.
+토스 2026 디자이너 챌린지 제출용 MFlow 웹 프로토타입입니다.
 
 ## Stack
 

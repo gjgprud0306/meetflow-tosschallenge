@@ -139,7 +139,7 @@ function ChatLine({
   message: string;
   time: string;
 }) {
-  const isSystem = author === "MeetFlow";
+  const isSystem = author === "MFlow";
 
   return (
     <article className="flex items-start">
@@ -428,7 +428,7 @@ export function ResponseStatusPage() {
         ? [
             {
               id: "seo-response",
-              author: "MeetFlow",
+              author: "MFlow",
               initial: "M",
               time: "오전 10:14",
               message: "서연님이 응답했습니다.",
@@ -444,7 +444,7 @@ export function ResponseStatusPage() {
         ? [
             {
               id: "jun-response",
-              author: "MeetFlow",
+              author: "MFlow",
               initial: "M",
               time: "오전 10:15",
               message: "준혁님이 응답했습니다.",
@@ -459,7 +459,7 @@ export function ResponseStatusPage() {
         ? [
             {
               id: "ji-response",
-              author: "MeetFlow",
+              author: "MFlow",
               initial: "M",
               time: "오전 10:18",
               message: "지수님이 응답했습니다.",
@@ -470,7 +470,7 @@ export function ResponseStatusPage() {
         ? [
             {
               id: "reminder",
-              author: "MeetFlow",
+              author: "MFlow",
               initial: "M",
               time: "오전 10:20",
               message: "미응답자에게 리마인드를 보냈습니다.",
@@ -483,7 +483,7 @@ export function ResponseStatusPage() {
         ? [
             {
               id: "min-response",
-              author: "MeetFlow",
+              author: "MFlow",
               initial: "M",
               time: "오전 10:21",
               message: "민수님이 응답했습니다.",
@@ -494,7 +494,7 @@ export function ResponseStatusPage() {
         ? [
             {
               id: "tae-response",
-              author: "MeetFlow",
+              author: "MFlow",
               initial: "M",
               time: "오전 10:22",
               message: "태민님이 응답했습니다.",
@@ -505,21 +505,21 @@ export function ResponseStatusPage() {
         ? [
             {
               id: "tae-response",
-              author: "MeetFlow",
+              author: "MFlow",
               initial: "M",
               time: "오전 10:22",
               message: "태민님이 응답했습니다.",
             },
             {
               id: "meeting-confirmed",
-              author: "MeetFlow",
+              author: "MFlow",
               initial: "M",
               time: "오전 10:23",
               message: "회의를 확정했습니다.",
             },
             {
               id: "schedule-shared",
-              author: "MeetFlow",
+              author: "MFlow",
               initial: "M",
               time: "오전 10:24",
               message: "참여자에게 일정을 공유했습니다.",

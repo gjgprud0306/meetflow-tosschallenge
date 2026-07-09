@@ -14,7 +14,7 @@ function ScheduleMessage() {
       <div className="ml-3">
         <div className="flex h-[21px] items-center gap-1.5">
           <span className="text-sm font-bold leading-[21px] text-[#101828]">
-            MeetFlow
+            MFlow
           </span>
           <span className="text-xs font-normal leading-[18px] text-[#98A2B3]">
             오전 10:12
