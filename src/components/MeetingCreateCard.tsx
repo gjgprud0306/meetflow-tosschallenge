@@ -132,7 +132,7 @@ function ReminderOption({
       className={cn(
         "flex h-12 w-[360px] items-center gap-3 rounded-lg border px-[17px] text-left",
         selected
-          ? "border-[#635BFF] bg-[#F7F6FF] text-[#635BFF]"
+          ? "border-[#837CFF] bg-[#F7F6FF] text-[#837CFF]"
           : "border-[#E0E4EB] bg-[#F9FAFB] text-[#475467]",
         disabled && "opacity-45",
       )}
@@ -143,10 +143,10 @@ function ReminderOption({
       <span
         className={cn(
           "flex h-[18px] w-[18px] items-center justify-center rounded-full border-2",
-          selected ? "border-[#635BFF]" : "border-[#D0D5DD]",
+          selected ? "border-[#837CFF]" : "border-[#D0D5DD]",
         )}
       >
-        {selected ? <span className="h-2 w-2 rounded-full bg-[#635BFF]" /> : null}
+        {selected ? <span className="h-2 w-2 rounded-full bg-[#837CFF]" /> : null}
       </span>
       <span className="text-sm font-medium leading-[21px]">{label}</span>
     </button>
@@ -346,7 +346,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                       className={cn(
                         "rounded-full px-3 py-1 text-xs font-bold leading-[18px]",
                         selected
-                          ? "bg-[#F7F6FF] text-[#635BFF]"
+                          ? "bg-[#F7F6FF] text-[#837CFF]"
                           : "bg-[#F3F4F6] text-[#98A2B3]",
                       )}
                       onClick={() => toggleAttendee(attendee.id)}
@@ -358,7 +358,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                       className={cn(
                         "rounded-full px-3 py-1 text-xs font-bold leading-[18px]",
                         required
-                          ? "bg-[#635BFF] text-white"
+                          ? "bg-[#837CFF] text-white"
                           : "bg-white text-[#667085]",
                         !selected && "opacity-40",
                       )}
@@ -621,7 +621,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                 <button
                   className={cn(
                     "relative h-6 w-11 rounded-full transition-colors",
-                    meeting.reminderEnabled ? "bg-[#635BFF]" : "bg-[#D0D5DD]",
+                    meeting.reminderEnabled ? "bg-[#837CFF]" : "bg-[#D0D5DD]",
                   )}
                   onClick={() =>
                     updateMeeting({ reminderEnabled: !meeting.reminderEnabled })
@@ -647,7 +647,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                   className={cn(
                     "flex h-[18px] w-[18px] items-center justify-center rounded border",
                     meeting.unansweredOnly
-                      ? "border-[#635BFF] bg-[#635BFF] text-white"
+                      ? "border-[#837CFF] bg-[#837CFF] text-white"
                       : "border-[#D0D5DD] bg-white text-transparent",
                   )}
                 >
@@ -716,7 +716,7 @@ function CustomReminderOption({
       className={cn(
         "w-[360px] rounded-lg border px-[17px] text-left text-sm font-medium leading-[21px]",
         selected
-          ? "border-[#635BFF] bg-[#F7F6FF] text-[#635BFF]"
+          ? "border-[#837CFF] bg-[#F7F6FF] text-[#837CFF]"
           : "border-[#E0E4EB] bg-[#F9FAFB] text-[#475467]",
         disabled && "opacity-45",
       )}
@@ -730,11 +730,11 @@ function CustomReminderOption({
         <span
           className={cn(
             "flex h-[18px] w-[18px] items-center justify-center rounded-full border-2",
-            selected ? "border-[#635BFF]" : "border-[#D0D5DD]",
+            selected ? "border-[#837CFF]" : "border-[#D0D5DD]",
           )}
         >
           {selected ? (
-            <span className="h-2 w-2 rounded-full bg-[#635BFF]" />
+            <span className="h-2 w-2 rounded-full bg-[#837CFF]" />
           ) : null}
         </span>
         <span>직접 입력</span>
@@ -859,7 +859,7 @@ function OptionList({
             className={cn(
               "flex h-12 w-full items-center justify-between rounded-lg border px-4 text-left text-sm font-medium leading-[21px]",
               selected
-                ? "border-[#635BFF] bg-[#F7F6FF] text-[#635BFF]"
+                ? "border-[#837CFF] bg-[#F7F6FF] text-[#837CFF]"
                 : "border-[#E0E4EB] bg-[#F9FAFB] text-[#475467]",
             )}
             key={option.id}
@@ -870,11 +870,11 @@ function OptionList({
             <span
               className={cn(
                 "flex h-[18px] w-[18px] items-center justify-center rounded-full border-2",
-                selected ? "border-[#635BFF]" : "border-[#D0D5DD]",
+                selected ? "border-[#837CFF]" : "border-[#D0D5DD]",
                 multiple && "rounded",
               )}
             >
-              {selected ? <span className="h-2 w-2 rounded-full bg-[#635BFF]" /> : null}
+              {selected ? <span className="h-2 w-2 rounded-full bg-[#837CFF]" /> : null}
             </span>
           </button>
         );
