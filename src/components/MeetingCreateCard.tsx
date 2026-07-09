@@ -278,8 +278,8 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   function renderModal() {
     if (modal === "teamSchedule") {
       const teamSchedules = [
-        { time: "화 15:00~16:00", status: "가능 4명 · 확인 필요: 태호, 현우" },
-        { time: "수 10:00~11:00", status: "가능 5명 · 확인 필요: 현우" },
+        { time: "화 15:00~16:00", status: "가능 4명 · 확인 필요: 윤지은, 박은주" },
+        { time: "수 10:00~11:00", status: "가능 5명 · 확인 필요: 박은주" },
         { time: "목 16:00~17:00", status: "가능 6명" },
       ];
 
