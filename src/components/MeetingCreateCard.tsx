@@ -278,33 +278,27 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   function renderModal() {
     if (modal === "teamSchedule") {
       const teamSchedules = [
-        {
-          name: "혜경",
-          schedule: "수 14:00~15:00 디자인 리뷰, 목 10:00~11:00 팀 싱크",
-        },
-        { name: "민수", schedule: "수 15:00~17:00 개발 작업" },
-        { name: "준호", schedule: "목 오전 외근" },
-        { name: "서연", schedule: "금 13:00~14:00 QA 확인" },
-        { name: "지수", schedule: "등록된 일정 없음" },
-        { name: "태민", schedule: "목 16:00~17:00 고객 미팅" },
+        { time: "화 15:00~16:00", status: "가능 4명 · 확인 필요: 태호, 현우" },
+        { time: "수 10:00~11:00", status: "가능 5명 · 확인 필요: 현우" },
+        { time: "목 16:00~17:00", status: "가능 6명" },
       ];
 
       return (
         <ChoiceModal onClose={() => setModal(null)} title="팀원 일정 (6명)">
           <p className="mb-4 text-sm font-medium leading-[21px] text-[#667085]">
-            회의 전 팀원들의 등록된 일정을 확인하세요.
+            후보 시간별 참석 가능 여부를 확인하세요.
           </p>
           <div className="space-y-3">
             {teamSchedules.map((item) => (
               <div
                 className="rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-4 py-3"
-                key={item.name}
+                key={item.time}
               >
                 <div className="text-sm font-bold leading-[21px] text-[#101828]">
-                  {item.name}
+                  {item.time}
                 </div>
                 <div className="mt-1 text-sm font-medium leading-[21px] text-[#475467]">
-                  {item.schedule}
+                  {item.status}
                 </div>
               </div>
             ))}
