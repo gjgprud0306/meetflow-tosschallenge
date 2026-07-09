@@ -111,7 +111,7 @@ export function SidebarPlaceholderPage({
                   일정 제목
                 </span>
                 <input
-                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#A8A3E8]"
+                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
                   placeholder="일정 제목"
                   type="text"
                 />
@@ -121,7 +121,7 @@ export function SidebarPlaceholderPage({
                   날짜
                 </span>
                 <input
-                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#A8A3E8]"
+                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
                   type="date"
                 />
               </label>
@@ -130,7 +130,7 @@ export function SidebarPlaceholderPage({
                   시간
                 </span>
                 <input
-                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#A8A3E8]"
+                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
                   type="time"
                 />
               </label>

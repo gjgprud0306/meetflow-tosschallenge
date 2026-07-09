@@ -174,7 +174,7 @@ export function MeetingCandidateSelectPage() {
                           className={cn(
                             "flex h-11 w-full items-center border-t border-[#E0E4EB] px-4 text-left text-sm font-medium leading-[21px]",
                             selected === "available"
-                              ? "bg-[#F7F6FF] text-[#6F6A9F]"
+                               ? "bg-[#F7F6FF] text-[#635BFF]"
                               : "bg-white text-[#475467]",
                           )}
                           onClick={() => selectAnswer(option.id, "available")}
@@ -186,7 +186,7 @@ export function MeetingCandidateSelectPage() {
                           className={cn(
                             "flex h-11 w-full items-center border-t border-[#E0E4EB] px-4 text-left text-sm font-medium leading-[21px]",
                             selected === "unavailable"
-                              ? "bg-[#F7F6FF] text-[#6F6A9F]"
+                               ? "bg-[#F7F6FF] text-[#635BFF]"
                               : "bg-white text-[#475467]",
                           )}
                           onClick={() => selectAnswer(option.id, "unavailable")}
@@ -226,7 +226,7 @@ export function MeetingCandidateSelectPage() {
               채팅 중 일정 조율이 필요하면 회의를 만들어보세요
             </span>
           </div>
-          <Button className="h-12 w-40 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#6F6A9F] hover:bg-[#E4E2FF]">
+          <Button className="h-12 w-40 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#635BFF] hover:bg-[#E4E2FF]">
             회의 만들기
           </Button>
         </div>

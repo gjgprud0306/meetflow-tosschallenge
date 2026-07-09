@@ -370,7 +370,7 @@ function ResponseComposer() {
           채팅 중 일정 조율이 필요하면 회의를 만들어보세요
         </span>
       </div>
-      <Button className="h-12 w-40 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#6F6A9F] hover:bg-[#E4E2FF]">
+      <Button className="h-12 w-40 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#635BFF] hover:bg-[#E4E2FF]">
         회의 만들기
       </Button>
     </div>
