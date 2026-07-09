@@ -9,7 +9,7 @@ type MeetFlowLayoutProps = {
 
 export function MeetFlowLayout({ children, bottomBar }: MeetFlowLayoutProps) {
   return (
-    <main className="mx-auto h-screen max-h-[1024px] min-h-[720px] w-full max-w-[1440px] overflow-hidden bg-[#F9FAFB]">
+    <main className="h-screen max-h-[1024px] min-h-[720px] w-full overflow-hidden bg-[#F9FAFB]">
       <div className="flex h-full w-full">
         <Sidebar />
         <section className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-white">

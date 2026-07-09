@@ -51,7 +51,7 @@ export function SidebarPlaceholderPage({
 
   return (
     <MeetFlowLayout>
-      <div className="h-full w-full overflow-y-auto pl-0 pr-8 pt-7">
+      <div className="h-full w-full overflow-y-auto px-8 pt-7">
         <div className={empty ? "flex min-h-full flex-col" : "max-w-[760px]"}>
           <div className="flex items-start justify-between gap-4">
             <div>
