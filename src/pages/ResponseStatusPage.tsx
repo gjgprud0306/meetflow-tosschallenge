@@ -7,42 +7,14 @@ import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { cn } from "@/lib/utils";
 
 type ResponseStage =
+  | "initial"
+  | "seoResponded"
+  | "junResponded"
   | "partial"
   | "reminded"
   | "minResponded"
   | "complete"
   | "confirmed";
-
-const baseMessages = [
-  {
-    id: "shared",
-    author: "혜경",
-    initial: "혜",
-    time: "오전 10:12",
-    message: "회의를 생성했습니다. 일정 응답 부탁드립니다.",
-  },
-  {
-    id: "seo-available",
-    author: "MeetFlow",
-    initial: "M",
-    time: "오전 10:14",
-    message: "서연님이 응답했습니다.",
-  },
-  {
-    id: "min-responded",
-    author: "MeetFlow",
-    initial: "M",
-    time: "오전 10:15",
-    message: "준혁님이 응답했습니다.",
-  },
-  {
-    id: "seo-card",
-    author: "MeetFlow",
-    initial: "M",
-    time: "오전 10:18",
-    message: "지수님이 응답했습니다.",
-  },
-];
 
 const responseNames = [
   { id: "owner", label: "혜경" },
@@ -56,7 +28,10 @@ const responseNames = [
 function responseCountForStage(stage: ResponseStage) {
   if (stage === "complete" || stage === "confirmed") return 6;
   if (stage === "minResponded") return 5;
-  return 4;
+  if (stage === "partial" || stage === "reminded") return 4;
+  if (stage === "junResponded") return 3;
+  if (stage === "seoResponded") return 2;
+  return 1;
 }
 
 function progressPercentForStage(stage: ResponseStage) {
@@ -66,7 +41,35 @@ function progressPercentForStage(stage: ResponseStage) {
 function missingNamesForStage(stage: ResponseStage) {
   if (stage === "complete" || stage === "confirmed") return "";
   if (stage === "minResponded") return "태민";
-  return "민수, 태민";
+  if (stage === "partial" || stage === "reminded") return "민수, 태민";
+  if (stage === "junResponded") return "지수, 민수, 태민";
+  if (stage === "seoResponded") return "준혁, 지수, 민수, 태민";
+  return "서연, 준혁, 지수, 민수, 태민";
+}
+
+function hasResponded(stage: ResponseStage, attendeeId: string) {
+  if (stage === "complete" || stage === "confirmed") return true;
+  if (attendeeId === "owner") return true;
+  if (attendeeId === "seo") {
+    return [
+      "seoResponded",
+      "junResponded",
+      "partial",
+      "reminded",
+      "minResponded",
+    ].includes(stage);
+  }
+  if (attendeeId === "jun") {
+    return ["junResponded", "partial", "reminded", "minResponded"].includes(
+      stage,
+    );
+  }
+  if (attendeeId === "ji") {
+    return ["partial", "reminded", "minResponded"].includes(stage);
+  }
+  if (attendeeId === "min") return stage === "minResponded";
+
+  return false;
 }
 
 function ProgressBar({ stage }: { stage: ResponseStage }) {
@@ -268,7 +271,7 @@ function StatusPanel({
 }) {
   const confirmed = stage === "confirmed";
   const complete = stage === "complete" || confirmed;
-  const reminded = stage !== "partial" && !complete;
+  const reminded = stage === "reminded" || stage === "minResponded";
   const responseCount = responseCountForStage(stage);
   const missingNames = missingNamesForStage(stage);
   const missingCount = 6 - responseCount;
@@ -307,11 +310,8 @@ function StatusPanel({
         </p>
 
         <div className="mt-5 space-y-3">
-          {responseNames.map((attendee, index) => {
-            const done =
-              complete ||
-              [0, 2, 3, 4].includes(index) ||
-              (stage === "minResponded" && attendee.id === "min");
+          {responseNames.map((attendee) => {
+            const done = hasResponded(stage, attendee.id);
 
             return (
               <div
@@ -328,7 +328,7 @@ function StatusPanel({
         </div>
       </section>
 
-      {!complete && !reminded && (
+      {stage === "partial" && (
         <Button
           className="mt-5 h-14 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
           onClick={onReminder}
@@ -378,9 +378,27 @@ function ResponseComposer() {
 }
 
 export function ResponseStatusPage() {
-  const [stage, setStage] = useState<ResponseStage>("partial");
+  const [stage, setStage] = useState<ResponseStage>("initial");
   const [reminderStarted, setReminderStarted] = useState(false);
   const followUpEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const seoTimer = window.setTimeout(() => {
+      setStage("seoResponded");
+    }, 1000);
+    const junTimer = window.setTimeout(() => {
+      setStage("junResponded");
+    }, 2000);
+    const jiTimer = window.setTimeout(() => {
+      setStage("partial");
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(seoTimer);
+      window.clearTimeout(junTimer);
+      window.clearTimeout(jiTimer);
+    };
+  }, []);
 
   useEffect(() => {
     if (!reminderStarted) return undefined;
@@ -399,16 +417,66 @@ export function ResponseStatusPage() {
   }, [reminderStarted]);
 
   const followUpMessages = useMemo(() => {
-    if (!reminderStarted) return [];
-
     return [
-      {
-        id: "reminder",
-        author: "MeetFlow",
-        initial: "M",
-        time: "오전 10:20",
-        message: "미응답자에게 리마인드를 보냈습니다.",
-      },
+      ...(stage === "seoResponded" ||
+      stage === "junResponded" ||
+      stage === "partial" ||
+      stage === "reminded" ||
+      stage === "minResponded" ||
+      stage === "complete" ||
+      stage === "confirmed"
+        ? [
+            {
+              id: "seo-response",
+              author: "MeetFlow",
+              initial: "M",
+              time: "오전 10:14",
+              message: "서연님이 응답했습니다.",
+            },
+          ]
+        : []),
+      ...(stage === "junResponded" ||
+      stage === "partial" ||
+      stage === "reminded" ||
+      stage === "minResponded" ||
+      stage === "complete" ||
+      stage === "confirmed"
+        ? [
+            {
+              id: "jun-response",
+              author: "MeetFlow",
+              initial: "M",
+              time: "오전 10:15",
+              message: "준혁님이 응답했습니다.",
+            },
+          ]
+        : []),
+      ...(stage === "partial" ||
+      stage === "reminded" ||
+      stage === "minResponded" ||
+      stage === "complete" ||
+      stage === "confirmed"
+        ? [
+            {
+              id: "ji-response",
+              author: "MeetFlow",
+              initial: "M",
+              time: "오전 10:18",
+              message: "지수님이 응답했습니다.",
+            },
+          ]
+        : []),
+      ...(reminderStarted
+        ? [
+            {
+              id: "reminder",
+              author: "MeetFlow",
+              initial: "M",
+              time: "오전 10:20",
+              message: "미응답자에게 리마인드를 보냈습니다.",
+            },
+          ]
+        : []),
       ...(stage === "minResponded" ||
       stage === "complete" ||
       stage === "confirmed"
@@ -463,7 +531,18 @@ export function ResponseStatusPage() {
 
   useEffect(() => {
     if (followUpMessages.length === 0) return;
-    if (!["reminded", "minResponded", "complete"].includes(stage)) return;
+    if (
+      ![
+        "seoResponded",
+        "junResponded",
+        "partial",
+        "reminded",
+        "minResponded",
+        "complete",
+      ].includes(stage)
+    ) {
+      return;
+    }
 
     followUpEndRef.current?.scrollIntoView({
       behavior: "smooth",
@@ -488,15 +567,6 @@ export function ResponseStatusPage() {
         <div className="relative min-w-0 flex-1">
           <div className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7">
             <div className="flex flex-col gap-6">
-              {baseMessages.map((message) => (
-                <ChatLine
-                  author={message.author}
-                  initial={message.initial}
-                  key={message.id}
-                  message={message.message}
-                  time={message.time}
-                />
-              ))}
               <ManagementCard onConfirm={confirmMeeting} stage={stage} />
               {followUpMessages.map((message) => (
                 <ChatLine
