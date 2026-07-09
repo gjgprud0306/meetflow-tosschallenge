@@ -9,7 +9,7 @@ const headerAvatars = [
 
 export function ChatHeader() {
   return (
-    <header className="flex h-24 w-full shrink-0 items-center border-b border-[#E5E7EB] bg-white px-8 py-[22px]">
+    <header className="flex h-24 w-full shrink-0 items-center border-b border-[#E5E7EB] bg-white pl-0 pr-8 py-[22px]">
       <div className="min-w-0 flex-1">
         <h1 className="text-[23px] font-bold leading-[35px] text-[#101828]">
           회의 조율

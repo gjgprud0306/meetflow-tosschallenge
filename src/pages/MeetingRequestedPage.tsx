@@ -132,7 +132,7 @@ function RequestedRightPanel() {
 
 function RequestedComposer() {
   return (
-    <div className="absolute bottom-0 left-0 flex h-[104px] w-full items-center gap-[34px] border-t border-[#E0E4EB] bg-white px-8 py-4">
+    <div className="absolute bottom-0 left-0 flex h-[104px] w-full items-center gap-[34px] border-t border-[#E0E4EB] bg-white pl-0 pr-8 py-4">
       <div className="flex h-12 min-w-0 flex-1 items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB]/80 px-4">
         <span className="text-sm font-medium leading-[21px] text-[#667085]">
           채팅 중 일정 조율이 필요하면 회의를 만들어보세요
@@ -152,7 +152,7 @@ export function MeetingRequestedPage() {
     <MeetFlowLayout>
       <div className="flex h-full w-full min-w-0 bg-white">
         <div className="relative min-w-0 flex-1">
-          <div className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7">
+          <div className="h-full w-full overflow-y-auto pl-0 pr-8 pb-[132px] pt-7">
             <div className="flex flex-col gap-6">
               {hostMessage && (
                 <ChatMessage key={hostMessage.id} message={hostMessage} />
