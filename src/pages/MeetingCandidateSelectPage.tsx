@@ -50,7 +50,7 @@ export function MeetingCandidateSelectPage() {
             </div>
 
             <section className="w-full max-w-[880px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
-              <div className="flex h-[74px] items-center bg-[#F0EFFF] px-6">
+              <div className="flex h-[74px] items-center bg-[#F7F6FF] px-6">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#635BFF] text-xl font-bold leading-[30px] text-white">
                   15
                 </div>
@@ -126,7 +126,7 @@ export function MeetingCandidateSelectPage() {
                               "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold leading-[18px]",
                               index < 2
                                 ? "bg-[#635BFF] text-white"
-                                : "bg-white text-[#635BFF] ring-4 ring-[#F0EFFF]",
+                                : "bg-white text-[#635BFF] ring-4 ring-[#F7F6FF]",
                             )}
                           >
                             {index < 2 ? (
@@ -174,7 +174,7 @@ export function MeetingCandidateSelectPage() {
                           className={cn(
                             "flex h-11 w-full items-center border-t border-[#E0E4EB] px-4 text-left text-sm font-medium leading-[21px]",
                             selected === "available"
-                              ? "bg-[#F0EFFF] text-[#635BFF]"
+                              ? "bg-[#F7F6FF] text-[#6F6A9F]"
                               : "bg-white text-[#475467]",
                           )}
                           onClick={() => selectAnswer(option.id, "available")}
@@ -186,7 +186,7 @@ export function MeetingCandidateSelectPage() {
                           className={cn(
                             "flex h-11 w-full items-center border-t border-[#E0E4EB] px-4 text-left text-sm font-medium leading-[21px]",
                             selected === "unavailable"
-                              ? "bg-[#F0EFFF] text-[#635BFF]"
+                              ? "bg-[#F7F6FF] text-[#6F6A9F]"
                               : "bg-white text-[#475467]",
                           )}
                           onClick={() => selectAnswer(option.id, "unavailable")}
@@ -226,7 +226,7 @@ export function MeetingCandidateSelectPage() {
               채팅 중 일정 조율이 필요하면 회의를 만들어보세요
             </span>
           </div>
-          <Button className="h-12 w-40 rounded-lg bg-[#AAA3FF] text-base font-bold leading-6 text-white hover:bg-[#9B93FF]">
+          <Button className="h-12 w-40 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#6F6A9F] hover:bg-[#E4E2FF]">
             회의 만들기
           </Button>
         </div>

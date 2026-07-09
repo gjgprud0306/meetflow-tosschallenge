@@ -32,7 +32,7 @@ function SystemMessage({ title }: { title: string }) {
             오전 10:30
           </span>
         </div>
-        <div className="mt-2 inline-flex h-11 items-center rounded-lg bg-[#F0EFFF] px-4 text-sm font-medium leading-[21px] text-[#635BFF]">
+        <div className="mt-2 inline-flex h-11 items-center rounded-lg bg-[#F7F6FF] px-4 text-sm font-medium leading-[21px] text-[#6F6A9F]">
           {title}의 응답 요청을 보냈습니다.
         </div>
       </div>
@@ -50,7 +50,7 @@ function RequestedMeetingCard() {
 
   return (
     <section className="w-[480px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
-      <div className="flex h-[70px] items-center justify-between bg-[#F0EFFF] px-5">
+      <div className="flex h-[70px] items-center justify-between bg-[#F7F6FF] px-5">
         <h2 className="text-lg font-bold leading-7 text-[#101828]">
           {meeting.title || "회의 제목"}
         </h2>
@@ -93,7 +93,7 @@ function RequestedRightPanel() {
           <h3 className="text-lg font-bold leading-7 text-[#101828]">
             {meeting.title || "회의 제목"}
           </h3>
-          <span className="rounded-full bg-[#F0EFFF] px-3 py-1 text-xs font-bold leading-[18px] text-[#635BFF]">
+          <span className="rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#6F6A9F]">
             수집 중
           </span>
         </div>
@@ -138,7 +138,7 @@ function RequestedComposer() {
           채팅 중 일정 조율이 필요하면 회의를 만들어보세요
         </span>
       </div>
-      <Button className="h-12 w-40 rounded-lg bg-[#AAA3FF] text-base font-bold leading-6 text-white hover:bg-[#9B93FF]">
+      <Button className="h-12 w-40 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#6F6A9F] hover:bg-[#E4E2FF]">
         회의 만들기
       </Button>
     </div>

@@ -62,7 +62,7 @@ function StepProgress({ activeStep }: { activeStep: 2 | 3 }) {
                   completed || active
                     ? "bg-[#635BFF] text-white"
                     : "bg-[#E8ECF2] text-[#98A2B3]",
-                  active && "bg-white text-[#635BFF] ring-4 ring-[#F0EFFF]",
+                  active && "bg-white text-[#635BFF] ring-4 ring-[#F7F6FF]",
                 )}
               >
                 {completed ? (
@@ -92,7 +92,7 @@ function ScheduleCard() {
 
   return (
     <section className="w-full max-w-[880px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
-      <div className="flex h-[76px] items-center bg-[#F0EFFF] px-6">
+      <div className="flex h-[76px] items-center bg-[#F7F6FF] px-6">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#635BFF] text-xl font-bold leading-[30px] text-white">
           15
         </div>
@@ -152,7 +152,7 @@ function ScheduleComposer() {
           채팅 중 일정 조율이 필요하면 회의를 만들어보세요
         </span>
       </div>
-      <Button className="h-12 w-40 rounded-lg bg-[#AAA3FF] text-base font-bold leading-6 text-white hover:bg-[#9B93FF]">
+      <Button className="h-12 w-40 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#6F6A9F] hover:bg-[#E4E2FF]">
         회의 만들기
       </Button>
     </div>

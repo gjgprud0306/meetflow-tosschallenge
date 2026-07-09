@@ -34,7 +34,7 @@ function PlaceholderMeetingCard({ card }: { card: MeetingCard }) {
           className={
             isPastMeeting
               ? "shrink-0 rounded-full bg-[#F2F4F7] px-3 py-1 text-xs font-bold leading-[18px] text-[#667085]"
-              : "shrink-0 rounded-full bg-[#F0EFFF] px-3 py-1 text-xs font-bold leading-[18px] text-[#635BFF]"
+              : "shrink-0 rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#6F6A9F]"
           }
         >
           {isPastMeeting ? "완료" : card.status}
@@ -111,7 +111,7 @@ export function SidebarPlaceholderPage({
                   일정 제목
                 </span>
                 <input
-                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
+                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#A8A3E8]"
                   placeholder="일정 제목"
                   type="text"
                 />
@@ -121,7 +121,7 @@ export function SidebarPlaceholderPage({
                   날짜
                 </span>
                 <input
-                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
+                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#A8A3E8]"
                   type="date"
                 />
               </label>
@@ -130,7 +130,7 @@ export function SidebarPlaceholderPage({
                   시간
                 </span>
                 <input
-                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
+                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#A8A3E8]"
                   type="time"
                 />
               </label>

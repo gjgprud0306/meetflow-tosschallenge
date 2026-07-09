@@ -10,7 +10,7 @@ type AvatarBadgeProps = {
 const colorClass = {
   primary: "bg-[#635BFF]",
   muted: "bg-[#98A2B3]",
-  secondary: "bg-[#837CFF]",
+  secondary: "bg-[#A7A1F5]",
 };
 
 const sizeClass = {

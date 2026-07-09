@@ -100,7 +100,7 @@ function ProgressBar({ stage }: { stage: ResponseStage }) {
                 className={cn(
                   "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold",
                   done && "bg-[#635BFF] text-white",
-                  active && "bg-white text-[#635BFF] ring-4 ring-[#F0EFFF]",
+                  active && "bg-white text-[#635BFF] ring-4 ring-[#F7F6FF]",
                   !done && !active && "bg-[#E5E7EB] text-[#98A2B3]",
                 )}
               >
@@ -154,7 +154,7 @@ function ChatLine({
           </span>
         </div>
         {isSystem ? (
-          <div className="mt-2 inline-flex h-11 items-center rounded-lg bg-[#F0EFFF] px-4 text-sm font-medium leading-[21px] text-[#635BFF]">
+          <div className="mt-2 inline-flex h-11 items-center rounded-lg bg-[#F7F6FF] px-4 text-sm font-medium leading-[21px] text-[#6F6A9F]">
             {message}
           </div>
         ) : (
@@ -183,7 +183,7 @@ function ManagementCard({
 
   return (
     <section className="w-full max-w-[680px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
-      <div className="flex h-[74px] items-center justify-between bg-[#F0EFFF] px-6">
+      <div className="flex h-[74px] items-center justify-between bg-[#F7F6FF] px-6">
         <div className="flex min-w-0 items-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#635BFF] text-xl font-bold leading-[30px] text-white">
             15
@@ -290,7 +290,7 @@ function StatusPanel({
       </p>
 
       <section className="mt-6 rounded-xl border border-[#E0E4EB] bg-white p-5">
-        <span className="rounded-full bg-[#F0EFFF] px-3 py-1 text-xs font-bold leading-[18px] text-[#635BFF]">
+        <span className="rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#6F6A9F]">
           {confirmed ? "회의 확정" : complete ? "응답 완료" : "응답 수집"}
         </span>
         <h3 className="mt-5 text-[30px] font-bold leading-10 text-[#635BFF]">
@@ -338,7 +338,7 @@ function StatusPanel({
       )}
 
       {reminded && (
-        <div className="mt-5 rounded-lg border border-[#C7C2FF] bg-[#F0EFFF] px-5 py-4">
+        <div className="mt-5 rounded-lg border border-[#D8D5F7] bg-[#F7F6FF] px-5 py-4">
           <h3 className="text-sm font-bold leading-[21px] text-[#635BFF]">
             리마인드 전송됨
           </h3>
@@ -349,7 +349,7 @@ function StatusPanel({
       )}
 
       {confirmed && (
-        <div className="mt-5 rounded-lg border border-[#C7C2FF] bg-[#F0EFFF] px-5 py-4">
+        <div className="mt-5 rounded-lg border border-[#D8D5F7] bg-[#F7F6FF] px-5 py-4">
           <h3 className="text-sm font-bold leading-[21px] text-[#635BFF]">
             일정 공유 완료
           </h3>
@@ -370,7 +370,7 @@ function ResponseComposer() {
           채팅 중 일정 조율이 필요하면 회의를 만들어보세요
         </span>
       </div>
-      <Button className="h-12 w-40 rounded-lg bg-[#AAA3FF] text-base font-bold leading-6 text-white hover:bg-[#9B93FF]">
+      <Button className="h-12 w-40 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#6F6A9F] hover:bg-[#E4E2FF]">
         회의 만들기
       </Button>
     </div>

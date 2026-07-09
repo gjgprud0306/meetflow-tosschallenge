@@ -51,7 +51,7 @@ function Field({
         </div>
         {action ? (
           <button
-            className="text-xs font-medium leading-[18px] text-[#635BFF]"
+            className="text-xs font-medium leading-[18px] text-[#6F6A9F]"
             onClick={onClick}
             type="button"
           >
@@ -71,7 +71,7 @@ function Field({
         type="button"
       >
         {badge ? (
-          <span className="rounded-full bg-[#F0EFFF] px-2 py-[3px] text-xs font-bold leading-[18px] text-[#635BFF]">
+          <span className="rounded-full bg-[#F7F6FF] px-2 py-[3px] text-xs font-bold leading-[18px] text-[#6F6A9F]">
             {value}
           </span>
         ) : (
@@ -107,7 +107,7 @@ function TitleField({
         </div>
       </div>
       <input
-        className="flex h-12 w-[360px] items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-[17px] text-sm font-medium leading-[21px] text-[#101828] outline-none placeholder:text-[#98A2B3] focus:border-[#635BFF]"
+        className="flex h-12 w-[360px] items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-[17px] text-sm font-medium leading-[21px] text-[#101828] outline-none placeholder:text-[#98A2B3] focus:border-[#A8A3E8]"
         onChange={(event) => onChange(event.target.value)}
         placeholder="회의 제목을 입력해주세요"
         value={value}
@@ -132,7 +132,7 @@ function ReminderOption({
       className={cn(
         "flex h-12 w-[360px] items-center gap-3 rounded-lg border px-[17px] text-left",
         selected
-          ? "border-[#635BFF] bg-[#F0EFFF] text-[#635BFF]"
+          ? "border-[#A8A3E8] bg-[#F7F6FF] text-[#6F6A9F]"
           : "border-[#E0E4EB] bg-[#F9FAFB] text-[#475467]",
         disabled && "opacity-45",
       )}
@@ -143,10 +143,10 @@ function ReminderOption({
       <span
         className={cn(
           "flex h-[18px] w-[18px] items-center justify-center rounded-full border-2",
-          selected ? "border-[#635BFF]" : "border-[#D0D5DD]",
+          selected ? "border-[#A8A3E8]" : "border-[#D0D5DD]",
         )}
       >
-        {selected ? <span className="h-2 w-2 rounded-full bg-[#635BFF]" /> : null}
+        {selected ? <span className="h-2 w-2 rounded-full bg-[#8F89D8]" /> : null}
       </span>
       <span className="text-sm font-medium leading-[21px]">{label}</span>
     </button>
@@ -346,7 +346,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                       className={cn(
                         "rounded-full px-3 py-1 text-xs font-bold leading-[18px]",
                         selected
-                          ? "bg-[#F0EFFF] text-[#635BFF]"
+                          ? "bg-[#F7F6FF] text-[#6F6A9F]"
                           : "bg-[#F3F4F6] text-[#98A2B3]",
                       )}
                       onClick={() => toggleAttendee(attendee.id)}
@@ -358,7 +358,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                       className={cn(
                         "rounded-full px-3 py-1 text-xs font-bold leading-[18px]",
                         required
-                          ? "bg-[#635BFF] text-white"
+                          ? "bg-[#8F89D8] text-white"
                           : "bg-white text-[#667085]",
                         !selected && "opacity-40",
                       )}
@@ -621,7 +621,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                 <button
                   className={cn(
                     "relative h-6 w-11 rounded-full transition-colors",
-                    meeting.reminderEnabled ? "bg-[#635BFF]" : "bg-[#D0D5DD]",
+                    meeting.reminderEnabled ? "bg-[#8F89D8]" : "bg-[#D0D5DD]",
                   )}
                   onClick={() =>
                     updateMeeting({ reminderEnabled: !meeting.reminderEnabled })
@@ -647,7 +647,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                   className={cn(
                     "flex h-[18px] w-[18px] items-center justify-center rounded border",
                     meeting.unansweredOnly
-                      ? "border-[#635BFF] bg-[#635BFF] text-white"
+                      ? "border-[#8F89D8] bg-[#8F89D8] text-white"
                       : "border-[#D0D5DD] bg-white text-transparent",
                   )}
                 >
@@ -716,7 +716,7 @@ function CustomReminderOption({
       className={cn(
         "w-[360px] rounded-lg border px-[17px] text-left text-sm font-medium leading-[21px]",
         selected
-          ? "border-[#635BFF] bg-[#F0EFFF] text-[#635BFF]"
+          ? "border-[#A8A3E8] bg-[#F7F6FF] text-[#6F6A9F]"
           : "border-[#E0E4EB] bg-[#F9FAFB] text-[#475467]",
         disabled && "opacity-45",
       )}
@@ -730,11 +730,11 @@ function CustomReminderOption({
         <span
           className={cn(
             "flex h-[18px] w-[18px] items-center justify-center rounded-full border-2",
-            selected ? "border-[#635BFF]" : "border-[#D0D5DD]",
+            selected ? "border-[#A8A3E8]" : "border-[#D0D5DD]",
           )}
         >
           {selected ? (
-            <span className="h-2 w-2 rounded-full bg-[#635BFF]" />
+            <span className="h-2 w-2 rounded-full bg-[#8F89D8]" />
           ) : null}
         </span>
         <span>직접 입력</span>
@@ -745,7 +745,7 @@ function CustomReminderOption({
             마감
           </span>
           <input
-            className="h-9 w-16 rounded-lg border border-[#E0E4EB] bg-white px-3 text-center text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
+            className="h-9 w-16 rounded-lg border border-[#E0E4EB] bg-white px-3 text-center text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#A8A3E8]"
             inputMode="numeric"
             onChange={(event) => onValueChange(event.target.value)}
             placeholder="6"
@@ -787,7 +787,7 @@ function CustomInput({
   if (!show) {
     return buttonLabel ? (
       <button
-        className="mt-3 flex h-11 w-full items-center justify-center rounded-lg border border-dashed border-[#C9CED8] bg-white text-sm font-bold leading-[21px] text-[#635BFF]"
+        className="mt-3 flex h-11 w-full items-center justify-center rounded-lg border border-dashed border-[#C9CED8] bg-white text-sm font-bold leading-[21px] text-[#6F6A9F]"
         onClick={onToggle}
         type="button"
       >
@@ -805,7 +805,7 @@ function CustomInput({
           </span>
         ) : null}
         <input
-          className="h-10 min-w-0 flex-1 rounded-lg border border-[#E0E4EB] bg-white px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
+          className="h-10 min-w-0 flex-1 rounded-lg border border-[#E0E4EB] bg-white px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#A8A3E8]"
           inputMode={inputMode}
           onChange={(event) => setValue(event.target.value)}
           placeholder={placeholder}
@@ -859,7 +859,7 @@ function OptionList({
             className={cn(
               "flex h-12 w-full items-center justify-between rounded-lg border px-4 text-left text-sm font-medium leading-[21px]",
               selected
-                ? "border-[#635BFF] bg-[#F0EFFF] text-[#635BFF]"
+                ? "border-[#A8A3E8] bg-[#F7F6FF] text-[#6F6A9F]"
                 : "border-[#E0E4EB] bg-[#F9FAFB] text-[#475467]",
             )}
             key={option.id}
@@ -870,11 +870,11 @@ function OptionList({
             <span
               className={cn(
                 "flex h-[18px] w-[18px] items-center justify-center rounded-full border-2",
-                selected ? "border-[#635BFF]" : "border-[#D0D5DD]",
+                selected ? "border-[#A8A3E8]" : "border-[#D0D5DD]",
                 multiple && "rounded",
               )}
             >
-              {selected ? <span className="h-2 w-2 rounded-full bg-[#635BFF]" /> : null}
+              {selected ? <span className="h-2 w-2 rounded-full bg-[#8F89D8]" /> : null}
             </span>
           </button>
         );

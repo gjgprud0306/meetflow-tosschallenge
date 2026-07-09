@@ -18,7 +18,7 @@ export function ChatHeader() {
           <span className="rounded-full bg-[#F3F4F6] px-2 py-1 text-xs font-bold leading-[18px] text-[#475467]">
             참여자 6명
           </span>
-          <span className="rounded-full bg-[#F0EFFF] px-2 py-1 text-xs font-bold leading-[18px] text-[#635BFF]">
+          <span className="rounded-full bg-[#F7F6FF] px-2 py-1 text-xs font-bold leading-[18px] text-[#6F6A9F]">
             진행 중
           </span>
         </div>

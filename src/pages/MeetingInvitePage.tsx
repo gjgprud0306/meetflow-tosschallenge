@@ -31,7 +31,7 @@ function SystemMessage({ title }: { title: string }) {
             오전 10:30
           </span>
         </div>
-        <div className="mt-2 inline-flex h-11 items-center rounded-lg bg-[#F0EFFF] px-4 text-sm font-medium leading-[21px] text-[#635BFF]">
+        <div className="mt-2 inline-flex h-11 items-center rounded-lg bg-[#F7F6FF] px-4 text-sm font-medium leading-[21px] text-[#6F6A9F]">
           {title}의 응답 요청이 도착했습니다.
         </div>
       </div>
@@ -114,7 +114,7 @@ function InviteMeetingCard() {
 
   return (
     <section className="w-[680px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
-      <div className="flex h-[82px] items-center justify-between bg-[#F0EFFF] px-6">
+      <div className="flex h-[82px] items-center justify-between bg-[#F7F6FF] px-6">
         <div className="flex items-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#635BFF] text-xl font-bold leading-[30px] text-white">
             15
@@ -230,7 +230,7 @@ function InviteComposer() {
           채팅 중 일정 조율이 필요하면 회의를 만들어보세요
         </span>
       </div>
-      <Button className="h-12 w-40 rounded-lg bg-[#AAA3FF] text-base font-bold leading-6 text-white hover:bg-[#9B93FF]">
+      <Button className="h-12 w-40 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#6F6A9F] hover:bg-[#E4E2FF]">
         회의 만들기
       </Button>
     </div>

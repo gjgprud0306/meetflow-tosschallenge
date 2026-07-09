@@ -54,7 +54,7 @@ export function Sidebar() {
             className={cn(
               "flex h-10 items-center rounded-lg pl-3 text-sm leading-[21px]",
               pathname === "/my-schedule"
-                ? "bg-[#F0EFFF] font-medium text-[#475467]"
+                ? "bg-[#F7F6FF] font-medium text-[#475467]"
                 : "font-normal text-[#475467]",
             )}
             to="/my-schedule"
@@ -75,7 +75,7 @@ export function Sidebar() {
                 <Link
                   className={cn(
                     "flex h-10 w-56 items-center rounded-lg pl-[22px] text-sm leading-[21px] text-[#475467]",
-                    active ? "bg-[#F0EFFF] font-medium" : "font-normal",
+                    active ? "bg-[#F7F6FF] font-medium" : "font-normal",
                   )}
                   key={item.label}
                   to={item.to}
@@ -103,7 +103,7 @@ export function Sidebar() {
                   className={cn(
                     "flex h-10 w-56 items-center rounded-lg pl-3 text-sm leading-[21px]",
                     active
-                      ? "bg-[#F2F5FF] font-bold text-[#635BFF]"
+                      ? "bg-[#F7F8FC] font-bold text-[#635BFF]"
                       : "font-medium text-[#4F596D]",
                   )}
                   key={item.label}
