@@ -10,8 +10,6 @@ const meetingItems = [
 const channelItems = [
   { label: "공지", to: "/channels/notice" },
   { label: "디자인팀", to: "/" },
-  { label: "개발팀", to: "/channels/development" },
-  { label: "PM", to: "/channels/pm" },
 ];
 
 const ongoingPaths = [
