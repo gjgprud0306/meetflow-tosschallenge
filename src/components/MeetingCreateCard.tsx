@@ -193,6 +193,7 @@ const calendarCandidateDates = Array.from({ length: 31 }, (_, index) => {
     id: `date-${month}-${day}`,
     day,
     label: `${month}/${day} (${weekday})`,
+    value: date,
   };
 });
 
@@ -209,6 +210,17 @@ function selectedDateIdsFromLabel(label: string) {
 
 function selectedDateLabelsFromMeeting(dateRange: string) {
   return calendarCandidateDates.filter((date) => dateRange.includes(date.label));
+}
+
+function isPastCalendarDate(date: { value: Date }) {
+  const today = new Date();
+  const todayStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+
+  return date.value < todayStart;
 }
 
 const registeredTeamSchedules = [
@@ -277,7 +289,13 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   }
 
   function openDateModal() {
-    setDraftDateIds(selectedDateIdsFromLabel(summaries.dateRange));
+    setDraftDateIds(
+      selectedDateIdsFromLabel(summaries.dateRange).filter((dateId) => {
+        const date = calendarCandidateDates.find((item) => item.id === dateId);
+
+        return date ? !isPastCalendarDate(date) : false;
+      }),
+    );
     setModal("dateRange");
   }
 
@@ -299,6 +317,10 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   }
 
   function toggleDate(dateId: string) {
+    const selectedDate = calendarCandidateDates.find((date) => date.id === dateId);
+
+    if (selectedDate && isPastCalendarDate(selectedDate)) return;
+
     setDraftDateIds((current) =>
       current.includes(dateId)
         ? current.filter((id) => id !== dateId)
@@ -489,16 +511,20 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                 }
 
                 const selected = draftDateIds.includes(date.id);
+                const disabled = isPastCalendarDate(date);
 
                 return (
                   <button
                     aria-pressed={selected}
                     className={cn(
                       "flex h-11 items-center justify-center rounded-lg border text-sm font-bold leading-[21px] transition-colors",
-                      selected
+                      disabled
+                        ? "cursor-not-allowed border-transparent bg-[#F3F4F6] text-[#C9CED8]"
+                        : selected
                         ? "border-[#837CFF] bg-[#837CFF] text-white"
                         : "border-transparent bg-white text-[#475467] hover:border-[#C9C5FF] hover:bg-[#F7F6FF] hover:text-[#837CFF]",
                     )}
+                    disabled={disabled}
                     key={date.id}
                     onClick={() => toggleDate(date.id)}
                     type="button"
