@@ -16,6 +16,18 @@ type SidebarPlaceholderPageProps = {
   showAddSchedule?: boolean;
 };
 
+const scheduleTimeOptions = [
+  "09:00",
+  "10:00",
+  "11:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+];
+
 function PlaceholderMeetingCard({ card }: { card: MeetingCard }) {
   const isPastMeeting = card.status === "지난 회의";
 
@@ -52,9 +64,11 @@ export function SidebarPlaceholderPage({
   title,
 }: SidebarPlaceholderPageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTime, setSelectedTime] = useState("");
 
   function closeModal() {
     setIsModalOpen(false);
+    setSelectedTime("");
   }
 
   return (
@@ -100,12 +114,14 @@ export function SidebarPlaceholderPage({
       </div>
 
       {isModalOpen && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#101828]/30">
-          <div className="w-[360px] rounded-xl border border-[#E0E4EB] bg-white p-6 shadow-[0_16px_40px_rgba(16,24,40,0.18)]">
-            <h2 className="text-lg font-bold leading-7 text-[#101828]">
-              일정 추가
-            </h2>
-            <div className="mt-5 space-y-4">
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#101828]/30 p-6">
+          <div className="flex max-h-[calc(100vh-48px)] w-[360px] flex-col overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_16px_40px_rgba(16,24,40,0.18)]">
+            <div className="px-6 pt-6">
+              <h2 className="text-lg font-bold leading-7 text-[#101828]">
+                일정 추가
+              </h2>
+            </div>
+            <div className="mt-5 min-h-0 flex-1 space-y-4 overflow-y-auto px-6">
               <label className="block">
                 <span className="text-sm font-bold leading-[21px] text-[#344054]">
                   일정 제목
@@ -125,17 +141,33 @@ export function SidebarPlaceholderPage({
                   type="date"
                 />
               </label>
-              <label className="block">
+              <div>
                 <span className="text-sm font-bold leading-[21px] text-[#344054]">
                   시간
                 </span>
-                <input
-                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
-                  type="time"
-                />
-              </label>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {scheduleTimeOptions.map((time) => {
+                    const selected = selectedTime === time;
+
+                    return (
+                      <button
+                        className={`h-10 rounded-lg border text-sm font-medium leading-[21px] ${
+                          selected
+                            ? "border-[#837CFF] bg-[#F7F6FF] text-[#837CFF]"
+                            : "border-[#D0D5DD] bg-white text-[#475467] hover:bg-[#F9FAFB]"
+                        }`}
+                        key={time}
+                        onClick={() => setSelectedTime(time)}
+                        type="button"
+                      >
+                        {time}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="mt-6 flex shrink-0 justify-end gap-2 border-t border-[#E0E4EB] bg-white px-6 py-4">
               <Button
                 className="h-10 rounded-lg border border-[#D0D5DD] bg-white px-4 text-sm font-bold leading-[21px] text-[#475467] hover:bg-[#F9FAFB]"
                 onClick={closeModal}
