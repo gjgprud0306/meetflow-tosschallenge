@@ -12,10 +12,29 @@ function getInitialRequestStatus() {
     : "pending";
 }
 
+function groupedCandidateSchedules() {
+  return participantRequest.candidateTimes.reduce<Record<string, string[]>>(
+    (groups, candidateTime) => {
+      const [date, time] = candidateTime.split(" ");
+      const dateLabel =
+        participantRequest.candidateDateLabel
+          .split(", ")
+          .find((label) => label.startsWith(date)) ?? date;
+
+      return {
+        ...groups,
+        [dateLabel]: [...(groups[dateLabel] ?? []), time],
+      };
+    },
+    {},
+  );
+}
+
 export function ReceivedRequestsPage() {
   const navigate = useNavigate();
   const status = getInitialRequestStatus();
   const completed = status === "completed";
+  const candidateSchedules = groupedCandidateSchedules();
 
   return (
     <MeetFlowLayout title="받은 요청">
@@ -48,15 +67,13 @@ export function ReceivedRequestsPage() {
 
             <div className="space-y-3 px-5 py-5 text-sm font-medium leading-[21px]">
               <div className="flex gap-6">
-                <span className="w-[72px] shrink-0 text-[#98A2B3]">후보 날짜</span>
-                <span className="text-[#475467]">
-                  {participantRequest.candidateDateLabel}
-                </span>
-              </div>
-              <div className="flex gap-6">
-                <span className="w-[72px] shrink-0 text-[#98A2B3]">후보 시간</span>
-                <span className="text-[#475467]">
-                  {participantRequest.candidateTimes.join(", ")}
+                <span className="w-[72px] shrink-0 text-[#98A2B3]">후보 일정</span>
+                <span className="space-y-1 text-[#475467]">
+                  {Object.entries(candidateSchedules).map(([date, times]) => (
+                    <span className="block" key={date}>
+                      {date} {times.join(" · ")}
+                    </span>
+                  ))}
                 </span>
               </div>
               <div className="flex gap-6">
