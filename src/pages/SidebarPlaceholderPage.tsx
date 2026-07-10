@@ -119,7 +119,7 @@ export function SidebarPlaceholderPage({
   }
 
   return (
-    <MeetFlowLayout title={title}>
+    <MeetFlowLayout showHeaderMeta={title !== "공지"} title={title}>
       <div className="h-full w-full overflow-y-auto px-8 pt-7">
         <div
           className={
@@ -128,9 +128,11 @@ export function SidebarPlaceholderPage({
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-medium leading-[21px] text-[#667085]">
-                {description}
-              </p>
+              {description ? (
+                <p className="text-sm font-medium leading-[21px] text-[#667085]">
+                  {description}
+                </p>
+              ) : null}
             </div>
             {showAddSchedule && (
               <Button

@@ -46,15 +46,6 @@ function formatDateTimeOption(date: Date, time: string) {
   };
 }
 
-function getDateWithTime(date: Date, time: string) {
-  const [hours, minutes] = time.split(":").map(Number);
-  const dateTime = new Date(date);
-
-  dateTime.setHours(hours, minutes, 0, 0);
-
-  return dateTime;
-}
-
 function timesForWeekday(weekday: number) {
   if (weekday === 1) return ["10:00", "14:00"];
   if (weekday === 2) return ["10:00", "15:00"];
@@ -85,31 +76,30 @@ export function createCandidateTimeOptions(
 }
 
 export function createDeadlineOptions(meeting: MeetingCreateMock): SelectOption[] {
-  const range = getDateRangeDates(meeting);
+  void meeting;
 
-  if (!range) return [];
-
-  const options: SelectOption[] = [];
-  const current = new Date(range.start);
   const now = new Date();
+  const relativeOptions = [
+    { hours: 24, id: "deadline-24h", label: "24시간 후" },
+    { hours: 48, id: "deadline-48h", label: "48시간 후" },
+    { hours: 72, id: "deadline-3d", label: "3일 후" },
+  ];
 
-  while (current.getTime() <= range.end.getTime()) {
-    ["12:00", "18:00"].forEach((time) => {
-      if (getDateWithTime(current, time).getTime() < now.getTime()) return;
+  return relativeOptions.map((option) => {
+    const deadline = new Date(now);
+    deadline.setHours(deadline.getHours() + option.hours);
 
-      const month = current.getMonth() + 1;
-      const day = current.getDate();
-      const weekday = weekdays[current.getDay()];
+    const month = deadline.getMonth() + 1;
+    const day = deadline.getDate();
+    const weekday = weekdays[deadline.getDay()];
+    const hours = deadline.getHours().toString().padStart(2, "0");
+    const minutes = deadline.getMinutes().toString().padStart(2, "0");
 
-      options.push({
-        id: `deadline-${month}-${day}-${time.replace(":", "")}`,
-        label: `${month}/${day} (${weekday}) ${time}`,
-      });
-    });
-    current.setDate(current.getDate() + 1);
-  }
-
-  return options;
+    return {
+      id: option.id,
+      label: `${option.label} · ${month}/${day} (${weekday}) ${hours}:${minutes}`,
+    };
+  });
 }
 
 export function createMeetingSummaries(meeting: MeetingCreateMock) {

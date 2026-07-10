@@ -53,7 +53,7 @@ const pastMeetings = [
 const noticeMessages: ChatMessage[] = [
   {
     id: "notice-1",
-    author: "MFlow",
+    author: "MFlow Bot",
     color: "primary",
     initial: "M",
     message: [
@@ -63,7 +63,7 @@ const noticeMessages: ChatMessage[] = [
   },
   {
     id: "notice-2",
-    author: "MFlow",
+    author: "MFlow Bot",
     color: "primary",
     initial: "M",
     message: [
@@ -73,7 +73,7 @@ const noticeMessages: ChatMessage[] = [
   },
   {
     id: "notice-3",
-    author: "QA",
+    author: "QA팀",
     color: "muted",
     initial: "Q",
     message: [
@@ -93,7 +93,7 @@ const noticeMessages: ChatMessage[] = [
   },
   {
     id: "notice-5",
-    author: "MFlow",
+    author: "MFlow Bot",
     color: "primary",
     initial: "M",
     message: [
@@ -147,7 +147,7 @@ export const router = createBrowserRouter([
         path: "channels/notice",
         element: (
           <SidebarPlaceholderPage
-            description="공지 채널"
+            description=""
             messages={noticeMessages}
             title="공지"
           />

@@ -178,41 +178,6 @@ function ChoiceModal({
   );
 }
 
-function parseMonthDay(value: string) {
-  const match = value.match(/(\d{1,2})\/(\d{1,2})/);
-
-  if (!match) return null;
-
-  return new Date(2026, Number(match[1]) - 1, Number(match[2]));
-}
-
-function getDateRangeBounds(rangeLabel: string) {
-  const matches = [...rangeLabel.matchAll(/(\d{1,2})\/(\d{1,2})/g)];
-
-  if (matches.length < 1) return null;
-
-  return {
-    start: new Date(2026, Number(matches[0][1]) - 1, Number(matches[0][2])),
-    end: new Date(
-      2026,
-      Number((matches[1] ?? matches[0])[1]) - 1,
-      Number((matches[1] ?? matches[0])[2]),
-    ),
-  };
-}
-
-function isWithinDateRange(value: string, rangeLabel: string) {
-  const deadline = parseMonthDay(value);
-  const range = getDateRangeBounds(rangeLabel);
-
-  if (!deadline || !range) return false;
-
-  return (
-    deadline.getTime() >= range.start.getTime() &&
-    deadline.getTime() <= range.end.getTime()
-  );
-}
-
 const calendarYear = 2026;
 const calendarMonthIndex = 6;
 const calendarWeekdays = ["일", "월", "화", "수", "목", "금", "토"];
@@ -645,47 +610,39 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
     if (modal === "deadline") {
       return (
         <ChoiceModal onClose={() => setModal(null)} title="응답 마감 선택">
-          {deadlineOptions.length > 0 ? (
-            <OptionList
-              onSelect={(id) => {
-                updateMeeting({ deadlineId: id, customDeadline: "" });
-                setModal(null);
-              }}
-              options={deadlineOptions}
-              selectedIds={[meeting.deadlineId]}
-            />
-          ) : (
-            <p className="text-sm font-medium leading-[21px] text-[#667085]">
-              후보 날짜를 먼저 선택해주세요.
-            </p>
-          )}
-          {deadlineOptions.length > 0 ? (
-            <CustomInput
-              buttonLabel="직접 입력하기"
-              inputMode="text"
-              onCancel={() => {
-                setShowCustomDeadline(false);
-                setCustomDeadlineInput("");
-              }}
-              onSubmit={() => {
-                const value = customDeadlineInput.trim();
-                if (!value || !isWithinDateRange(value, summaries.dateRange)) return;
-                updateMeeting({
-                  customDeadline: value,
-                  deadlineId: "custom-deadline",
-                });
-                setCustomDeadlineInput("");
-                setShowCustomDeadline(false);
-                setModal(null);
-              }}
-              onToggle={() => setShowCustomDeadline(true)}
-              placeholder="예: 7/12 (일) 18:00"
-              setValue={setCustomDeadlineInput}
-              show={showCustomDeadline}
-              suffix=""
-              value={customDeadlineInput}
-            />
-          ) : null}
+          <OptionList
+            onSelect={(id) => {
+              updateMeeting({ deadlineId: id, customDeadline: "" });
+              setModal(null);
+            }}
+            options={deadlineOptions}
+            selectedIds={[meeting.deadlineId]}
+          />
+          <CustomInput
+            buttonLabel="직접 선택"
+            inputMode="text"
+            onCancel={() => {
+              setShowCustomDeadline(false);
+              setCustomDeadlineInput("");
+            }}
+            onSubmit={() => {
+              const value = customDeadlineInput.trim();
+              if (!value) return;
+              updateMeeting({
+                customDeadline: value,
+                deadlineId: "custom-deadline",
+              });
+              setCustomDeadlineInput("");
+              setShowCustomDeadline(false);
+              setModal(null);
+            }}
+            onToggle={() => setShowCustomDeadline(true)}
+            placeholder="예: 7/11 (토) 18:00"
+            setValue={setCustomDeadlineInput}
+            show={showCustomDeadline}
+            suffix=""
+            value={customDeadlineInput}
+          />
         </ChoiceModal>
       );
     }
