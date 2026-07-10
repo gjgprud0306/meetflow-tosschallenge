@@ -140,12 +140,23 @@ function ChatLine({
   time: string;
 }) {
   const isSystem = author === "MFlow";
+  const isHost = author.includes("주최자");
 
   return (
-    <article className="flex items-start">
-      <AvatarBadge color={isSystem ? "primary" : "muted"} initial={initial} />
-      <div className="ml-3">
-        <div className="flex h-[21px] items-center gap-1.5">
+    <article className={`flex items-start ${isHost ? "justify-end" : ""}`}>
+      {!isHost ? (
+        <AvatarBadge color={isSystem ? "primary" : "muted"} initial={initial} />
+      ) : null}
+      <div
+        className={
+          isHost ? "mr-3 flex max-w-[680px] flex-col items-end" : "ml-3"
+        }
+      >
+        <div
+          className={`flex h-[21px] items-center gap-1.5 ${
+            isHost ? "justify-end" : ""
+          }`}
+        >
           <span className="text-sm font-bold leading-[21px] text-[#101828]">
             {author}
           </span>
@@ -158,11 +169,18 @@ function ChatLine({
             {message}
           </div>
         ) : (
-          <p className="mt-1 text-base font-normal leading-6 text-[#1D2939]">
+          <p
+            className={`mt-2 max-w-[680px] rounded-lg px-4 py-2 text-base font-normal leading-6 ${
+              isHost
+                ? "bg-[#F7F6FF] text-right text-[#101828]"
+                : "bg-[#F9FAFB] text-left text-[#1D2939]"
+            }`}
+          >
             {message}
           </p>
         )}
       </div>
+      {isHost ? <AvatarBadge color="primary" initial={initial} /> : null}
     </article>
   );
 }
