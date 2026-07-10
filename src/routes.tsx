@@ -8,6 +8,7 @@ import { MeetingRequestedPage } from "@/pages/MeetingRequestedPage";
 import { MeetingMySchedulePage } from "@/pages/MeetingSchedulePage";
 import { ResponseStatusPage } from "@/pages/ResponseStatusPage";
 import { SidebarPlaceholderPage } from "@/pages/SidebarPlaceholderPage";
+import type { ChatMessage } from "@/types/meeting";
 
 const upcomingMeetings = [
   {
@@ -45,6 +46,59 @@ const pastMeetings = [
     title: "IA 검토 회의",
     meta: "7/4 (토) 오전 11:00 · 완료",
     status: "지난 회의",
+  },
+];
+
+const noticeMessages: ChatMessage[] = [
+  {
+    id: "notice-1",
+    author: "MFlow",
+    color: "primary",
+    initial: "M",
+    message: [
+      "오늘 오후 디자인 리뷰 회의가 예정되어 있습니다. 참석 대상자는 회의 전 최신 시안을 확인해주세요.",
+    ],
+    time: "오전 9:10",
+  },
+  {
+    id: "notice-2",
+    author: "MFlow",
+    color: "primary",
+    initial: "M",
+    message: [
+      "신규 회의 응답 요청이 발송되었습니다. 마감 전까지 가능한 시간을 선택해주세요.",
+    ],
+    time: "오전 10:30",
+  },
+  {
+    id: "notice-3",
+    author: "QA",
+    color: "muted",
+    initial: "Q",
+    message: [
+      "QA 일정은 금요일 13:00부터 진행됩니다. 확인이 필요한 화면은 오늘 중으로 정리 부탁드립니다.",
+    ],
+    time: "오전 11:05",
+  },
+  {
+    id: "notice-4",
+    author: "개발팀",
+    color: "secondary",
+    initial: "개",
+    message: [
+      "개발 전달 범위가 업데이트되었습니다. 컴포넌트 상태값과 예외 케이스를 함께 확인해주세요.",
+    ],
+    time: "오후 1:20",
+  },
+  {
+    id: "notice-5",
+    author: "MFlow",
+    color: "primary",
+    initial: "M",
+    message: [
+      "회의 자료가 업데이트되었습니다. 리뷰 회의 전 공유 문서의 마지막 섹션을 확인해주세요.",
+    ],
+    time: "오후 2:40",
   },
 ];
 
@@ -93,7 +147,7 @@ export const router = createBrowserRouter([
         element: (
           <SidebarPlaceholderPage
             description="공지 채널"
-            empty
+            messages={noticeMessages}
             title="공지"
           />
         ),

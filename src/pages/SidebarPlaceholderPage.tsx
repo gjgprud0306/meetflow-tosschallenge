@@ -1,6 +1,8 @@
+import { ChatMessage } from "@/components/ChatMessage";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import type { ChatMessage as ChatMessageType } from "@/types/meeting";
 
 type MeetingCard = {
   title: string;
@@ -13,6 +15,7 @@ type SidebarPlaceholderPageProps = {
   description: string;
   cards?: MeetingCard[];
   empty?: boolean;
+  messages?: ChatMessageType[];
   showAddSchedule?: boolean;
 };
 
@@ -77,6 +80,7 @@ export function SidebarPlaceholderPage({
   cards = [],
   description,
   empty = false,
+  messages = [],
   showAddSchedule = false,
   title,
 }: SidebarPlaceholderPageProps) {
@@ -117,7 +121,11 @@ export function SidebarPlaceholderPage({
   return (
     <MeetFlowLayout>
       <div className="h-full w-full overflow-y-auto px-8 pt-7">
-        <div className={empty ? "flex min-h-full flex-col" : "max-w-[760px]"}>
+        <div
+          className={
+            empty ? "flex min-h-full flex-col" : "mx-auto w-full max-w-[960px]"
+          }
+        >
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-[26px] font-bold leading-9 text-[#101828]">
@@ -137,7 +145,17 @@ export function SidebarPlaceholderPage({
             )}
           </div>
 
-          {empty ? (
+          {messages.length > 0 ? (
+            <div className="mt-8 flex flex-col gap-2.5">
+              {messages.map((message, index) => (
+                <ChatMessage
+                  key={message.id}
+                  message={message}
+                  previousAuthor={messages[index - 1]?.author}
+                />
+              ))}
+            </div>
+          ) : empty ? (
             <div className="flex flex-1 flex-col items-center justify-center text-center">
               <p className="text-sm font-bold leading-[21px] text-[#667085]">
                 최근 대화가 없습니다.
