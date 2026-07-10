@@ -403,6 +403,7 @@ export function ResponseStatusPage() {
   const [stage, setStage] = useState<ResponseStage>("initial");
   const [reminderStarted, setReminderStarted] = useState(false);
   const followUpEndRef = useRef<HTMLDivElement | null>(null);
+  const previousFollowUpCountRef = useRef(0);
 
   useEffect(() => {
     const seoTimer = window.setTimeout(() => {
@@ -552,25 +553,20 @@ export function ResponseStatusPage() {
   }, [reminderStarted, stage]);
 
   useEffect(() => {
-    if (followUpMessages.length === 0) return;
-    if (
-      ![
-        "seoResponded",
-        "junResponded",
-        "partial",
-        "reminded",
-        "minResponded",
-        "complete",
-      ].includes(stage)
-    ) {
+    const previousCount = previousFollowUpCountRef.current;
+    previousFollowUpCountRef.current = followUpMessages.length;
+
+    if (followUpMessages.length <= previousCount) {
       return;
     }
 
-    followUpEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "end",
+    window.requestAnimationFrame(() => {
+      followUpEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
     });
-  }, [followUpMessages.length, stage]);
+  }, [followUpMessages.length]);
 
   function sendReminder() {
     if (reminderStarted) return;
