@@ -408,29 +408,62 @@ function ReminderEntryPoint({ onReminder }: { onReminder: () => void }) {
   );
 }
 
+function ConfirmEntryPoint({ onConfirm }: { onConfirm: () => void }) {
+  return (
+    <section className="flex w-full max-w-[680px] items-center justify-between rounded-xl border border-[#D8D5F7] bg-[#F7F6FF] px-5 py-4">
+      <p className="text-sm font-bold leading-[21px] text-[#475467]">
+        모든 응답이 모였어요. 회의를 확정해주세요.
+      </p>
+      <Button
+        className="h-10 rounded-lg bg-[#635BFF] px-5 text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+        onClick={onConfirm}
+      >
+        회의 확정
+      </Button>
+    </section>
+  );
+}
+
 function ResponseLogList({
+  onConfirm,
   messages,
   onReminder,
+  showConfirm,
   showReminder,
 }: {
+  onConfirm: () => void;
   messages: FollowUpMessage[];
   onReminder: () => void;
+  showConfirm: boolean;
   showReminder: boolean;
 }) {
-  if (messages.length === 0 && !showReminder) return null;
+  if (messages.length === 0 && !showReminder && !showConfirm) return null;
 
   return (
-    <div className="flex w-full flex-col gap-3">
-      {messages.map((message) => (
-        <ChatLine
-          author={message.author}
-          initial={message.initial}
-          key={message.id}
-          message={message.message}
-          time={message.time}
-        />
-      ))}
-      {showReminder && <ReminderEntryPoint onReminder={onReminder} />}
+    <div className="flex w-full flex-col">
+      {messages.length > 0 ? (
+        <div className="flex w-full flex-col gap-3">
+          {messages.map((message) => (
+            <ChatLine
+              author={message.author}
+              initial={message.initial}
+              key={message.id}
+              message={message.message}
+              time={message.time}
+            />
+          ))}
+        </div>
+      ) : null}
+      {showReminder && (
+        <div className={messages.length > 0 ? "mt-6" : ""}>
+          <ReminderEntryPoint onReminder={onReminder} />
+        </div>
+      )}
+      {showConfirm && (
+        <div className={messages.length > 0 ? "mt-6" : ""}>
+          <ConfirmEntryPoint onConfirm={onConfirm} />
+        </div>
+      )}
     </div>
   );
 }
@@ -453,7 +486,7 @@ function ResponseComposer() {
 export function ResponseStatusPage() {
   const [stage, setStage] = useState<ResponseStage>("initial");
   const [reminderStarted, setReminderStarted] = useState(false);
-  const followUpEndRef = useRef<HTMLDivElement | null>(null);
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const previousFollowUpCountRef = useRef(0);
 
   useEffect(() => {
@@ -604,22 +637,31 @@ export function ResponseStatusPage() {
   }, [reminderStarted, stage]);
 
   const showReminderPrompt = stage === "partial";
+  const showConfirmPrompt = stage === "complete";
 
   useEffect(() => {
     const previousCount = previousFollowUpCountRef.current;
     previousFollowUpCountRef.current = followUpMessages.length;
 
-    if (followUpMessages.length <= previousCount && !showReminderPrompt) {
+    if (
+      followUpMessages.length <= previousCount &&
+      !showReminderPrompt &&
+      !showConfirmPrompt
+    ) {
       return;
     }
 
     window.requestAnimationFrame(() => {
-      followUpEndRef.current?.scrollIntoView({
+      const scrollContainer = chatScrollRef.current;
+
+      if (!scrollContainer) return;
+
+      scrollContainer.scrollTo({
         behavior: "smooth",
-        block: "end",
+        top: scrollContainer.scrollHeight,
       });
     });
-  }, [followUpMessages.length, showReminderPrompt]);
+  }, [followUpMessages.length, showConfirmPrompt, showReminderPrompt]);
 
   function sendReminder() {
     if (reminderStarted) return;
@@ -636,15 +678,19 @@ export function ResponseStatusPage() {
     <MeetFlowLayout title="회의 확정">
       <div className="flex h-full w-full min-w-0 bg-white">
         <div className="relative min-w-0 flex-1">
-          <div className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7">
+          <div
+            className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7"
+            ref={chatScrollRef}
+          >
             <div className="flex w-full flex-col gap-3">
               <ManagementCard onConfirm={confirmMeeting} stage={stage} />
               <ResponseLogList
+                onConfirm={confirmMeeting}
                 messages={followUpMessages}
                 onReminder={sendReminder}
+                showConfirm={showConfirmPrompt}
                 showReminder={showReminderPrompt}
               />
-              <div ref={followUpEndRef} />
             </div>
           </div>
           <ResponseComposer />
