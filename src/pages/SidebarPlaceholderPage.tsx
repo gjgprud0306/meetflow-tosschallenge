@@ -16,17 +16,34 @@ type SidebarPlaceholderPageProps = {
   showAddSchedule?: boolean;
 };
 
-const scheduleTimeOptions = [
-  "09:00",
-  "10:00",
-  "11:00",
-  "13:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-  "18:00",
-];
+const scheduleStorageKey = "mflow-my-schedule-cards";
+const scheduleTimeOptions = Array.from({ length: 12 }, (_, index) => {
+  const hour = index + 9;
+
+  return `${hour.toString().padStart(2, "0")}:00`;
+});
+
+function formatScheduleDate(dateValue: string) {
+  const [year, month, day] = dateValue.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  const weekday = ["일", "월", "화", "수", "목", "금", "토"][date.getDay()];
+
+  return `${month}/${day} (${weekday})`;
+}
+
+function getInitialScheduleCards(cards: MeetingCard[], showAddSchedule: boolean) {
+  if (!showAddSchedule) return cards;
+
+  const saved = window.localStorage.getItem(scheduleStorageKey);
+
+  if (!saved) return cards;
+
+  try {
+    return JSON.parse(saved) as MeetingCard[];
+  } catch {
+    return cards;
+  }
+}
 
 function PlaceholderMeetingCard({ card }: { card: MeetingCard }) {
   const isPastMeeting = card.status === "지난 회의";
@@ -64,11 +81,37 @@ export function SidebarPlaceholderPage({
   title,
 }: SidebarPlaceholderPageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [scheduleCards, setScheduleCards] = useState<MeetingCard[]>(() =>
+    getInitialScheduleCards(cards, showAddSchedule),
+  );
+  const [scheduleTitle, setScheduleTitle] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
+  const canSaveSchedule =
+    scheduleTitle.trim().length > 0 &&
+    selectedDate.trim().length > 0 &&
+    selectedTime.trim().length > 0;
 
   function closeModal() {
     setIsModalOpen(false);
+    setScheduleTitle("");
+    setSelectedDate("");
     setSelectedTime("");
+  }
+
+  function saveSchedule() {
+    if (!canSaveSchedule) return;
+
+    const newSchedule = {
+      meta: `${formatScheduleDate(selectedDate)} ${selectedTime} · 내 일정`,
+      status: "예정",
+      title: scheduleTitle.trim(),
+    };
+    const nextCards = [...scheduleCards, newSchedule];
+
+    setScheduleCards(nextCards);
+    window.localStorage.setItem(scheduleStorageKey, JSON.stringify(nextCards));
+    closeModal();
   }
 
   return (
@@ -105,8 +148,11 @@ export function SidebarPlaceholderPage({
             </div>
           ) : (
             <div className="mt-8 flex flex-col gap-4">
-              {cards.map((card) => (
-                <PlaceholderMeetingCard card={card} key={card.title} />
+              {scheduleCards.map((card) => (
+                <PlaceholderMeetingCard
+                  card={card}
+                  key={`${card.title}-${card.meta}`}
+                />
               ))}
             </div>
           )}
@@ -128,8 +174,10 @@ export function SidebarPlaceholderPage({
                 </span>
                 <input
                   className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
+                  onChange={(event) => setScheduleTitle(event.target.value)}
                   placeholder="일정 제목"
                   type="text"
+                  value={scheduleTitle}
                 />
               </label>
               <label className="block">
@@ -138,7 +186,9 @@ export function SidebarPlaceholderPage({
                 </span>
                 <input
                   className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
+                  onChange={(event) => setSelectedDate(event.target.value)}
                   type="date"
+                  value={selectedDate}
                 />
               </label>
               <div>
@@ -175,8 +225,9 @@ export function SidebarPlaceholderPage({
                 취소
               </Button>
               <Button
-                className="h-10 rounded-lg bg-[#635BFF] px-4 text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
-                onClick={closeModal}
+                className="h-10 rounded-lg bg-[#635BFF] px-4 text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8] disabled:bg-[#C9CED8] disabled:text-white"
+                disabled={!canSaveSchedule}
+                onClick={saveSchedule}
               >
                 저장
               </Button>
