@@ -1,6 +1,7 @@
 import { ChatMessage } from "@/components/ChatMessage";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import type { ChatMessage as ChatMessageType } from "@/types/meeting";
@@ -10,6 +11,7 @@ type MeetingCard = {
   title: string;
   meta: string;
   status: string;
+  source?: "manual" | "confirmed";
 };
 
 type SidebarPlaceholderPageProps = {
@@ -44,7 +46,12 @@ function getInitialScheduleCards(cards: MeetingCard[], showAddSchedule: boolean)
   if (!saved) return cards;
 
   try {
-    const savedCards = JSON.parse(saved) as MeetingCard[];
+    const defaultKeys = new Set(cards.map((card) => cardKey(card)));
+    const savedCards = (JSON.parse(saved) as MeetingCard[]).map((card) => {
+      if (card.source || defaultKeys.has(cardKey(card))) return card;
+
+      return { ...card, source: "manual" as const };
+    });
     const savedKeys = new Set(
       savedCards.map((card) => card.id ?? `${card.title}-${card.meta}`),
     );
@@ -58,18 +65,39 @@ function getInitialScheduleCards(cards: MeetingCard[], showAddSchedule: boolean)
   }
 }
 
+function cardKey(card: MeetingCard) {
+  return card.id ?? `${card.title}-${card.meta}`;
+}
+
+function persistScheduleCards(cards: MeetingCard[]) {
+  const storedCards = cards.filter(
+    (card) => card.source === "manual" || card.source === "confirmed",
+  );
+
+  window.localStorage.setItem(scheduleStorageKey, JSON.stringify(storedCards));
+}
+
+function isStoredManualSchedule(card: MeetingCard) {
+  return card.source === "manual";
+}
+
 function PlaceholderMeetingCard({
   card,
   highlighted,
+  onDelete,
 }: {
   card: MeetingCard;
   highlighted: boolean;
+  onDelete?: (card: MeetingCard) => void;
 }) {
   const isPastMeeting = card.status === "지난 회의";
+  const canShowDelete =
+    Boolean(onDelete) &&
+    (card.source === "confirmed" || isStoredManualSchedule(card));
 
   return (
     <article
-      className={`w-full max-w-[520px] rounded-xl border bg-white px-5 py-4 shadow-[0_4px_16px_rgba(16,24,40,0.06)] ${
+      className={`group w-full max-w-[520px] rounded-xl border bg-white px-5 py-4 shadow-[0_4px_16px_rgba(16,24,40,0.06)] ${
         highlighted ? "border-[#837CFF] ring-4 ring-[#F7F6FF]" : "border-[#E0E4EB]"
       }`}
     >
@@ -91,6 +119,16 @@ function PlaceholderMeetingCard({
         >
           {isPastMeeting ? "완료" : card.status}
         </span>
+        {canShowDelete ? (
+          <button
+            aria-label="일정 삭제"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E0E4EB] bg-white text-[#98A2B3] opacity-0 transition hover:border-[#D0D5DD] hover:bg-[#F9FAFB] hover:text-[#667085] group-hover:opacity-100"
+            onClick={() => onDelete?.(card)}
+            type="button"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        ) : null}
       </div>
     </article>
   );
@@ -113,6 +151,7 @@ export function SidebarPlaceholderPage({
   const [scheduleTitle, setScheduleTitle] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<MeetingCard | null>(null);
   const canSaveSchedule =
     scheduleTitle.trim().length > 0 &&
     selectedDate.trim().length > 0 &&
@@ -129,15 +168,33 @@ export function SidebarPlaceholderPage({
     if (!canSaveSchedule) return;
 
     const newSchedule = {
+      id: `manual-${Date.now()}`,
       meta: `${formatScheduleDate(selectedDate)} ${selectedTime} · 내 일정`,
+      source: "manual" as const,
       status: "예정",
       title: scheduleTitle.trim(),
     };
     const nextCards = [...scheduleCards, newSchedule];
 
     setScheduleCards(nextCards);
-    window.localStorage.setItem(scheduleStorageKey, JSON.stringify(nextCards));
+    persistScheduleCards(nextCards);
     closeModal();
+  }
+
+  function deleteSchedule() {
+    if (!deleteTarget) return;
+
+    if (deleteTarget.source === "confirmed") {
+      setDeleteTarget(null);
+      return;
+    }
+
+    const targetKey = cardKey(deleteTarget);
+    const nextCards = scheduleCards.filter((card) => cardKey(card) !== targetKey);
+
+    setScheduleCards(nextCards);
+    persistScheduleCards(nextCards);
+    setDeleteTarget(null);
   }
 
   return (
@@ -191,6 +248,7 @@ export function SidebarPlaceholderPage({
                 <PlaceholderMeetingCard
                   card={card}
                   highlighted={card.id === highlightedId}
+                  onDelete={showAddSchedule ? setDeleteTarget : undefined}
                   key={`${card.title}-${card.meta}`}
                 />
               ))}
@@ -271,6 +329,48 @@ export function SidebarPlaceholderPage({
               >
                 저장
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#101828]/30 p-6">
+          <div className="w-[340px] rounded-xl border border-[#E0E4EB] bg-white p-6 shadow-[0_16px_40px_rgba(16,24,40,0.18)]">
+            <h2 className="text-lg font-bold leading-7 text-[#101828]">
+              {deleteTarget.source === "confirmed"
+                ? "확정된 회의"
+                : "이 일정을 삭제할까요?"}
+            </h2>
+            <p className="mt-2 text-sm font-medium leading-[21px] text-[#667085]">
+              {deleteTarget.source === "confirmed"
+                ? "회의 취소는 확정된 회의에서 진행해주세요"
+                : "삭제한 일정은 내 일정 목록에서 바로 제거됩니다."}
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              {deleteTarget.source === "confirmed" ? (
+                <Button
+                  className="h-10 rounded-lg bg-[#635BFF] px-4 text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+                  onClick={() => setDeleteTarget(null)}
+                >
+                  확인
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    className="h-10 rounded-lg border border-[#D0D5DD] bg-white px-4 text-sm font-bold leading-[21px] text-[#475467] hover:bg-[#F9FAFB]"
+                    onClick={() => setDeleteTarget(null)}
+                  >
+                    취소
+                  </Button>
+                  <Button
+                    className="h-10 rounded-lg bg-[#635BFF] px-4 text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+                    onClick={deleteSchedule}
+                  >
+                    삭제
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

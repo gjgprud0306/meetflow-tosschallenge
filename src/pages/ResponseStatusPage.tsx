@@ -81,7 +81,13 @@ function getConfirmedScheduleInfo(title: string, selectedTimes: string) {
 
 function saveConfirmedSchedule(schedule: ReturnType<typeof getConfirmedScheduleInfo>) {
   const saved = window.localStorage.getItem(scheduleStorageKey);
-  let cards: { id?: string; meta: string; status: string; title: string }[] = [];
+  let cards: {
+    id?: string;
+    meta: string;
+    source?: "manual" | "confirmed";
+    status: string;
+    title: string;
+  }[] = [];
 
   if (saved) {
     try {
@@ -94,6 +100,7 @@ function saveConfirmedSchedule(schedule: ReturnType<typeof getConfirmedScheduleI
   const nextCard = {
     id: schedule.id,
     meta: schedule.meta,
+    source: "confirmed",
     status: "확정됨",
     title: schedule.title,
   };
