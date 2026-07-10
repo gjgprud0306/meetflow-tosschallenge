@@ -16,6 +16,14 @@ type ResponseStage =
   | "complete"
   | "confirmed";
 
+type FollowUpMessage = {
+  id: string;
+  author: string;
+  initial: string;
+  time: string;
+  message: string;
+};
+
 const responseNames = [
   { id: "owner", label: "혜경" },
   { id: "min", label: "민수" },
@@ -400,6 +408,33 @@ function ReminderEntryPoint({ onReminder }: { onReminder: () => void }) {
   );
 }
 
+function ResponseLogList({
+  messages,
+  onReminder,
+  showReminder,
+}: {
+  messages: FollowUpMessage[];
+  onReminder: () => void;
+  showReminder: boolean;
+}) {
+  if (messages.length === 0 && !showReminder) return null;
+
+  return (
+    <div className="flex w-full flex-col gap-3">
+      {messages.map((message) => (
+        <ChatLine
+          author={message.author}
+          initial={message.initial}
+          key={message.id}
+          message={message.message}
+          time={message.time}
+        />
+      ))}
+      {showReminder && <ReminderEntryPoint onReminder={onReminder} />}
+    </div>
+  );
+}
+
 function ResponseComposer() {
   return (
     <div className="absolute bottom-0 left-0 flex h-[104px] w-full items-center gap-[34px] border-t border-[#E0E4EB] bg-white px-8 py-4">
@@ -455,7 +490,7 @@ export function ResponseStatusPage() {
     };
   }, [reminderStarted]);
 
-  const followUpMessages = useMemo(() => {
+  const followUpMessages = useMemo<FollowUpMessage[]>(() => {
     return [
       ...(stage === "seoResponded" ||
       stage === "junResponded" ||
@@ -568,11 +603,13 @@ export function ResponseStatusPage() {
     ];
   }, [reminderStarted, stage]);
 
+  const showReminderPrompt = stage === "partial";
+
   useEffect(() => {
     const previousCount = previousFollowUpCountRef.current;
     previousFollowUpCountRef.current = followUpMessages.length;
 
-    if (followUpMessages.length <= previousCount) {
+    if (followUpMessages.length <= previousCount && !showReminderPrompt) {
       return;
     }
 
@@ -582,7 +619,7 @@ export function ResponseStatusPage() {
         block: "end",
       });
     });
-  }, [followUpMessages.length]);
+  }, [followUpMessages.length, showReminderPrompt]);
 
   function sendReminder() {
     if (reminderStarted) return;
@@ -602,18 +639,11 @@ export function ResponseStatusPage() {
           <div className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7">
             <div className="flex w-full flex-col gap-3">
               <ManagementCard onConfirm={confirmMeeting} stage={stage} />
-              {followUpMessages.map((message) => (
-                <ChatLine
-                  author={message.author}
-                  initial={message.initial}
-                  key={message.id}
-                  message={message.message}
-                  time={message.time}
-                />
-              ))}
-              {stage === "partial" && (
-                <ReminderEntryPoint onReminder={sendReminder} />
-              )}
+              <ResponseLogList
+                messages={followUpMessages}
+                onReminder={sendReminder}
+                showReminder={showReminderPrompt}
+              />
               <div ref={followUpEndRef} />
             </div>
           </div>
