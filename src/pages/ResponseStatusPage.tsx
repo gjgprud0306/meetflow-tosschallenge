@@ -1,5 +1,6 @@
 import { Check } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,77 @@ const responseNames = [
   { id: "ji", label: "지수" },
   { id: "tae", label: "태민" },
 ];
+
+const scheduleStorageKey = "mflow-my-schedule-cards";
+const confirmedScheduleId = "confirmed-review-meeting";
+
+function formatConfirmedTimeLabel(rawTime: string) {
+  const [hourText] = rawTime.split(":");
+  const hour = Number(hourText);
+
+  if (Number.isNaN(hour)) return rawTime;
+  if (hour === 0) return "오전 12시";
+  if (hour < 12) return `오전 ${hour}시`;
+  if (hour === 12) return "오후 12시";
+
+  return `오후 ${hour - 12}시`;
+}
+
+function getConfirmedScheduleInfo(title: string, selectedTimes: string) {
+  const firstTime = selectedTimes.split(",")[0]?.trim();
+  const match = firstTime?.match(/(\d{1,2})\/(\d{1,2})\s*\(([^)]+)\)\s*(\d{1,2}:\d{2})/);
+
+  if (!match) {
+    return {
+      dateLabel: "7/14(화)",
+      displayDateTime: "7/14(화) 오후 3시",
+      id: confirmedScheduleId,
+      meta: "7/14 (화) 오후 3시 · 참여자 6명",
+      timeLabel: "오후 3시",
+      title: title || "리뷰회의",
+      weekday: "화",
+    };
+  }
+
+  const [, month, day, weekday, time] = match;
+  const timeLabel = formatConfirmedTimeLabel(time);
+
+  return {
+    dateLabel: `${month}/${day}(${weekday})`,
+    displayDateTime: `${month}/${day}(${weekday}) ${timeLabel}`,
+    id: confirmedScheduleId,
+    meta: `${month}/${day} (${weekday}) ${timeLabel} · 참여자 6명`,
+    timeLabel,
+    title: title || "리뷰회의",
+    weekday,
+  };
+}
+
+function saveConfirmedSchedule(schedule: ReturnType<typeof getConfirmedScheduleInfo>) {
+  const saved = window.localStorage.getItem(scheduleStorageKey);
+  let cards: { id?: string; meta: string; status: string; title: string }[] = [];
+
+  if (saved) {
+    try {
+      cards = JSON.parse(saved);
+    } catch {
+      cards = [];
+    }
+  }
+
+  const nextCard = {
+    id: schedule.id,
+    meta: schedule.meta,
+    status: "확정됨",
+    title: schedule.title,
+  };
+  const nextCards = [
+    ...cards.filter((card) => card.id !== schedule.id),
+    nextCard,
+  ];
+
+  window.localStorage.setItem(scheduleStorageKey, JSON.stringify(nextCards));
+}
 
 function responseCountForStage(stage: ResponseStage) {
   if (stage === "complete" || stage === "confirmed") return 6;
@@ -293,10 +365,14 @@ function ManagementCard({
 }
 
 function StatusPanel({
+  confirmedSchedule,
   onReminder,
+  onViewSchedule,
   stage,
 }: {
+  confirmedSchedule: ReturnType<typeof getConfirmedScheduleInfo>;
   onReminder: () => void;
+  onViewSchedule: () => void;
   stage: ResponseStage;
 }) {
   const confirmed = stage === "confirmed";
@@ -383,9 +459,21 @@ function StatusPanel({
           <h3 className="text-sm font-bold leading-[21px] text-[#635BFF]">
             일정 공유 완료
           </h3>
-          <p className="mt-2 text-sm font-medium leading-[21px] text-[#635BFF]">
+          <p className="mt-2 text-sm font-bold leading-[21px] text-[#101828]">
+            {confirmedSchedule.title}
+          </p>
+          <p className="mt-1 text-sm font-medium leading-[21px] text-[#635BFF]">
+            {confirmedSchedule.dateLabel} · {confirmedSchedule.timeLabel}
+          </p>
+          <p className="mt-3 text-sm font-medium leading-[21px] text-[#635BFF]">
             모든 참여자 6명에게 확정된 일정을 공유했습니다.
           </p>
+          <Button
+            className="mt-4 h-11 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+            onClick={onViewSchedule}
+          >
+            내 일정에서 보기
+          </Button>
         </div>
       )}
     </aside>
@@ -484,10 +572,16 @@ function ResponseComposer() {
 }
 
 export function ResponseStatusPage() {
+  const navigate = useNavigate();
+  const { meeting, summaries } = useMeetingFlow();
   const [stage, setStage] = useState<ResponseStage>("initial");
   const [reminderStarted, setReminderStarted] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const previousFollowUpCountRef = useRef(0);
+  const confirmedSchedule = useMemo(
+    () => getConfirmedScheduleInfo(meeting.title, summaries.selectedTimes),
+    [meeting.title, summaries.selectedTimes],
+  );
 
   useEffect(() => {
     const seoTimer = window.setTimeout(() => {
@@ -631,10 +725,17 @@ export function ResponseStatusPage() {
               time: "오전 10:24",
               message: "참여자에게 일정을 공유했습니다.",
             },
+            {
+              id: "confirmed-schedule",
+              author: "MFlow",
+              initial: "M",
+              time: "오전 10:25",
+              message: `${confirmedSchedule.title}가 ${confirmedSchedule.displayDateTime}로 확정되었습니다.`,
+            },
           ]
         : []),
     ];
-  }, [reminderStarted, stage]);
+  }, [confirmedSchedule, reminderStarted, stage]);
 
   const showReminderPrompt = stage === "partial";
   const showConfirmPrompt = stage === "complete";
@@ -671,7 +772,12 @@ export function ResponseStatusPage() {
 
   function confirmMeeting() {
     if (stage !== "complete") return;
+    saveConfirmedSchedule(confirmedSchedule);
     setStage("confirmed");
+  }
+
+  function viewConfirmedSchedule() {
+    navigate(`/my-schedule?highlight=${confirmedSchedule.id}`);
   }
 
   return (
@@ -695,7 +801,12 @@ export function ResponseStatusPage() {
           </div>
           <ResponseComposer />
         </div>
-        <StatusPanel onReminder={sendReminder} stage={stage} />
+        <StatusPanel
+          confirmedSchedule={confirmedSchedule}
+          onReminder={sendReminder}
+          onViewSchedule={viewConfirmedSchedule}
+          stage={stage}
+        />
       </div>
     </MeetFlowLayout>
   );

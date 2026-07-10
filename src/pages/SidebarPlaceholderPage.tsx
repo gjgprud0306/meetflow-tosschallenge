@@ -2,9 +2,11 @@ import { ChatMessage } from "@/components/ChatMessage";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import type { ChatMessage as ChatMessageType } from "@/types/meeting";
 
 type MeetingCard = {
+  id?: string;
   title: string;
   meta: string;
   status: string;
@@ -42,17 +44,35 @@ function getInitialScheduleCards(cards: MeetingCard[], showAddSchedule: boolean)
   if (!saved) return cards;
 
   try {
-    return JSON.parse(saved) as MeetingCard[];
+    const savedCards = JSON.parse(saved) as MeetingCard[];
+    const savedKeys = new Set(
+      savedCards.map((card) => card.id ?? `${card.title}-${card.meta}`),
+    );
+
+    return [
+      ...cards.filter((card) => !savedKeys.has(card.id ?? `${card.title}-${card.meta}`)),
+      ...savedCards,
+    ];
   } catch {
     return cards;
   }
 }
 
-function PlaceholderMeetingCard({ card }: { card: MeetingCard }) {
+function PlaceholderMeetingCard({
+  card,
+  highlighted,
+}: {
+  card: MeetingCard;
+  highlighted: boolean;
+}) {
   const isPastMeeting = card.status === "지난 회의";
 
   return (
-    <article className="w-full max-w-[520px] rounded-xl border border-[#E0E4EB] bg-white px-5 py-4 shadow-[0_4px_16px_rgba(16,24,40,0.06)]">
+    <article
+      className={`w-full max-w-[520px] rounded-xl border bg-white px-5 py-4 shadow-[0_4px_16px_rgba(16,24,40,0.06)] ${
+        highlighted ? "border-[#837CFF] ring-4 ring-[#F7F6FF]" : "border-[#E0E4EB]"
+      }`}
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold leading-7 text-[#101828]">
@@ -84,6 +104,8 @@ export function SidebarPlaceholderPage({
   showAddSchedule = false,
   title,
 }: SidebarPlaceholderPageProps) {
+  const location = useLocation();
+  const highlightedId = new URLSearchParams(location.search).get("highlight");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [scheduleCards, setScheduleCards] = useState<MeetingCard[]>(() =>
     getInitialScheduleCards(cards, showAddSchedule),
@@ -168,6 +190,7 @@ export function SidebarPlaceholderPage({
               {scheduleCards.map((card) => (
                 <PlaceholderMeetingCard
                   card={card}
+                  highlighted={card.id === highlightedId}
                   key={`${card.title}-${card.meta}`}
                 />
               ))}
