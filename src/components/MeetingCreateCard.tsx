@@ -213,17 +213,28 @@ function isWithinDateRange(value: string, rangeLabel: string) {
   );
 }
 
-const calendarCandidateDates = Array.from({ length: 9 }, (_, index) => {
-  const date = new Date(2026, 6, 7 + index);
+const calendarYear = 2026;
+const calendarMonthIndex = 6;
+const calendarWeekdays = ["일", "월", "화", "수", "목", "금", "토"];
+const calendarLeadingDays = new Date(calendarYear, calendarMonthIndex, 1).getDay();
+
+const calendarCandidateDates = Array.from({ length: 31 }, (_, index) => {
+  const date = new Date(calendarYear, calendarMonthIndex, index + 1);
   const month = date.getMonth() + 1;
   const day = date.getDate();
-  const weekday = ["일", "월", "화", "수", "목", "금", "토"][date.getDay()];
+  const weekday = calendarWeekdays[date.getDay()];
 
   return {
     id: `date-${month}-${day}`,
+    day,
     label: `${month}/${day} (${weekday})`,
   };
 });
+
+const calendarCells = [
+  ...Array.from({ length: calendarLeadingDays }, () => null),
+  ...calendarCandidateDates,
+];
 
 function selectedDateIdsFromLabel(label: string) {
   return calendarCandidateDates
@@ -427,26 +438,44 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
           <p className="mb-3 text-xs font-medium leading-[18px] text-[#94A3B8]">
             캘린더에서 후보 날짜를 복수로 선택하세요.
           </p>
-          <div className="grid grid-cols-3 gap-2">
-            {calendarCandidateDates.map((date) => {
-              const selected = draftDateIds.includes(date.id);
-
-              return (
-                <button
-                  className={cn(
-                    "h-12 rounded-lg border text-sm font-medium leading-[21px]",
-                    selected
-                      ? "border-[#837CFF] bg-[#F7F6FF] text-[#837CFF]"
-                      : "border-[#E0E4EB] bg-[#F9FAFB] text-[#475467]",
-                  )}
-                  key={date.id}
-                  onClick={() => toggleDate(date.id)}
-                  type="button"
+          <div className="rounded-xl border border-[#E0E4EB] bg-[#F9FAFB] p-4">
+            <div className="mb-4 text-center text-sm font-bold leading-[21px] text-[#101828]">
+              2026년 7월
+            </div>
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {calendarWeekdays.map((weekday) => (
+                <div
+                  className="h-7 text-xs font-bold leading-7 text-[#98A2B3]"
+                  key={weekday}
                 >
-                  {date.label}
-                </button>
-              );
-            })}
+                  {weekday}
+                </div>
+              ))}
+              {calendarCells.map((date, index) => {
+                if (!date) {
+                  return <div aria-hidden className="h-11" key={`blank-${index}`} />;
+                }
+
+                const selected = draftDateIds.includes(date.id);
+
+                return (
+                  <button
+                    aria-pressed={selected}
+                    className={cn(
+                      "flex h-11 items-center justify-center rounded-lg border text-sm font-bold leading-[21px] transition-colors",
+                      selected
+                        ? "border-[#837CFF] bg-[#837CFF] text-white"
+                        : "border-transparent bg-white text-[#475467] hover:border-[#C9C5FF] hover:bg-[#F7F6FF] hover:text-[#837CFF]",
+                    )}
+                    key={date.id}
+                    onClick={() => toggleDate(date.id)}
+                    type="button"
+                  >
+                    {date.day}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <Button
             className="mt-4 h-12 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 disabled:bg-[#C9CED8] disabled:text-white"

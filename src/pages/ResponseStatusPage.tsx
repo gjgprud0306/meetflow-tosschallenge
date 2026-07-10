@@ -143,13 +143,17 @@ function ChatLine({
   const isHost = author.includes("주최자");
 
   return (
-    <article className={`flex items-start ${isHost ? "justify-end" : ""}`}>
+    <article
+      className={`flex items-end ${isHost ? "justify-end" : "justify-start"}`}
+    >
       {!isHost ? (
         <AvatarBadge color={isSystem ? "primary" : "muted"} initial={initial} />
       ) : null}
       <div
         className={
-          isHost ? "mr-3 flex max-w-[680px] flex-col items-end" : "ml-3"
+          isHost
+            ? "mr-2 flex max-w-[520px] flex-col items-end"
+            : "ml-2 flex max-w-[520px] flex-col items-start"
         }
       >
         <div
@@ -165,12 +169,12 @@ function ChatLine({
           </span>
         </div>
         {isSystem ? (
-          <div className="mt-2 inline-flex h-11 items-center rounded-lg bg-[#F7F6FF] px-4 text-sm font-medium leading-[21px] text-[#6F6A9F]">
+          <div className="mt-2 inline-flex h-11 max-w-[460px] items-center rounded-2xl bg-[#F7F6FF] px-4 text-sm font-medium leading-[21px] text-[#6F6A9F]">
             {message}
           </div>
         ) : (
           <p
-            className={`mt-2 max-w-[680px] rounded-lg px-4 py-2 text-base font-normal leading-6 ${
+            className={`mt-2 max-w-[460px] rounded-2xl px-4 py-2 text-[15px] font-normal leading-6 ${
               isHost
                 ? "bg-[#F7F6FF] text-right text-[#101828]"
                 : "bg-[#F9FAFB] text-left text-[#1D2939]"
@@ -584,7 +588,7 @@ export function ResponseStatusPage() {
       <div className="flex h-full w-full min-w-0 bg-white">
         <div className="relative min-w-0 flex-1">
           <div className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7">
-            <div className="flex flex-col gap-6">
+            <div className="mx-auto flex w-full max-w-[760px] flex-col gap-4">
               <ManagementCard onConfirm={confirmMeeting} stage={stage} />
               {followUpMessages.map((message) => (
                 <ChatLine

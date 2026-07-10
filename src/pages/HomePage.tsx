@@ -25,9 +25,13 @@ export function HomePage() {
   return (
     <MeetFlowLayout bottomBar={<ChatComposer />}>
       <div className="h-full w-full overflow-y-auto px-8 pt-7">
-        <div className="flex flex-col gap-6">
-          {chatMessages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
+        <div className="mx-auto flex w-full max-w-[760px] flex-col gap-3">
+          {chatMessages.map((message, index) => (
+            <ChatMessage
+              key={message.id}
+              message={message}
+              previousAuthor={chatMessages[index - 1]?.author}
+            />
           ))}
         </div>
       </div>
