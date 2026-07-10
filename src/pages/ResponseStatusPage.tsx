@@ -390,93 +390,100 @@ function StatusPanel({
   const missingCount = 6 - responseCount;
 
   return (
-    <aside className="h-full w-[328px] shrink-0 border-l border-[#E5E7EB] bg-[#F9FAFB] px-6 pt-7">
-      <h2 className="text-[26px] font-bold leading-9 text-[#101828]">
-        응답 현황
-      </h2>
-      <p className="mt-2 text-sm font-medium leading-[21px] text-[#475467]">
-        {confirmed
-          ? "참여자에게 일정을 공유했습니다"
-          : complete
-            ? "모든 참여자가 응답했습니다"
-            : "마감 전 응답 현황만 확인합니다"}
-      </p>
-
-      <section className="mt-6 rounded-xl border border-[#E0E4EB] bg-white p-5">
-        <span className="rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#6F6A9F]">
-          {confirmed ? "회의 확정" : complete ? "응답 완료" : "응답 수집"}
-        </span>
-        <h3 className="mt-5 text-[30px] font-bold leading-10 text-[#635BFF]">
-          {responseCount}/6명 응답
-        </h3>
-        <p className="mt-5 text-sm font-bold leading-[21px] text-[#475467]">
-          {complete ? "회의 확정" : `미응답자 ${missingCount}명: ${missingNames}`}
-        </p>
-        <div className="mt-4 h-1.5 rounded-full bg-[#E5E7EB]">
-          <div
-            className="h-1.5 rounded-full bg-[#635BFF] transition-all duration-500 ease-out"
-            style={{ width: complete ? "100%" : progressPercentForStage(stage) }}
-          />
-        </div>
-        <p className="mt-3 text-xs font-medium leading-[18px] text-[#98A2B3]">
-          {complete ? "100% 완료" : `${Math.round((responseCount / 6) * 100)}% 완료`}
+    <aside className="flex h-[100dvh] max-h-[100dvh] w-[328px] shrink-0 flex-col overflow-hidden border-l border-[#E5E7EB] bg-[#F9FAFB]">
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-7">
+        <h2 className="text-[26px] font-bold leading-9 text-[#101828]">
+          응답 현황
+        </h2>
+        <p className="mt-2 text-sm font-medium leading-[21px] text-[#475467]">
+          {confirmed
+            ? "참여자에게 일정을 공유했습니다"
+            : complete
+              ? "모든 참여자가 응답했습니다"
+              : "마감 전 응답 현황만 확인합니다"}
         </p>
 
-        <div className="mt-5 space-y-3">
-          {responseNames.map((attendee) => {
-            const done = hasResponded(stage, attendee.id);
-
-            return (
-              <div
-                className="flex items-center justify-between text-sm font-medium leading-[21px]"
-                key={attendee.id}
-              >
-                <span className="text-[#475467]">{attendee.label}</span>
-                <span className={done ? "text-[#635BFF]" : "text-[#98A2B3]"}>
-                  {done ? "응답 완료" : "대기 중"}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {stage === "partial" && (
-        <Button
-          className="mt-5 h-14 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
-          onClick={onReminder}
-        >
-          미응답자에게 리마인드 보내기 (2명)
-        </Button>
-      )}
-
-      {reminded && (
-        <div className="mt-5 rounded-lg border border-[#D8D5F7] bg-[#F7F6FF] px-5 py-4">
-          <h3 className="text-sm font-bold leading-[21px] text-[#635BFF]">
-            리마인드 전송됨
+        <section className="mt-6 rounded-xl border border-[#E0E4EB] bg-white p-5">
+          <span className="rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#6F6A9F]">
+            {confirmed ? "회의 확정" : complete ? "응답 완료" : "응답 수집"}
+          </span>
+          <h3 className="mt-5 text-[30px] font-bold leading-10 text-[#635BFF]">
+            {responseCount}/6명 응답
           </h3>
-          <p className="mt-2 text-sm font-medium leading-[21px] text-[#635BFF]">
-            미응답자 2명에게 리마인드를 보냈습니다. 응답을 기다리는 중입니다.
+          <p className="mt-5 text-sm font-bold leading-[21px] text-[#475467]">
+            {complete ? "회의 확정" : `미응답자 ${missingCount}명: ${missingNames}`}
           </p>
-        </div>
-      )}
+          <div className="mt-4 h-1.5 rounded-full bg-[#E5E7EB]">
+            <div
+              className="h-1.5 rounded-full bg-[#635BFF] transition-all duration-500 ease-out"
+              style={{ width: complete ? "100%" : progressPercentForStage(stage) }}
+            />
+          </div>
+          <p className="mt-3 text-xs font-medium leading-[18px] text-[#98A2B3]">
+            {complete ? "100% 완료" : `${Math.round((responseCount / 6) * 100)}% 완료`}
+          </p>
+
+          <div className="mt-5 space-y-3">
+            {responseNames.map((attendee) => {
+              const done = hasResponded(stage, attendee.id);
+
+              return (
+                <div
+                  className="flex items-center justify-between text-sm font-medium leading-[21px]"
+                  key={attendee.id}
+                >
+                  <span className="text-[#475467]">{attendee.label}</span>
+                  <span className={done ? "text-[#635BFF]" : "text-[#98A2B3]"}>
+                    {done ? "응답 완료" : "대기 중"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {stage === "partial" && (
+          <Button
+            className="mt-5 h-14 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+            onClick={onReminder}
+          >
+            미응답자에게 리마인드 보내기 (2명)
+          </Button>
+        )}
+
+        {reminded && (
+          <div className="mt-5 rounded-lg border border-[#D8D5F7] bg-[#F7F6FF] px-5 py-4">
+            <h3 className="text-sm font-bold leading-[21px] text-[#635BFF]">
+              리마인드 전송됨
+            </h3>
+            <p className="mt-2 text-sm font-medium leading-[21px] text-[#635BFF]">
+              미응답자 2명에게 리마인드를 보냈습니다. 응답을 기다리는 중입니다.
+            </p>
+          </div>
+        )}
+
+        {confirmed && (
+          <div className="mt-5 rounded-lg border border-[#D8D5F7] bg-[#F7F6FF] px-5 py-4">
+            <h3 className="text-sm font-bold leading-[21px] text-[#635BFF]">
+              일정 공유 완료
+            </h3>
+            <p className="mt-2 text-sm font-bold leading-[21px] text-[#101828]">
+              {confirmedSchedule.title}
+            </p>
+            <p className="mt-1 text-sm font-medium leading-[21px] text-[#635BFF]">
+              {confirmedSchedule.dateLabel} · {confirmedSchedule.timeLabel}
+            </p>
+            <p className="mt-3 text-sm font-medium leading-[21px] text-[#635BFF]">
+              모든 참여자 6명에게 확정된 일정을 공유했습니다.
+            </p>
+          </div>
+        )}
+      </div>
 
       {confirmed && (
-        <div className="mt-5 rounded-lg border border-[#D8D5F7] bg-[#F7F6FF] px-5 py-4">
-          <h3 className="text-sm font-bold leading-[21px] text-[#635BFF]">
-            일정 공유 완료
-          </h3>
-          <p className="mt-2 text-sm font-bold leading-[21px] text-[#101828]">
-            {confirmedSchedule.title}
-          </p>
-          <p className="mt-1 text-sm font-medium leading-[21px] text-[#635BFF]">
-            {confirmedSchedule.dateLabel} · {confirmedSchedule.timeLabel}
-          </p>
-          <p className="mt-3 text-sm font-medium leading-[21px] text-[#635BFF]">
-            모든 참여자 6명에게 확정된 일정을 공유했습니다.
-          </p>
+        <div className="sticky bottom-0 shrink-0 border-t border-[#E5E7EB] bg-[#F9FAFB] px-6 pb-6 pt-4">
           <Button
-            className="mt-4 h-11 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+            className="h-11 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
             onClick={onViewSchedule}
           >
             내 일정에서 보기
