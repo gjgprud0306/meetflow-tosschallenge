@@ -131,25 +131,27 @@ function PlaceholderMeetingCard({
             {card.meta}
           </p>
         </div>
-        <span
-          className={
-            isPastMeeting
-              ? "shrink-0 rounded-full bg-[#F2F4F7] px-3 py-1 text-xs font-bold leading-[18px] text-[#667085]"
-              : "shrink-0 rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#6F6A9F]"
-          }
-        >
-          {badgeLabel}
-        </span>
-        {canShowDelete ? (
-          <button
-            aria-label="일정 삭제"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#D0D5DD] bg-white text-[#98A2B3] transition hover:border-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#667085]"
-            onClick={() => onDelete?.(card)}
-            type="button"
+        <div className="ml-auto flex shrink-0 items-start justify-end gap-2">
+          <span
+            className={
+              isPastMeeting
+                ? "shrink-0 rounded-full bg-[#F2F4F7] px-3 py-1 text-xs font-bold leading-[18px] text-[#667085]"
+                : "shrink-0 rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#6F6A9F]"
+            }
           >
-            <X className="h-4 w-4" />
-          </button>
-        ) : null}
+            {badgeLabel}
+          </span>
+          {canShowDelete ? (
+            <button
+              aria-label="일정 삭제"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#D0D5DD] bg-white text-[#98A2B3] transition hover:border-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#667085]"
+              onClick={() => onDelete?.(card)}
+              type="button"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
       </div>
     </article>
   );
