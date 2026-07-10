@@ -246,6 +246,24 @@ function selectedDateLabelsFromMeeting(dateRange: string) {
   return calendarCandidateDates.filter((date) => dateRange.includes(date.label));
 }
 
+const registeredTeamSchedules = [
+  {
+    name: "허혜경",
+    schedules: ["수 14:00~15:00 디자인 리뷰", "목 10:00~11:00 팀 싱크"],
+  },
+  { name: "김민서", schedules: ["수 15:00~17:00 개발 작업"] },
+  { name: "박준호", schedules: ["목 오전 외근"] },
+  { name: "윤서연", schedules: ["금 13:00~14:00 QA 확인"] },
+  { name: "윤지은", schedules: [] },
+  { name: "박은주", schedules: ["목 16:00~17:00 고객 미팅"] },
+];
+
+const availableDateSummaries = [
+  { id: "date-7-13", label: "가능 6명 · 7/13(월)" },
+  { id: "date-7-14", label: "가능 5명 · 7/14(화)" },
+  { id: "date-7-15", label: "가능 5명 · 7/15(수)" },
+];
+
 export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   const navigate = useNavigate();
   const { meeting, updateMeeting, summaries } = useMeetingFlow();
@@ -293,6 +311,10 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
     setModal("dateRange");
   }
 
+  function openTeamScheduleModal() {
+    setModal("teamSchedule");
+  }
+
   function openTimesModal() {
     setDraftTimeIds(meeting.timeIds);
     setDraftCustomTimeOptions(meeting.customTimeOptions);
@@ -332,37 +354,66 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
 
   function renderModal() {
     if (modal === "teamSchedule") {
-      const teamSchedules = [
-        { time: "화 15:00~16:00", status: "가능 4명 · 확인 필요: 윤지은, 박은주" },
-        { time: "수 10:00~11:00", status: "가능 5명 · 확인 필요: 박은주" },
-        { time: "목 16:00~17:00", status: "가능 6명" },
-      ];
-
       return (
         <ChoiceModal onClose={() => setModal(null)} title="팀원 일정 (6명)">
           <p className="mb-4 text-sm font-medium leading-[21px] text-[#667085]">
-            후보 시간별 참석 가능 여부를 확인하세요.
+            회의 전 팀원들의 등록된 일정을 확인하세요.
           </p>
-          <div className="space-y-3">
-            {teamSchedules.map((item) => (
+          <div className="max-h-[300px] space-y-3 overflow-y-auto pr-1">
+            {registeredTeamSchedules.map((item) => (
               <div
                 className="rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-4 py-3"
-                key={item.time}
+                key={item.name}
               >
-                <div className="text-sm font-bold leading-[21px] text-[#101828]">
-                  {item.time}
+                <div className="flex items-start justify-between gap-4">
+                  <div className="text-sm font-bold leading-[21px] text-[#101828]">
+                    {item.name}
+                  </div>
+                  {item.schedules.length === 0 ? (
+                    <span className="rounded-full bg-[#F3F4F6] px-2 py-[3px] text-xs font-bold leading-[18px] text-[#98A2B3]">
+                      미등록
+                    </span>
+                  ) : null}
                 </div>
-                <div className="mt-1 text-sm font-medium leading-[21px] text-[#475467]">
-                  {item.status}
-                </div>
+                {item.schedules.length > 0 ? (
+                  <div className="mt-2 space-y-1">
+                    {item.schedules.map((schedule) => (
+                      <div
+                        className="text-sm font-medium leading-[21px] text-[#475467]"
+                        key={schedule}
+                      >
+                        {schedule}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-2 text-sm font-medium leading-[21px] text-[#98A2B3]">
+                    등록된 일정이 없습니다.
+                  </div>
+                )}
               </div>
             ))}
           </div>
+          <div className="mt-5 rounded-lg border border-[#E0E4EB] bg-white px-4 py-3">
+            <h3 className="text-sm font-bold leading-[21px] text-[#101828]">
+              일정 집계 결과
+            </h3>
+            <div className="mt-3 space-y-2">
+              {availableDateSummaries.map((item) => (
+                <div
+                  className="text-sm font-medium leading-[21px] text-[#475467]"
+                  key={item.id}
+                >
+                  {item.label}
+                </div>
+              ))}
+            </div>
+          </div>
           <Button
             className="mt-5 h-11 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
-            onClick={() => setModal(null)}
+            onClick={openDateModal}
           >
-            닫기
+            후보 날짜 선택하기
           </Button>
         </ChoiceModal>
       );
@@ -436,7 +487,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
       return (
         <ChoiceModal onClose={() => setModal(null)} title="후보 날짜 선택">
           <p className="mb-3 text-xs font-medium leading-[18px] text-[#94A3B8]">
-            캘린더에서 후보 날짜를 복수로 선택하세요.
+            팀원 일정 집계 결과를 참고해 후보 날짜를 복수로 선택하세요.
           </p>
           <div className="rounded-xl border border-[#E0E4EB] bg-[#F9FAFB] p-4">
             <div className="mb-4 text-center text-sm font-bold leading-[21px] text-[#101828]">
@@ -671,7 +722,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
           <Field
             badge
             label="2. 팀원 일정"
-            onClick={() => setModal("teamSchedule")}
+            onClick={openTeamScheduleModal}
             value="일정 확인 (6명)"
           />
           <Field
