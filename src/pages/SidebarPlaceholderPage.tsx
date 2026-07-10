@@ -311,24 +311,31 @@ export function SidebarPlaceholderPage({
                   value={scheduleTitle}
                 />
               </label>
-              <label className="block">
+              <div>
                 <span className="text-sm font-bold leading-[21px] text-[#344054]">
                   일정 종류
                 </span>
-                <select
-                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] bg-white px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
-                  onChange={(event) =>
-                    setScheduleType(event.target.value as ScheduleType)
-                  }
-                  value={scheduleType}
-                >
-                  {scheduleTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                <div className="mt-2 grid grid-cols-4 gap-2">
+                  {scheduleTypes.map((type) => {
+                    const selected = scheduleType === type;
+
+                    return (
+                      <button
+                        className={
+                          selected
+                            ? "h-9 rounded-full bg-[#837CFF] px-3 text-xs font-bold leading-[18px] text-white"
+                            : "h-9 rounded-full border border-[#D0D5DD] bg-white px-3 text-xs font-bold leading-[18px] text-[#667085] hover:bg-[#F9FAFB]"
+                        }
+                        key={type}
+                        onClick={() => setScheduleType(type)}
+                        type="button"
+                      >
+                        {type}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <label className="block">
                 <span className="text-sm font-bold leading-[21px] text-[#344054]">
                   날짜
