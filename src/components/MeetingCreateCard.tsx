@@ -3,10 +3,7 @@ import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { Button } from "@/components/ui/button";
-import {
-  createCandidateTimeOptions,
-  createDeadlineOptions,
-} from "@/context/meetingFlowUtils";
+import { createDeadlineOptions } from "@/context/meetingFlowUtils";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { attendees } from "@/mocks";
 import { cn } from "@/lib/utils";
@@ -192,11 +189,15 @@ function parseMonthDay(value: string) {
 function getDateRangeBounds(rangeLabel: string) {
   const matches = [...rangeLabel.matchAll(/(\d{1,2})\/(\d{1,2})/g)];
 
-  if (matches.length < 2) return null;
+  if (matches.length < 1) return null;
 
   return {
     start: new Date(2026, Number(matches[0][1]) - 1, Number(matches[0][2])),
-    end: new Date(2026, Number(matches[1][1]) - 1, Number(matches[1][2])),
+    end: new Date(
+      2026,
+      Number((matches[1] ?? matches[0])[1]) - 1,
+      Number((matches[1] ?? matches[0])[2]),
+    ),
   };
 }
 
@@ -212,14 +213,34 @@ function isWithinDateRange(value: string, rangeLabel: string) {
   );
 }
 
+const calendarCandidateDates = Array.from({ length: 9 }, (_, index) => {
+  const date = new Date(2026, 6, 7 + index);
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const weekday = ["일", "월", "화", "수", "목", "금", "토"][date.getDay()];
+
+  return {
+    id: `date-${month}-${day}`,
+    label: `${month}/${day} (${weekday})`,
+  };
+});
+
+function selectedDateIdsFromLabel(label: string) {
+  return calendarCandidateDates
+    .filter((date) => label.includes(date.label))
+    .map((date) => date.id);
+}
+
+function selectedDateLabelsFromMeeting(dateRange: string) {
+  return calendarCandidateDates.filter((date) => dateRange.includes(date.label));
+}
+
 export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   const navigate = useNavigate();
   const { meeting, updateMeeting, summaries } = useMeetingFlow();
   const [modal, setModal] = useState<ModalType>(null);
-  const [showCustomDate, setShowCustomDate] = useState(false);
-  const [customDateInput, setCustomDateInput] = useState("");
-  const [showCustomTime, setShowCustomTime] = useState(false);
-  const [customTimeInput, setCustomTimeInput] = useState("");
+  const [draftDateIds, setDraftDateIds] = useState<string[]>([]);
+  const [timeInputs, setTimeInputs] = useState<Record<string, string>>({});
   const [draftTimeIds, setDraftTimeIds] = useState<string[]>([]);
   const [draftCustomTimeOptions, setDraftCustomTimeOptions] = useState<
     SelectOption[]
@@ -227,10 +248,9 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   const [showCustomDeadline, setShowCustomDeadline] = useState(false);
   const [customDeadlineInput, setCustomDeadlineInput] = useState("");
   const deadlineOptions = createDeadlineOptions(meeting);
-  const candidateTimeOptions = createCandidateTimeOptions(meeting);
   const canSubmit =
     meeting.title.trim().length > 0 &&
-    summaries.dateRange !== "후보 기간 선택" &&
+    summaries.dateRange !== "후보 날짜 선택" &&
     meeting.timeIds.length > 0 &&
     summaries.deadline !== "응답 마감 선택";
 
@@ -257,22 +277,46 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
     });
   }
 
+  function openDateModal() {
+    setDraftDateIds(selectedDateIdsFromLabel(summaries.dateRange));
+    setModal("dateRange");
+  }
+
   function openTimesModal() {
     setDraftTimeIds(meeting.timeIds);
     setDraftCustomTimeOptions(meeting.customTimeOptions);
-    setShowCustomTime(false);
-    setCustomTimeInput("");
+    setTimeInputs({});
     setModal("times");
   }
 
-  function toggleTime(timeId: string) {
-    setDraftTimeIds((current) => {
-      if (current.includes(timeId)) {
-        return current.filter((id) => id !== timeId);
-      }
+  function toggleDate(dateId: string) {
+    setDraftDateIds((current) =>
+      current.includes(dateId)
+        ? current.filter((id) => id !== dateId)
+        : [...current, dateId],
+    );
+  }
 
-      return current.length < 5 ? [...current, timeId] : current;
-    });
+  function addTimeForDate(date: SelectOption) {
+    const value = (timeInputs[date.id] ?? "").trim();
+
+    if (!value) return;
+
+    const id = `custom-time-${date.id}-${value.replace(/\D/g, "")}`;
+    const option = { id, label: `${date.label} ${value}` };
+
+    setDraftCustomTimeOptions((current) =>
+      current.some((item) => item.id === id) ? current : [...current, option],
+    );
+    setDraftTimeIds((current) => (current.includes(id) ? current : [...current, id]));
+    setTimeInputs((current) => ({ ...current, [date.id]: "" }));
+  }
+
+  function removeTime(timeId: string) {
+    setDraftCustomTimeOptions((current) =>
+      current.filter((option) => option.id !== timeId),
+    );
+    setDraftTimeIds((current) => current.filter((id) => id !== timeId));
   }
 
   function renderModal() {
@@ -379,106 +423,125 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
 
     if (modal === "dateRange") {
       return (
-        <ChoiceModal onClose={() => setModal(null)} title="후보 기간 선택">
-          <OptionList
-            onSelect={(id) => {
+        <ChoiceModal onClose={() => setModal(null)} title="후보 날짜 선택">
+          <p className="mb-3 text-xs font-medium leading-[18px] text-[#94A3B8]">
+            캘린더에서 후보 날짜를 복수로 선택하세요.
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {calendarCandidateDates.map((date) => {
+              const selected = draftDateIds.includes(date.id);
+
+              return (
+                <button
+                  className={cn(
+                    "h-12 rounded-lg border text-sm font-medium leading-[21px]",
+                    selected
+                      ? "border-[#837CFF] bg-[#F7F6FF] text-[#837CFF]"
+                      : "border-[#E0E4EB] bg-[#F9FAFB] text-[#475467]",
+                  )}
+                  key={date.id}
+                  onClick={() => toggleDate(date.id)}
+                  type="button"
+                >
+                  {date.label}
+                </button>
+              );
+            })}
+          </div>
+          <Button
+            className="mt-4 h-12 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 disabled:bg-[#C9CED8] disabled:text-white"
+            disabled={draftDateIds.length === 0}
+            onClick={() => {
+              const selectedDates = calendarCandidateDates.filter((date) =>
+                draftDateIds.includes(date.id),
+              );
+              const label = selectedDates.map((date) => date.label).join(", ");
+
               updateMeeting({
-                dateRangeId: id,
-                timeIds: [],
-                customTimeOptions: [],
-                deadlineId: "",
-                customDeadline: "",
-              });
-              setModal(null);
-            }}
-            options={options.dateRanges}
-            selectedIds={[meeting.dateRangeId]}
-          />
-          <CustomInput
-            buttonLabel="직접 입력하기"
-            inputMode="text"
-            onCancel={() => {
-              setShowCustomDate(false);
-              setCustomDateInput("");
-            }}
-            onSubmit={() => {
-              const value = customDateInput.trim();
-              if (!value) return;
-              updateMeeting({
-                customDateRange: value,
+                customDateRange: label,
                 dateRangeId: "custom-date-range",
                 timeIds: [],
                 customTimeOptions: [],
                 deadlineId: "",
                 customDeadline: "",
               });
-              setCustomDateInput("");
-              setShowCustomDate(false);
               setModal(null);
             }}
-            onToggle={() => setShowCustomDate(true)}
-            placeholder="예: 7/16 (목) ~ 7/17 (금)"
-            setValue={setCustomDateInput}
-            show={showCustomDate}
-            suffix=""
-            value={customDateInput}
-          />
+          >
+            선택 완료
+          </Button>
         </ChoiceModal>
       );
     }
 
     if (modal === "times") {
+      const selectedDates = selectedDateLabelsFromMeeting(summaries.dateRange);
+
       return (
         <ChoiceModal onClose={() => setModal(null)} title="후보 시간 선택">
-          {candidateTimeOptions.length > 0 ? (
+          {selectedDates.length > 0 ? (
             <>
               <p className="mb-3 text-xs font-medium leading-[18px] text-[#94A3B8]">
-                2~5개까지 선택할 수 있습니다.
+                선택한 날짜별 후보 시간을 직접 추가하거나 삭제하세요.
               </p>
-              <OptionList
-                multiple
-                onSelect={toggleTime}
-                options={[...candidateTimeOptions, ...draftCustomTimeOptions]}
-                selectedIds={draftTimeIds}
-              />
-              <CustomInput
-                buttonLabel="직접 입력하기"
-                inputMode="text"
-                onCancel={() => {
-                  setShowCustomTime(false);
-                  setCustomTimeInput("");
-                }}
-                onSubmit={() => {
-                  const value = customTimeInput.trim();
-                  const alreadySelected = draftCustomTimeOptions.some(
-                    (option) =>
-                      option.label === value && draftTimeIds.includes(option.id),
+              <div className="max-h-[360px] space-y-3 overflow-y-auto pr-1">
+                {selectedDates.map((date) => {
+                  const dateTimes = draftCustomTimeOptions.filter((option) =>
+                    option.label.startsWith(date.label),
                   );
-                  if (!value || (draftTimeIds.length >= 5 && !alreadySelected)) return;
-                  const id = `custom-time-${value.replace(/\s+/g, "-")}`;
-                  setDraftCustomTimeOptions((current) =>
-                    current.some((option) => option.id === id)
-                      ? current
-                      : [...current, { id, label: value }],
+
+                  return (
+                    <div
+                      className="rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] p-3"
+                      key={date.id}
+                    >
+                      <div className="text-sm font-bold leading-[21px] text-[#101828]">
+                        {date.label}
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <input
+                          className="h-10 min-w-0 flex-1 rounded-lg border border-[#E0E4EB] bg-white px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
+                          onChange={(event) =>
+                            setTimeInputs((current) => ({
+                              ...current,
+                              [date.id]: event.target.value,
+                            }))
+                          }
+                          placeholder="예: 14:00"
+                          value={timeInputs[date.id] ?? ""}
+                        />
+                        <Button
+                          className="h-10 rounded-lg bg-[#635BFF] px-4 text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90"
+                          onClick={() => addTimeForDate(date)}
+                        >
+                          추가
+                        </Button>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {dateTimes.length > 0 ? (
+                          dateTimes.map((option) => (
+                            <button
+                              className="rounded-full border border-[#837CFF] bg-white px-3 py-1 text-xs font-bold leading-[18px] text-[#837CFF]"
+                              key={option.id}
+                              onClick={() => removeTime(option.id)}
+                              type="button"
+                            >
+                              {option.label.replace(`${date.label} `, "")} 삭제
+                            </button>
+                          ))
+                        ) : (
+                          <span className="text-xs font-medium leading-[18px] text-[#98A2B3]">
+                            추가된 시간이 없습니다.
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   );
-                  setDraftTimeIds((current) =>
-                    current.includes(id) || current.length >= 5
-                      ? current
-                      : [...current, id],
-                  );
-                  setCustomTimeInput("");
-                  setShowCustomTime(false);
-                }}
-                onToggle={() => setShowCustomTime(true)}
-                placeholder="예: 7/10 (금) 17:00"
-                setValue={setCustomTimeInput}
-                show={showCustomTime}
-                suffix=""
-                value={customTimeInput}
-              />
+                })}
+              </div>
               <Button
                 className="mt-4 h-12 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 disabled:bg-[#C9CED8] disabled:text-white"
-                disabled={draftTimeIds.length < 2}
+                disabled={draftTimeIds.length === 0}
                 onClick={() => {
                   updateMeeting({
                     timeIds: draftTimeIds,
@@ -492,7 +555,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             </>
           ) : (
             <p className="text-sm font-medium leading-[21px] text-[#667085]">
-              후보 기간을 먼저 선택해주세요.
+              후보 날짜를 먼저 선택해주세요.
             </p>
           )}
         </ChoiceModal>
@@ -513,7 +576,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             />
           ) : (
             <p className="text-sm font-medium leading-[21px] text-[#667085]">
-              후보 기간을 먼저 선택해주세요.
+              후보 날짜를 먼저 선택해주세요.
             </p>
           )}
           {deadlineOptions.length > 0 ? (
@@ -583,9 +646,9 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             value="일정 확인 (6명)"
           />
           <Field
-            label="3. 후보 기간"
-            onClick={() => setModal("dateRange")}
-            placeholder={summaries.dateRange === "후보 기간 선택"}
+            label="3. 후보 날짜"
+            onClick={openDateModal}
+            placeholder={summaries.dateRange === "후보 날짜 선택"}
             value={summaries.dateRange}
           />
           <Field

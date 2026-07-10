@@ -26,10 +26,11 @@ function getDateRangeDates(meeting: MeetingCreateMock) {
   const label = getDateRangeLabel(meeting);
   const matches = [...label.matchAll(/(\d{1,2})\/(\d{1,2})/g)];
 
-  if (matches.length < 2) return null;
+  if (matches.length < 1) return null;
 
   const start = new Date(2026, Number(matches[0][1]) - 1, Number(matches[0][2]));
-  const end = new Date(2026, Number(matches[1][1]) - 1, Number(matches[1][2]));
+  const endMatch = matches[1] ?? matches[0];
+  const end = new Date(2026, Number(endMatch[1]) - 1, Number(endMatch[2]));
 
   return { start, end };
 }
@@ -112,10 +113,7 @@ export function createDeadlineOptions(meeting: MeetingCreateMock): SelectOption[
 }
 
 export function createMeetingSummaries(meeting: MeetingCreateMock) {
-  const candidateTimes = [
-    ...createCandidateTimeOptions(meeting),
-    ...meeting.customTimeOptions,
-  ];
+  const candidateTimes = meeting.customTimeOptions;
   const firstRequired = attendees.find(
     (attendee) => attendee.id === meeting.requiredAttendeeIds[0],
   );
@@ -147,7 +145,7 @@ export function createMeetingSummaries(meeting: MeetingCreateMock) {
       meeting.dateRangeId === "custom-date-range"
         ? meeting.customDateRange
         : optionLabel(meetingCreateOptions.dateRanges, meeting.dateRangeId) ||
-          "후보 기간 선택",
+          "후보 날짜 선택",
     timeCount: `${meeting.timeIds.length}개 선택`,
     selectedTimes,
     deadline: deadline || "응답 마감 선택",
