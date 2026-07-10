@@ -23,7 +23,7 @@ function ChatComposer() {
 
 export function HomePage() {
   return (
-    <MeetFlowLayout bottomBar={<ChatComposer />}>
+    <MeetFlowLayout bottomBar={<ChatComposer />} title="디자인팀">
       <div className="h-full w-full overflow-y-auto px-8 pt-7">
         <div className="mx-auto flex w-full max-w-[960px] flex-col gap-2.5">
           {chatMessages.map((message, index) => (

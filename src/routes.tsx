@@ -128,7 +128,7 @@ export const router = createBrowserRouter([
           <SidebarPlaceholderPage
             cards={confirmedMeetings}
             description="확정된 회의를 확인합니다."
-            title="확정됨"
+            title="회의 확정"
           />
         ),
       },

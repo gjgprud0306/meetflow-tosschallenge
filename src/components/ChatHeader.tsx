@@ -7,12 +7,16 @@ const headerAvatars = [
   { initial: "서", color: "muted" as const },
 ];
 
-export function ChatHeader() {
+type ChatHeaderProps = {
+  title: string;
+};
+
+export function ChatHeader({ title }: ChatHeaderProps) {
   return (
     <header className="flex h-24 w-full shrink-0 items-center border-b border-[#E5E7EB] bg-white px-8 py-[22px]">
       <div className="min-w-0 flex-1">
         <h1 className="text-[23px] font-bold leading-[35px] text-[#101828]">
-          회의 조율
+          {title}
         </h1>
         <div className="mt-1.5 flex items-center gap-2">
           <span className="rounded-full bg-[#F3F4F6] px-2 py-1 text-xs font-bold leading-[18px] text-[#475467]">

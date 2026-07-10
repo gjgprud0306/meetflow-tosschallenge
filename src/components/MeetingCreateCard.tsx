@@ -698,10 +698,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
       <section className="h-[744px] w-[880px] rounded-xl border border-[#E0E4EB] bg-white px-7 py-6">
         <div className="flex h-14 w-[824px] items-start justify-between">
           <div>
-            <h2 className="text-xl font-bold leading-[30px] text-[#101828]">
-              회의 생성
-            </h2>
-            <p className="mt-1 text-[13px] font-medium leading-5 text-[#475467]">
+            <p className="text-[13px] font-medium leading-5 text-[#475467]">
               채팅에서 회의 카드를 만듭니다
             </p>
           </div>

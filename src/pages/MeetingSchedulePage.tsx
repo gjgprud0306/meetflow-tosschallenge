@@ -161,7 +161,7 @@ function ScheduleComposer() {
 
 export function MeetingMySchedulePage() {
   return (
-    <MeetFlowLayout>
+    <MeetFlowLayout title="내 일정">
       <div className="relative h-full w-full bg-white">
         <div className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7">
           <div className="mx-auto flex w-full max-w-[960px] flex-col gap-3">

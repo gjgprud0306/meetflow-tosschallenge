@@ -119,7 +119,7 @@ export function SidebarPlaceholderPage({
   }
 
   return (
-    <MeetFlowLayout>
+    <MeetFlowLayout title={title}>
       <div className="h-full w-full overflow-y-auto px-8 pt-7">
         <div
           className={
@@ -128,10 +128,7 @@ export function SidebarPlaceholderPage({
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-[26px] font-bold leading-9 text-[#101828]">
-                {title}
-              </h1>
-              <p className="mt-2 text-sm font-medium leading-[21px] text-[#667085]">
+              <p className="text-sm font-medium leading-[21px] text-[#667085]">
                 {description}
               </p>
             </div>
