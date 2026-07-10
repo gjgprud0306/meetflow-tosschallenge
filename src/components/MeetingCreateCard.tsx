@@ -229,12 +229,17 @@ const availableDateSummaries = [
   { id: "date-7-15", label: "가능 5명 · 7/15(수)" },
 ];
 
+const candidateTimeChipOptions = Array.from(
+  { length: 12 },
+  (_, index) => `${String(index + 9).padStart(2, "0")}:00`,
+);
+
 export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   const navigate = useNavigate();
   const { meeting, updateMeeting, summaries } = useMeetingFlow();
   const [modal, setModal] = useState<ModalType>(null);
   const [draftDateIds, setDraftDateIds] = useState<string[]>([]);
-  const [timeInputs, setTimeInputs] = useState<Record<string, string>>({});
+  const [activeTimeDateId, setActiveTimeDateId] = useState("");
   const [draftTimeIds, setDraftTimeIds] = useState<string[]>([]);
   const [draftCustomTimeOptions, setDraftCustomTimeOptions] = useState<
     SelectOption[]
@@ -281,9 +286,15 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   }
 
   function openTimesModal() {
+    const selectedDates = selectedDateLabelsFromMeeting(summaries.dateRange);
+
     setDraftTimeIds(meeting.timeIds);
     setDraftCustomTimeOptions(meeting.customTimeOptions);
-    setTimeInputs({});
+    setActiveTimeDateId((current) =>
+      selectedDates.some((date) => date.id === current)
+        ? current
+        : (selectedDates[0]?.id ?? ""),
+    );
     setModal("times");
   }
 
@@ -295,26 +306,31 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
     );
   }
 
-  function addTimeForDate(date: SelectOption) {
-    const value = (timeInputs[date.id] ?? "").trim();
-
-    if (!value) return;
-
-    const id = `custom-time-${date.id}-${value.replace(/\D/g, "")}`;
-    const option = { id, label: `${date.label} ${value}` };
-
-    setDraftCustomTimeOptions((current) =>
-      current.some((item) => item.id === id) ? current : [...current, option],
-    );
-    setDraftTimeIds((current) => (current.includes(id) ? current : [...current, id]));
-    setTimeInputs((current) => ({ ...current, [date.id]: "" }));
+  function getTimeOption(date: SelectOption, time: string) {
+    return {
+      id: `custom-time-${date.id}-${time.replace(/\D/g, "")}`,
+      label: `${date.label} ${time}`,
+    };
   }
 
-  function removeTime(timeId: string) {
+  function toggleTimeForDate(date: SelectOption, time: string) {
+    const option = getTimeOption(date, time);
+    const isSelected = draftTimeIds.includes(option.id);
+
+    if (isSelected) {
+      setDraftTimeIds((current) => current.filter((id) => id !== option.id));
+      setDraftCustomTimeOptions((current) =>
+        current.filter((item) => item.id !== option.id),
+      );
+      return;
+    }
+
+    setDraftTimeIds((current) => [...current, option.id]);
     setDraftCustomTimeOptions((current) =>
-      current.filter((option) => option.id !== timeId),
+      current.some((item) => item.id === option.id)
+        ? current
+        : [...current, option],
     );
-    setDraftTimeIds((current) => current.filter((id) => id !== timeId));
   }
 
   function renderModal() {
@@ -521,68 +537,85 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
 
     if (modal === "times") {
       const selectedDates = selectedDateLabelsFromMeeting(summaries.dateRange);
+      const activeDate =
+        selectedDates.find((date) => date.id === activeTimeDateId) ??
+        selectedDates[0];
+      const selectedTimeOptions = draftCustomTimeOptions.filter((option) =>
+        draftTimeIds.includes(option.id),
+      );
 
       return (
         <ChoiceModal onClose={() => setModal(null)} title="후보 시간 선택">
           {selectedDates.length > 0 ? (
             <>
               <p className="mb-3 text-xs font-medium leading-[18px] text-[#94A3B8]">
-                선택한 날짜별 후보 시간을 직접 추가하거나 삭제하세요.
+                후보 날짜를 선택한 뒤 가능한 시간을 선택하세요.
               </p>
-              <div className="max-h-[360px] space-y-3 overflow-y-auto pr-1">
-                {selectedDates.map((date) => {
-                  const dateTimes = draftCustomTimeOptions.filter((option) =>
-                    option.label.startsWith(date.label),
-                  );
+              <div className="rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] p-3">
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {selectedDates.map((date) => {
+                    const isActive = date.id === activeDate?.id;
 
-                  return (
-                    <div
-                      className="rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] p-3"
-                      key={date.id}
-                    >
-                      <div className="text-sm font-bold leading-[21px] text-[#101828]">
-                        {date.label}
-                      </div>
-                      <div className="mt-3 flex gap-2">
-                        <input
-                          className="h-10 min-w-0 flex-1 rounded-lg border border-[#E0E4EB] bg-white px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
-                          onChange={(event) =>
-                            setTimeInputs((current) => ({
-                              ...current,
-                              [date.id]: event.target.value,
-                            }))
-                          }
-                          placeholder="예: 14:00"
-                          value={timeInputs[date.id] ?? ""}
-                        />
-                        <Button
-                          className="h-10 rounded-lg bg-[#635BFF] px-4 text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90"
-                          onClick={() => addTimeForDate(date)}
+                    return (
+                      <button
+                        className={`h-9 min-w-[76px] rounded-full px-3 text-sm font-bold leading-[21px] transition ${
+                          isActive
+                            ? "bg-[#837CFF] text-white"
+                            : "border border-[#E0E4EB] bg-white text-[#475467]"
+                        }`}
+                        key={date.id}
+                        onClick={() => setActiveTimeDateId(date.id)}
+                        type="button"
+                      >
+                        {date.label.replace(/\s\(.+\)/, "")}
+                      </button>
+                    );
+                  })}
+                </div>
+                {activeDate ? (
+                  <div className="mt-4 grid grid-cols-4 gap-2">
+                    {candidateTimeChipOptions.map((time) => {
+                      const option = getTimeOption(activeDate, time);
+                      const isSelected = draftTimeIds.includes(option.id);
+
+                      return (
+                        <button
+                          className={`h-10 rounded-lg border px-3 text-sm font-bold leading-[21px] transition ${
+                            isSelected
+                              ? "border-[#837CFF] bg-[#F0EEFF] text-[#635BFF]"
+                              : "border-[#E0E4EB] bg-white text-[#475467]"
+                          }`}
+                          key={option.id}
+                          onClick={() => toggleTimeForDate(activeDate, time)}
+                          type="button"
                         >
-                          추가
-                        </Button>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {dateTimes.length > 0 ? (
-                          dateTimes.map((option) => (
-                            <button
-                              className="rounded-full border border-[#837CFF] bg-white px-3 py-1 text-xs font-bold leading-[18px] text-[#837CFF]"
-                              key={option.id}
-                              onClick={() => removeTime(option.id)}
-                              type="button"
-                            >
-                              {option.label.replace(`${date.label} `, "")} 삭제
-                            </button>
-                          ))
-                        ) : (
-                          <span className="text-xs font-medium leading-[18px] text-[#98A2B3]">
-                            추가된 시간이 없습니다.
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                          {time}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+              <div className="mt-3 rounded-lg border border-[#E0E4EB] bg-white px-4 py-3">
+                <div className="text-sm font-bold leading-[21px] text-[#101828]">
+                  선택된 시간
+                </div>
+                <div className="mt-2 flex max-h-24 flex-wrap gap-2 overflow-y-auto">
+                  {selectedTimeOptions.length > 0 ? (
+                    selectedTimeOptions.map((option) => (
+                      <span
+                        className="rounded-full bg-[#F0EEFF] px-3 py-1 text-xs font-bold leading-[18px] text-[#635BFF]"
+                        key={option.id}
+                      >
+                        {option.label}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs font-medium leading-[18px] text-[#98A2B3]">
+                      선택된 시간이 없습니다.
+                    </span>
+                  )}
+                </div>
               </div>
               <Button
                 className="mt-4 h-12 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 disabled:bg-[#C9CED8] disabled:text-white"
