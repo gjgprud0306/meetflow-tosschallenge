@@ -28,8 +28,8 @@ export function MeetingCandidateSelectPage() {
     <MeetFlowLayout>
       <div className="relative h-full w-full bg-white">
         <div className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7">
-          <div className="flex flex-col gap-6">
-            <div className="space-y-6">
+          <div className="mx-auto flex w-full max-w-[960px] flex-col gap-3">
+            <div>
               <article className="flex items-start">
                 <AvatarBadge initial="M" />
                 <div className="ml-3">

@@ -246,7 +246,7 @@ export function MeetingInvitePage() {
       <div className="flex h-full w-full min-w-0 bg-white">
         <div className="relative min-w-0 flex-1">
           <div className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7">
-            <div className="flex flex-col gap-6">
+            <div className="mx-auto flex w-full max-w-[960px] flex-col gap-3">
               <SystemMessage title={title} />
               <InviteMeetingCard />
             </div>
