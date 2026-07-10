@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 import { Link, useLocation } from "react-router-dom";
 
 const meetingItems = [
+  { label: "받은 요청", to: "/meetings/invite" },
   { label: "진행 중", to: "/" },
   { label: "확정됨", to: "/meetings/confirmed" },
-  { label: "지난 회의", to: "/meetings/past" },
 ];
 const channelItems = [
   { label: "공지", to: "/channels/notice" },
@@ -16,10 +16,12 @@ const ongoingPaths = [
   "/",
   "/meetings/new",
   "/meetings/requested",
+  "/meetings/response-status",
+];
+const receivedRequestPaths = [
   "/meetings/invite",
   "/meetings/my-schedule",
   "/meetings/candidate-select",
-  "/meetings/response-status",
 ];
 
 function Dot({ active = false, large = false }: { active?: boolean; large?: boolean }) {
@@ -70,6 +72,8 @@ export function Sidebar() {
               const active =
                 item.label === "진행 중"
                   ? ongoingPaths.includes(pathname)
+                  : item.label === "받은 요청"
+                    ? receivedRequestPaths.includes(pathname)
                   : pathname === item.to;
               return (
                 <Link
