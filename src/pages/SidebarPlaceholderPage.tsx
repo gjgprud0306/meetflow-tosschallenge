@@ -123,7 +123,7 @@ export function SidebarPlaceholderPage({
       <div className="h-full w-full overflow-y-auto px-8 pt-7">
         <div
           className={
-            empty ? "flex min-h-full flex-col" : "mx-auto w-full max-w-[960px]"
+            empty ? "flex min-h-full flex-col" : "w-full"
           }
         >
           <div className="flex items-start justify-between gap-4">

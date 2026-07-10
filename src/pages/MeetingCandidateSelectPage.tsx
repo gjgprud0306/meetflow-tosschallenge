@@ -6,6 +6,7 @@ import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { cn } from "@/lib/utils";
+import { receivedRequestStatusKey } from "@/pages/ReceivedRequestsPage";
 
 type CandidateAnswer = "available" | "unavailable";
 
@@ -24,11 +25,16 @@ export function MeetingCandidateSelectPage() {
     setAnswers((current) => ({ ...current, [optionId]: answer }));
   }
 
+  function submitResponse() {
+    window.localStorage.setItem(receivedRequestStatusKey, "completed");
+    navigate("/meetings/received");
+  }
+
   return (
     <MeetFlowLayout title="응답 요청">
       <div className="relative h-full w-full bg-white">
         <div className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7">
-          <div className="mx-auto flex w-full max-w-[960px] flex-col gap-3">
+          <div className="flex w-full flex-col gap-3">
             <div>
               <article className="flex items-start">
                 <AvatarBadge initial="M" />
@@ -210,7 +216,7 @@ export function MeetingCandidateSelectPage() {
                   </div>
                   <Button
                     className="h-12 w-32 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
-                    onClick={() => navigate("/meetings/response-status")}
+                    onClick={submitResponse}
                   >
                     응답 제출
                   </Button>

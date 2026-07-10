@@ -5,6 +5,7 @@ import { MeetingCandidateSelectPage } from "@/pages/MeetingCandidateSelectPage";
 import { MeetingCreatePage } from "@/pages/MeetingCreatePage";
 import { MeetingInvitePage } from "@/pages/MeetingInvitePage";
 import { MeetingRequestedPage } from "@/pages/MeetingRequestedPage";
+import { ReceivedRequestsPage } from "@/pages/ReceivedRequestsPage";
 import { MeetingMySchedulePage } from "@/pages/MeetingSchedulePage";
 import { ResponseStatusPage } from "@/pages/ResponseStatusPage";
 import { SidebarPlaceholderPage } from "@/pages/SidebarPlaceholderPage";
@@ -167,6 +168,10 @@ export const router = createBrowserRouter([
         element: (
           <SidebarPlaceholderPage description="PM 채널" empty title="PM" />
         ),
+      },
+      {
+        path: "meetings/received",
+        element: <ReceivedRequestsPage />,
       },
       {
         path: "meetings/new",

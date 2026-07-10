@@ -1,0 +1,86 @@
+import { useNavigate } from "react-router-dom";
+import { MeetFlowLayout } from "@/components/MeetFlowLayout";
+import { Button } from "@/components/ui/button";
+import { useMeetingFlow } from "@/context/useMeetingFlow";
+
+export const receivedRequestStatusKey = "mflow-received-request-status";
+
+function getInitialRequestStatus() {
+  return window.localStorage.getItem(receivedRequestStatusKey) === "completed"
+    ? "completed"
+    : "pending";
+}
+
+export function ReceivedRequestsPage() {
+  const navigate = useNavigate();
+  const { meeting, summaries } = useMeetingFlow();
+  const status = getInitialRequestStatus();
+  const completed = status === "completed";
+
+  return (
+    <MeetFlowLayout title="받은 요청">
+      <div className="h-full w-full overflow-y-auto px-8 pt-7">
+        <p className="text-sm font-medium leading-[21px] text-[#667085]">
+          내가 참여자로 초대된 회의 요청을 확인합니다.
+        </p>
+
+        <div className="mt-8 flex w-full flex-col gap-4">
+          <article className="w-full max-w-[680px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.06)]">
+            <div className="flex h-[72px] items-center justify-between bg-[#F7F6FF] px-5">
+              <div>
+                <h2 className="text-lg font-bold leading-7 text-[#101828]">
+                  {meeting.title || "리뷰회의"}
+                </h2>
+                <p className="mt-1 text-sm font-medium leading-[21px] text-[#475467]">
+                  허혜경님이 보낸 회의 요청
+                </p>
+              </div>
+              <span
+                className={
+                  completed
+                    ? "rounded-full bg-[#F2F4F7] px-3 py-1 text-xs font-bold leading-[18px] text-[#667085]"
+                    : "rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#837CFF]"
+                }
+              >
+                {completed ? "응답 완료" : "응답 대기"}
+              </span>
+            </div>
+
+            <div className="space-y-3 px-5 py-5 text-sm font-medium leading-[21px]">
+              <div className="flex gap-6">
+                <span className="w-[72px] shrink-0 text-[#98A2B3]">후보 기간</span>
+                <span className="text-[#475467]">{summaries.dateRange}</span>
+              </div>
+              <div className="flex gap-6">
+                <span className="w-[72px] shrink-0 text-[#98A2B3]">후보 시간</span>
+                <span className="text-[#475467]">{summaries.selectedTimes}</span>
+              </div>
+              <div className="flex gap-6">
+                <span className="w-[72px] shrink-0 text-[#98A2B3]">응답 마감</span>
+                <span className="text-[#475467]">{summaries.deadline}</span>
+              </div>
+            </div>
+
+            <div className="border-t border-[#E0E4EB] p-5">
+              {completed ? (
+                <Button
+                  className="h-12 w-full rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#837CFF] hover:bg-[#E4E2FF]"
+                  disabled
+                >
+                  응답 완료
+                </Button>
+              ) : (
+                <Button
+                  className="h-12 w-full rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90"
+                  onClick={() => navigate("/meetings/invite")}
+                >
+                  응답하기
+                </Button>
+              )}
+            </div>
+          </article>
+        </div>
+      </div>
+    </MeetFlowLayout>
+  );
+}

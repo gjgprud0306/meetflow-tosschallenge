@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { Link, useLocation } from "react-router-dom";
 
 const meetingItems = [
-  { label: "받은 요청", to: "/meetings/invite" },
+  { label: "받은 요청", to: "/meetings/received" },
   { label: "진행 중", to: "/" },
   { label: "확정됨", to: "/meetings/confirmed" },
 ];
@@ -19,6 +19,7 @@ const ongoingPaths = [
   "/meetings/response-status",
 ];
 const receivedRequestPaths = [
+  "/meetings/received",
   "/meetings/invite",
   "/meetings/my-schedule",
   "/meetings/candidate-select",
