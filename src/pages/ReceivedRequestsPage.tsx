@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
-import { useMeetingFlow } from "@/context/useMeetingFlow";
-
-export const receivedRequestStatusKey = "mflow-received-request-status";
+import {
+  participantRequest,
+  receivedRequestStatusKey,
+} from "@/mocks/participantRequest";
 
 function getInitialRequestStatus() {
   return window.localStorage.getItem(receivedRequestStatusKey) === "completed"
@@ -13,7 +14,6 @@ function getInitialRequestStatus() {
 
 export function ReceivedRequestsPage() {
   const navigate = useNavigate();
-  const { meeting, summaries } = useMeetingFlow();
   const status = getInitialRequestStatus();
   const completed = status === "completed";
 
@@ -21,7 +21,7 @@ export function ReceivedRequestsPage() {
     <MeetFlowLayout title="받은 요청">
       <div className="h-full w-full overflow-y-auto px-8 pt-7">
         <p className="text-sm font-medium leading-[21px] text-[#667085]">
-          내가 참여자로 초대된 회의 요청을 확인합니다.
+          초대받은 회의의 후보 시간을 확인하고 응답해주세요.
         </p>
 
         <div className="mt-8 flex w-full flex-col gap-4">
@@ -29,10 +29,10 @@ export function ReceivedRequestsPage() {
             <div className="flex h-[72px] items-center justify-between bg-[#F7F6FF] px-5">
               <div>
                 <h2 className="text-lg font-bold leading-7 text-[#101828]">
-                  {meeting.title || "리뷰회의"}
+                  {participantRequest.title}
                 </h2>
                 <p className="mt-1 text-sm font-medium leading-[21px] text-[#475467]">
-                  허혜경님이 보낸 회의 요청
+                  {participantRequest.hostName}님이 보낸 회의 요청
                 </p>
               </div>
               <span
@@ -48,16 +48,20 @@ export function ReceivedRequestsPage() {
 
             <div className="space-y-3 px-5 py-5 text-sm font-medium leading-[21px]">
               <div className="flex gap-6">
-                <span className="w-[72px] shrink-0 text-[#98A2B3]">후보 기간</span>
-                <span className="text-[#475467]">{summaries.dateRange}</span>
+                <span className="w-[72px] shrink-0 text-[#98A2B3]">후보 날짜</span>
+                <span className="text-[#475467]">
+                  {participantRequest.candidateDateLabel}
+                </span>
               </div>
               <div className="flex gap-6">
                 <span className="w-[72px] shrink-0 text-[#98A2B3]">후보 시간</span>
-                <span className="text-[#475467]">{summaries.selectedTimes}</span>
+                <span className="text-[#475467]">
+                  {participantRequest.candidateTimes.join(", ")}
+                </span>
               </div>
               <div className="flex gap-6">
                 <span className="w-[72px] shrink-0 text-[#98A2B3]">응답 마감</span>
-                <span className="text-[#475467]">{summaries.deadline}</span>
+                <span className="text-[#475467]">{participantRequest.deadline}</span>
               </div>
             </div>
 

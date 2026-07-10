@@ -5,6 +5,7 @@ import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { attendees } from "@/mocks";
+import { participantRequest } from "@/mocks/participantRequest";
 import { cn } from "@/lib/utils";
 
 function shortName(name: string) {
@@ -109,8 +110,7 @@ function ParticipantProgress() {
 
 function InviteMeetingCard() {
   const navigate = useNavigate();
-  const { meeting, summaries } = useMeetingFlow();
-  const title = meeting.title || "회의";
+  const title = participantRequest.title;
 
   return (
     <section className="w-[680px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
@@ -136,7 +136,7 @@ function InviteMeetingCard() {
       <div className="grid grid-cols-3 border-b border-[#E0E4EB]">
         <MeetingInfoCell label="소요 시간" value="1시간" />
         <MeetingInfoCell label="필수 참석" value="포함" />
-        <MeetingInfoCell label="응답 마감" value={summaries.deadline} />
+        <MeetingInfoCell label="응답 마감" value={participantRequest.deadline} />
       </div>
 
       <div className="border-b border-[#E0E4EB] px-6 py-5">
@@ -164,8 +164,8 @@ function InviteMeetingCard() {
 }
 
 function InviteRightPanel() {
-  const { meeting, summaries } = useMeetingFlow();
-  const title = meeting.title || "회의";
+  const { meeting } = useMeetingFlow();
+  const title = participantRequest.title;
   const required = requiredNames(meeting.requiredAttendeeIds);
 
   return (
@@ -182,7 +182,7 @@ function InviteRightPanel() {
           응답 마감
         </p>
         <p className="mt-3 text-[26px] font-bold leading-9 text-[#635BFF]">
-          {summaries.deadline}
+          {participantRequest.deadline}
         </p>
         <p className="mt-2 text-sm font-medium leading-[21px] text-[#475467]">
           가능한 시간을 선택해주세요.
@@ -209,8 +209,16 @@ function InviteRightPanel() {
             <span className="text-[#475467]">{required || "선택 없음"}</span>
           </div>
           <div className="flex justify-between gap-4">
-            <span className="text-[#98A2B3]">후보 기간</span>
-            <span className="text-right text-[#475467]">{summaries.dateRange}</span>
+            <span className="text-[#98A2B3]">후보 날짜</span>
+            <span className="text-right text-[#475467]">
+              {participantRequest.candidateDateLabel}
+            </span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span className="text-[#98A2B3]">후보 시간</span>
+            <span className="text-right text-[#475467]">
+              {participantRequest.candidateTimes.join(", ")}
+            </span>
           </div>
         </div>
       </section>
@@ -238,8 +246,7 @@ function InviteComposer() {
 }
 
 export function MeetingInvitePage() {
-  const { meeting } = useMeetingFlow();
-  const title = meeting.title || "회의";
+  const title = participantRequest.title;
 
   return (
     <MeetFlowLayout title="응답 요청">

@@ -4,20 +4,21 @@ import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
-import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { cn } from "@/lib/utils";
-import { receivedRequestStatusKey } from "@/pages/ReceivedRequestsPage";
+import {
+  participantRequest,
+  receivedRequestStatusKey,
+} from "@/mocks/participantRequest";
 
 type CandidateAnswer = "available" | "unavailable";
 
 const candidateOptions = [
-  { id: "candidate-1", label: "7/9(수) 11:00" },
-  { id: "candidate-2", label: "7/10(금) 10:00" },
-  { id: "candidate-3", label: "7/10(금) 15:00" },
+  { id: "candidate-1", label: participantRequest.candidateTimes[0] },
+  { id: "candidate-2", label: participantRequest.candidateTimes[1] },
+  { id: "candidate-3", label: participantRequest.candidateTimes[2] },
 ];
 
 export function MeetingCandidateSelectPage() {
-  const { meeting } = useMeetingFlow();
   const navigate = useNavigate();
   const [answers, setAnswers] = useState<Record<string, CandidateAnswer>>({});
 
@@ -62,7 +63,7 @@ export function MeetingCandidateSelectPage() {
                 </div>
                 <div className="ml-4">
                   <h2 className="text-lg font-bold leading-7 text-[#101828]">
-                    {meeting.title || "회의"}
+                    {participantRequest.title}
                   </h2>
                   <p className="mt-1 text-sm font-medium leading-[21px] text-[#475467]">
                     입력한 일정과 후보 시간을 비교 후 제출
