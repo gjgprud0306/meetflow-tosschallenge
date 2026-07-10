@@ -13,16 +13,19 @@ import type { ChatMessage } from "@/types/meeting";
 
 const upcomingMeetings = [
   {
+    category: "회의" as const,
     title: "디자인 리뷰 회의",
     meta: "오늘 오후 3:00 · 디자인팀",
     status: "예정",
   },
   {
+    category: "개인" as const,
     title: "프로토타입 점검",
     meta: "내일 오전 10:00 · 제품팀",
     status: "예정",
   },
   {
+    category: "외근" as const,
     title: "개발 핸드오프",
     meta: "7/12 (일) 오후 2:00 · 개발팀",
     status: "예정",

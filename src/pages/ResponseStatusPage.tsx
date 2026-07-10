@@ -38,15 +38,16 @@ const scheduleStorageKey = "mflow-my-schedule-cards";
 const confirmedScheduleId = "confirmed-review-meeting";
 
 function formatConfirmedTimeLabel(rawTime: string) {
-  const [hourText] = rawTime.split(":");
+  const [hourText, minuteText = "00"] = rawTime.split(":");
   const hour = Number(hourText);
+  const minute = minuteText.padStart(2, "0");
 
   if (Number.isNaN(hour)) return rawTime;
-  if (hour === 0) return "오전 12시";
-  if (hour < 12) return `오전 ${hour}시`;
-  if (hour === 12) return "오후 12시";
+  if (hour === 0) return `오전 12:${minute}`;
+  if (hour < 12) return `오전 ${hour}:${minute}`;
+  if (hour === 12) return `오후 12:${minute}`;
 
-  return `오후 ${hour - 12}시`;
+  return `오후 ${hour - 12}:${minute}`;
 }
 
 function getConfirmedScheduleInfo(title: string, selectedTimes: string) {
@@ -56,10 +57,10 @@ function getConfirmedScheduleInfo(title: string, selectedTimes: string) {
   if (!match) {
     return {
       dateLabel: "7/14(화)",
-      displayDateTime: "7/14(화) 오후 3시",
+      displayDateTime: "7/14(화) 오후 3:00",
       id: confirmedScheduleId,
-      meta: "7/14 (화) 오후 3시 · 참여자 6명",
-      timeLabel: "오후 3시",
+      meta: "7/14(화) 오후 3:00 · 참석자 6명",
+      timeLabel: "오후 3:00",
       title: title || "리뷰회의",
       weekday: "화",
     };
@@ -72,7 +73,7 @@ function getConfirmedScheduleInfo(title: string, selectedTimes: string) {
     dateLabel: `${month}/${day}(${weekday})`,
     displayDateTime: `${month}/${day}(${weekday}) ${timeLabel}`,
     id: confirmedScheduleId,
-    meta: `${month}/${day} (${weekday}) ${timeLabel} · 참여자 6명`,
+    meta: `${month}/${day}(${weekday}) ${timeLabel} · 참석자 6명`,
     timeLabel,
     title: title || "리뷰회의",
     weekday,
@@ -82,6 +83,7 @@ function getConfirmedScheduleInfo(title: string, selectedTimes: string) {
 function saveConfirmedSchedule(schedule: ReturnType<typeof getConfirmedScheduleInfo>) {
   const saved = window.localStorage.getItem(scheduleStorageKey);
   let cards: {
+    category?: "회의" | "외근" | "휴가" | "개인";
     id?: string;
     meta: string;
     source?: "manual" | "confirmed";
@@ -98,6 +100,7 @@ function saveConfirmedSchedule(schedule: ReturnType<typeof getConfirmedScheduleI
   }
 
   const nextCard = {
+    category: "회의",
     id: schedule.id,
     meta: schedule.meta,
     source: "confirmed",

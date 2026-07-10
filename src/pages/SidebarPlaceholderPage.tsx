@@ -1,12 +1,15 @@
 import { ChatMessage } from "@/components/ChatMessage";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { X } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import type { ChatMessage as ChatMessageType } from "@/types/meeting";
 
+type ScheduleType = "회의" | "외근" | "휴가" | "개인";
+
 type MeetingCard = {
+  category?: ScheduleType;
   id?: string;
   title: string;
   meta: string;
@@ -24,6 +27,9 @@ type SidebarPlaceholderPageProps = {
 };
 
 const scheduleStorageKey = "mflow-my-schedule-cards";
+const deletedScheduleStorageKey = "mflow-deleted-schedule-keys";
+const confirmedScheduleId = "confirmed-review-meeting";
+const scheduleTypes: ScheduleType[] = ["회의", "외근", "휴가", "개인"];
 const scheduleTimeOptions = Array.from({ length: 12 }, (_, index) => {
   const hour = index + 9;
 
@@ -42,26 +48,38 @@ function getInitialScheduleCards(cards: MeetingCard[], showAddSchedule: boolean)
   if (!showAddSchedule) return cards;
 
   const saved = window.localStorage.getItem(scheduleStorageKey);
+  const deletedKeys = new Set(
+    JSON.parse(window.localStorage.getItem(deletedScheduleStorageKey) ?? "[]") as string[],
+  );
+  const visibleCards = cards.filter((card) => !deletedKeys.has(cardKey(card)));
 
-  if (!saved) return cards;
+  if (!saved) return visibleCards;
 
   try {
-    const defaultKeys = new Set(cards.map((card) => cardKey(card)));
+    const defaultKeys = new Set(visibleCards.map((card) => cardKey(card)));
     const savedCards = (JSON.parse(saved) as MeetingCard[]).map((card) => {
+      if (card.id === confirmedScheduleId) {
+        return { ...card, category: "회의" as const, source: "confirmed" as const };
+      }
+
       if (card.source || defaultKeys.has(cardKey(card))) return card;
 
-      return { ...card, source: "manual" as const };
+      return {
+        ...card,
+        category: card.category ?? "회의",
+        source: "manual" as const,
+      };
     });
     const savedKeys = new Set(
       savedCards.map((card) => card.id ?? `${card.title}-${card.meta}`),
     );
 
     return [
-      ...cards.filter((card) => !savedKeys.has(card.id ?? `${card.title}-${card.meta}`)),
+      ...visibleCards.filter((card) => !savedKeys.has(card.id ?? `${card.title}-${card.meta}`)),
       ...savedCards,
     ];
   } catch {
-    return cards;
+    return visibleCards;
   }
 }
 
@@ -81,6 +99,10 @@ function isStoredManualSchedule(card: MeetingCard) {
   return card.source === "manual";
 }
 
+function isConfirmedSchedule(card: MeetingCard) {
+  return card.source === "confirmed";
+}
+
 function PlaceholderMeetingCard({
   card,
   highlighted,
@@ -91,18 +113,17 @@ function PlaceholderMeetingCard({
   onDelete?: (card: MeetingCard) => void;
 }) {
   const isPastMeeting = card.status === "지난 회의";
-  const canShowDelete =
-    Boolean(onDelete) &&
-    (card.source === "confirmed" || isStoredManualSchedule(card));
+  const canShowDelete = Boolean(onDelete) && !isConfirmedSchedule(card);
+  const badgeLabel = card.category ?? (isPastMeeting ? "완료" : card.status);
 
   return (
     <article
-      className={`group w-full max-w-[520px] rounded-xl border bg-white px-5 py-4 shadow-[0_4px_16px_rgba(16,24,40,0.06)] ${
+      className={`w-full max-w-[520px] rounded-xl border bg-white px-5 py-4 shadow-[0_4px_16px_rgba(16,24,40,0.06)] ${
         highlighted ? "border-[#837CFF] ring-4 ring-[#F7F6FF]" : "border-[#E0E4EB]"
       }`}
     >
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-lg font-bold leading-7 text-[#101828]">
             {card.title}
           </h2>
@@ -117,16 +138,16 @@ function PlaceholderMeetingCard({
               : "shrink-0 rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#6F6A9F]"
           }
         >
-          {isPastMeeting ? "완료" : card.status}
+          {badgeLabel}
         </span>
         {canShowDelete ? (
           <button
             aria-label="일정 삭제"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E0E4EB] bg-white text-[#98A2B3] opacity-0 transition hover:border-[#D0D5DD] hover:bg-[#F9FAFB] hover:text-[#667085] group-hover:opacity-100"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#D0D5DD] bg-white text-[#98A2B3] transition hover:border-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#667085]"
             onClick={() => onDelete?.(card)}
             type="button"
           >
-            <Trash2 className="h-4 w-4" />
+            <X className="h-4 w-4" />
           </button>
         ) : null}
       </div>
@@ -149,6 +170,7 @@ export function SidebarPlaceholderPage({
     getInitialScheduleCards(cards, showAddSchedule),
   );
   const [scheduleTitle, setScheduleTitle] = useState("");
+  const [scheduleType, setScheduleType] = useState<ScheduleType>("회의");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<MeetingCard | null>(null);
@@ -160,6 +182,7 @@ export function SidebarPlaceholderPage({
   function closeModal() {
     setIsModalOpen(false);
     setScheduleTitle("");
+    setScheduleType("회의");
     setSelectedDate("");
     setSelectedTime("");
   }
@@ -168,10 +191,11 @@ export function SidebarPlaceholderPage({
     if (!canSaveSchedule) return;
 
     const newSchedule = {
+      category: scheduleType,
       id: `manual-${Date.now()}`,
       meta: `${formatScheduleDate(selectedDate)} ${selectedTime} · 내 일정`,
       source: "manual" as const,
-      status: "예정",
+      status: scheduleType,
       title: scheduleTitle.trim(),
     };
     const nextCards = [...scheduleCards, newSchedule];
@@ -194,6 +218,15 @@ export function SidebarPlaceholderPage({
 
     setScheduleCards(nextCards);
     persistScheduleCards(nextCards);
+    if (!isStoredManualSchedule(deleteTarget)) {
+      const deletedKeys = JSON.parse(
+        window.localStorage.getItem(deletedScheduleStorageKey) ?? "[]",
+      ) as string[];
+      window.localStorage.setItem(
+        deletedScheduleStorageKey,
+        JSON.stringify([...new Set([...deletedKeys, targetKey])]),
+      );
+    }
     setDeleteTarget(null);
   }
 
@@ -277,6 +310,24 @@ export function SidebarPlaceholderPage({
                   type="text"
                   value={scheduleTitle}
                 />
+              </label>
+              <label className="block">
+                <span className="text-sm font-bold leading-[21px] text-[#344054]">
+                  일정 종류
+                </span>
+                <select
+                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] bg-white px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
+                  onChange={(event) =>
+                    setScheduleType(event.target.value as ScheduleType)
+                  }
+                  value={scheduleType}
+                >
+                  {scheduleTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="block">
                 <span className="text-sm font-bold leading-[21px] text-[#344054]">
