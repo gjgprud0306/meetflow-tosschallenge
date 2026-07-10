@@ -3,11 +3,11 @@ import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
 import {
   participantRequest,
-  receivedRequestStatusKey,
+  participantRequestStatusKey,
 } from "@/mocks/participantRequest";
 
 function getInitialRequestStatus() {
-  return window.localStorage.getItem(receivedRequestStatusKey) === "completed"
+  return window.localStorage.getItem(participantRequestStatusKey) === "completed"
     ? "completed"
     : "pending";
 }
@@ -69,14 +69,14 @@ export function ReceivedRequestsPage() {
               {completed ? (
                 <Button
                   className="h-12 w-full rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#837CFF] hover:bg-[#E4E2FF]"
-                  disabled
+                  onClick={() => navigate("/requests/candidate-select")}
                 >
-                  응답 완료
+                  응답 수정
                 </Button>
               ) : (
                 <Button
                   className="h-12 w-full rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90"
-                  onClick={() => navigate("/meetings/invite")}
+                  onClick={() => navigate("/requests/invite")}
                 >
                   응답하기
                 </Button>

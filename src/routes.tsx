@@ -170,8 +170,20 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: "meetings/received",
+        path: "requests/received",
         element: <ReceivedRequestsPage />,
+      },
+      {
+        path: "requests/invite",
+        element: <MeetingInvitePage />,
+      },
+      {
+        path: "requests/my-schedule",
+        element: <MeetingMySchedulePage />,
+      },
+      {
+        path: "requests/candidate-select",
+        element: <MeetingCandidateSelectPage />,
       },
       {
         path: "meetings/new",
@@ -180,18 +192,6 @@ export const router = createBrowserRouter([
       {
         path: "meetings/requested",
         element: <MeetingRequestedPage />,
-      },
-      {
-        path: "meetings/invite",
-        element: <MeetingInvitePage />,
-      },
-      {
-        path: "meetings/my-schedule",
-        element: <MeetingMySchedulePage />,
-      },
-      {
-        path: "meetings/candidate-select",
-        element: <MeetingCandidateSelectPage />,
       },
       {
         path: "meetings/response-status",

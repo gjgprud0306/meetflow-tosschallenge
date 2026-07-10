@@ -3,21 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
-import { useMeetingFlow } from "@/context/useMeetingFlow";
-import { attendees } from "@/mocks";
 import { participantRequest } from "@/mocks/participantRequest";
 import { cn } from "@/lib/utils";
-
-function shortName(name: string) {
-  return name.length > 2 ? name.slice(-2) : name;
-}
-
-function requiredNames(requiredIds: string[]) {
-  return attendees
-    .filter((attendee) => requiredIds.includes(attendee.id))
-    .map((attendee) => shortName(attendee.name))
-    .join(", ");
-}
 
 function SystemMessage({ title }: { title: string }) {
   return (
@@ -154,7 +141,7 @@ function InviteMeetingCard() {
         </div>
         <Button
           className="h-12 w-36 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90"
-          onClick={() => navigate("/meetings/my-schedule")}
+          onClick={() => navigate("/requests/my-schedule")}
         >
           내 일정 확인하기
         </Button>
@@ -164,9 +151,7 @@ function InviteMeetingCard() {
 }
 
 function InviteRightPanel() {
-  const { meeting } = useMeetingFlow();
   const title = participantRequest.title;
-  const required = requiredNames(meeting.requiredAttendeeIds);
 
   return (
     <aside className="h-full w-[328px] shrink-0 border-l border-[#E5E7EB] bg-[#F9FAFB] px-6 pt-7">
@@ -206,7 +191,9 @@ function InviteRightPanel() {
           </div>
           <div className="flex justify-between gap-4">
             <span className="text-[#98A2B3]">필수 참석</span>
-            <span className="text-[#475467]">{required || "선택 없음"}</span>
+            <span className="text-[#475467]">
+              {participantRequest.requiredAttendees}
+            </span>
           </div>
           <div className="flex justify-between gap-4">
             <span className="text-[#98A2B3]">후보 날짜</span>

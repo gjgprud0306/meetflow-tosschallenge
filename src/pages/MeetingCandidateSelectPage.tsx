@@ -6,8 +6,9 @@ import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
+  participantRequestAnswersKey,
   participantRequest,
-  receivedRequestStatusKey,
+  participantRequestStatusKey,
 } from "@/mocks/participantRequest";
 
 type CandidateAnswer = "available" | "unavailable";
@@ -20,15 +21,26 @@ const candidateOptions = [
 
 export function MeetingCandidateSelectPage() {
   const navigate = useNavigate();
-  const [answers, setAnswers] = useState<Record<string, CandidateAnswer>>({});
+  const [answers, setAnswers] = useState<Record<string, CandidateAnswer>>(() => {
+    const saved = window.localStorage.getItem(participantRequestAnswersKey);
+
+    if (!saved) return {};
+
+    try {
+      return JSON.parse(saved) as Record<string, CandidateAnswer>;
+    } catch {
+      return {};
+    }
+  });
 
   function selectAnswer(optionId: string, answer: CandidateAnswer) {
     setAnswers((current) => ({ ...current, [optionId]: answer }));
   }
 
   function submitResponse() {
-    window.localStorage.setItem(receivedRequestStatusKey, "completed");
-    navigate("/meetings/received");
+    window.localStorage.setItem(participantRequestAnswersKey, JSON.stringify(answers));
+    window.localStorage.setItem(participantRequestStatusKey, "completed");
+    navigate("/requests/received");
   }
 
   return (

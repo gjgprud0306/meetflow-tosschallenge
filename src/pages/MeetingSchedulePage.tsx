@@ -135,7 +135,7 @@ function ScheduleCard() {
 
         <Button
           className="mt-6 h-12 w-full rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
-          onClick={() => navigate("/meetings/candidate-select")}
+          onClick={() => navigate("/requests/candidate-select")}
         >
           후보 시간 보기
         </Button>

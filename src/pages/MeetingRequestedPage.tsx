@@ -67,9 +67,9 @@ function RequestedMeetingCard() {
       <div className="border-t border-[#E0E4EB] p-5">
         <Button
           className="h-12 w-full rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
-          onClick={() => navigate("/meetings/invite")}
+          onClick={() => navigate("/meetings/response-status")}
         >
-          응답하기
+          응답 현황 보기
         </Button>
       </div>
     </section>
