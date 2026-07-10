@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
@@ -286,9 +286,11 @@ function ManagementCard({
 
 function StatusPanel({
   onReminder,
+  reminderButtonRef,
   stage,
 }: {
   onReminder: () => void;
+  reminderButtonRef?: RefObject<HTMLButtonElement | null>;
   stage: ResponseStage;
 }) {
   const confirmed = stage === "confirmed";
@@ -354,6 +356,7 @@ function StatusPanel({
         <Button
           className="mt-5 h-14 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
           onClick={onReminder}
+          ref={reminderButtonRef}
         >
           미응답자에게 리마인드 보내기 (2명)
         </Button>
@@ -384,6 +387,22 @@ function StatusPanel({
   );
 }
 
+function ReminderEntryPoint({ onOpenPanel }: { onOpenPanel: () => void }) {
+  return (
+    <section className="flex w-full max-w-[680px] items-center justify-between rounded-xl border border-[#D8D5F7] bg-[#F7F6FF] px-5 py-4">
+      <p className="text-sm font-bold leading-[21px] text-[#475467]">
+        민수, 태민님이 아직 응답하지 않았어요.
+      </p>
+      <Button
+        className="h-10 rounded-lg bg-[#635BFF] px-5 text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+        onClick={onOpenPanel}
+      >
+        리마인드 보내기
+      </Button>
+    </section>
+  );
+}
+
 function ResponseComposer() {
   return (
     <div className="absolute bottom-0 left-0 flex h-[104px] w-full items-center gap-[34px] border-t border-[#E0E4EB] bg-white px-8 py-4">
@@ -404,6 +423,7 @@ export function ResponseStatusPage() {
   const [reminderStarted, setReminderStarted] = useState(false);
   const followUpEndRef = useRef<HTMLDivElement | null>(null);
   const previousFollowUpCountRef = useRef(0);
+  const reminderButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     const seoTimer = window.setTimeout(() => {
@@ -574,6 +594,15 @@ export function ResponseStatusPage() {
     setReminderStarted(true);
   }
 
+  function openReminderPanel() {
+    reminderButtonRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+      inline: "nearest",
+    });
+    reminderButtonRef.current?.focus({ preventScroll: true });
+  }
+
   function confirmMeeting() {
     if (stage !== "complete") return;
     setStage("confirmed");
@@ -586,6 +615,9 @@ export function ResponseStatusPage() {
           <div className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7">
             <div className="flex w-full flex-col gap-3">
               <ManagementCard onConfirm={confirmMeeting} stage={stage} />
+              {stage === "partial" && (
+                <ReminderEntryPoint onOpenPanel={openReminderPanel} />
+              )}
               {followUpMessages.map((message) => (
                 <ChatLine
                   author={message.author}
@@ -600,7 +632,11 @@ export function ResponseStatusPage() {
           </div>
           <ResponseComposer />
         </div>
-        <StatusPanel onReminder={sendReminder} stage={stage} />
+        <StatusPanel
+          onReminder={sendReminder}
+          reminderButtonRef={reminderButtonRef}
+          stage={stage}
+        />
       </div>
     </MeetFlowLayout>
   );
