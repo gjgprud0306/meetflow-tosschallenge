@@ -144,11 +144,13 @@ function ReminderOption({
     >
       <span
         className={cn(
-          "flex h-[18px] w-[18px] items-center justify-center rounded-full border-2",
-          selected ? "border-[#837CFF]" : "border-[#D0D5DD]",
+          "flex h-[18px] w-[18px] items-center justify-center rounded border",
+          selected
+            ? "border-[#837CFF] bg-[#837CFF] text-white"
+            : "border-[#D0D5DD] bg-white text-transparent",
         )}
       >
-        {selected ? <span className="h-2 w-2 rounded-full bg-[#837CFF]" /> : null}
+        <Check className="h-[11px] w-[11px]" strokeWidth={3} />
       </span>
       <span className="text-sm font-medium leading-[21px]">{label}</span>
     </button>
@@ -414,6 +416,35 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
     summaries.dateRange !== "후보 날짜 선택" &&
     meeting.timeIds.length > 0 &&
     summaries.deadline !== "응답 마감 선택";
+  const reminderIds =
+    meeting.reminderIds.length > 0
+      ? meeting.reminderIds
+      : meeting.reminderId
+        ? [meeting.reminderId]
+        : [];
+  const customReminderSelected = reminderIds.includes("custom-reminder");
+  const customReminderDate = meeting.customReminderDateTime
+    ? new Date(meeting.customReminderDateTime)
+    : null;
+  const deadlineHoursById: Record<string, number> = {
+    "deadline-24h": 24,
+    "deadline-48h": 48,
+    "deadline-3d": 72,
+  };
+  const deadlineDate = deadlineHoursById[meeting.deadlineId]
+    ? (() => {
+        const date = new Date();
+        date.setHours(date.getHours() + deadlineHoursById[meeting.deadlineId]);
+        return date;
+      })()
+    : null;
+  const customReminderInvalid =
+    customReminderSelected &&
+    meeting.customReminderDateTime.length > 0 &&
+    (!customReminderDate ||
+      Number.isNaN(customReminderDate.getTime()) ||
+      customReminderDate <= new Date() ||
+      (deadlineDate ? customReminderDate >= deadlineDate : false));
   const requiredAttendeeIds = new Set(meeting.requiredAttendeeIds);
   const requiredCount = meeting.requiredAttendeeIds.length;
   const orderedTeamSchedules = [...registeredTeamSchedules].sort((a, b) => {
@@ -489,6 +520,22 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
         ? current.filter((id) => id !== dateId)
         : [...current, dateId],
     );
+  }
+
+  function toggleReminder(reminderId: string) {
+    const selected = reminderIds.includes(reminderId);
+    const nextReminderIds = selected
+      ? reminderIds.filter((id) => id !== reminderId)
+      : [...reminderIds, reminderId];
+
+    updateMeeting({
+      customReminderDateTime:
+        reminderId === "custom-reminder" && selected
+          ? ""
+          : meeting.customReminderDateTime,
+      reminderId: nextReminderIds[0] ?? "",
+      reminderIds: nextReminderIds,
+    });
   }
 
   function renderModal() {
@@ -1088,22 +1135,18 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
               </div>
               <button
                 className="flex items-center gap-2.5 rounded text-sm font-medium leading-[21px] text-[#101828]"
-                onClick={() =>
-                  updateMeeting({ unansweredOnly: !meeting.unansweredOnly })
-                }
+                onClick={() => updateMeeting({ unansweredOnly: true })}
                 type="button"
               >
                 <span
                   className={cn(
                     "flex h-[18px] w-[18px] items-center justify-center rounded border",
-                    meeting.unansweredOnly
-                      ? "border-[#837CFF] bg-[#837CFF] text-white"
-                      : "border-[#D0D5DD] bg-white text-transparent",
+                    "border-[#837CFF] bg-[#837CFF] text-white",
                   )}
                 >
                   <Check className="h-[11px] w-[11px]" strokeWidth={3} />
                 </span>
-                응답하지 않은 사람에게만 발송
+                응답하지 않은 참석자에게만 리마인드를 보냅니다.
               </button>
               <div className="flex h-[70px] w-[360px] items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-[17px]">
                 <p className="w-[231px] text-[13px] font-medium leading-5 text-[#475467]">
@@ -1113,32 +1156,33 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             </div>
 
             <div className="flex flex-col gap-2">
-              <CustomReminderOption
-                disabled={!meeting.reminderEnabled}
-                onSelect={() => updateMeeting({ reminderId: "custom-reminder" })}
-                onValueChange={(value) =>
-                  updateMeeting({
-                    customReminderHours: value,
-                    reminderId: "custom-reminder",
-                  })
-                }
-                selected={meeting.reminderId === "custom-reminder"}
-                value={meeting.customReminderHours}
-              />
               {options.reminders.map((option) => (
                 <ReminderOption
                   disabled={!meeting.reminderEnabled}
                   key={option.id}
                   label={option.label}
-                  onClick={() =>
-                    updateMeeting({
-                      customReminderHours: "",
-                      reminderId: option.id,
-                    })
-                  }
-                  selected={option.id === meeting.reminderId}
+                  onClick={() => toggleReminder(option.id)}
+                  selected={reminderIds.includes(option.id)}
                 />
               ))}
+              <CustomReminderOption
+                disabled={!meeting.reminderEnabled}
+                invalid={customReminderInvalid}
+                onSelect={() => toggleReminder("custom-reminder")}
+                onValueChange={(value) =>
+                  updateMeeting({
+                    customReminderDateTime: value,
+                    reminderId: reminderIds.includes("custom-reminder")
+                      ? meeting.reminderId
+                      : "custom-reminder",
+                    reminderIds: reminderIds.includes("custom-reminder")
+                      ? reminderIds
+                      : [...reminderIds, "custom-reminder"],
+                  })
+                }
+                selected={customReminderSelected}
+                value={meeting.customReminderDateTime}
+              />
             </div>
           </div>
         </div>
@@ -1151,12 +1195,14 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
 function CustomReminderOption({
   selected,
   disabled,
+  invalid,
   value,
   onSelect,
   onValueChange,
 }: {
   selected: boolean;
   disabled: boolean;
+  invalid: boolean;
   value: string;
   onSelect: () => void;
   onValueChange: (value: string) => void;
@@ -1179,32 +1225,29 @@ function CustomReminderOption({
       >
         <span
           className={cn(
-            "flex h-[18px] w-[18px] items-center justify-center rounded-full border-2",
-            selected ? "border-[#837CFF]" : "border-[#D0D5DD]",
+            "flex h-[18px] w-[18px] items-center justify-center rounded border",
+            selected
+              ? "border-[#837CFF] bg-[#837CFF] text-white"
+              : "border-[#D0D5DD] bg-white text-transparent",
           )}
         >
-          {selected ? (
-            <span className="h-2 w-2 rounded-full bg-[#837CFF]" />
-          ) : null}
+          <Check className="h-[11px] w-[11px]" strokeWidth={3} />
         </span>
-        <span>직접 입력</span>
+        <span>직접 선택</span>
       </button>
       {selected ? (
-        <div className="flex items-center gap-2 pb-3 pl-[30px]">
-          <span className="text-sm font-medium leading-[21px] text-[#475467]">
-            마감
-          </span>
+        <div className="pb-3 pl-[30px]">
           <input
-            className="h-9 w-16 rounded-lg border border-[#E0E4EB] bg-white px-3 text-center text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
-            inputMode="numeric"
+            className="h-9 w-full rounded-lg border border-[#E0E4EB] bg-white px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none focus:border-[#635BFF]"
             onChange={(event) => onValueChange(event.target.value)}
-            placeholder="6"
-            type="number"
+            type="datetime-local"
             value={value}
           />
-          <span className="text-sm font-medium leading-[21px] text-[#475467]">
-            시간 전
-          </span>
+          {invalid ? (
+            <p className="mt-2 text-xs font-medium leading-[18px] text-[#F04438]">
+              리마인드는 현재 이후, 응답 마감 이전 시간만 선택할 수 있습니다.
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>

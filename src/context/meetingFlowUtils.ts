@@ -46,6 +46,74 @@ function formatDateTimeOption(date: Date, time: string) {
   };
 }
 
+function deadlineDateFromMeeting(meeting: MeetingCreateMock) {
+  const hoursByDeadlineId: Record<string, number> = {
+    "deadline-24h": 24,
+    "deadline-48h": 48,
+    "deadline-3d": 72,
+  };
+  const relativeHours = hoursByDeadlineId[meeting.deadlineId];
+
+  if (relativeHours) {
+    const deadline = new Date();
+    deadline.setHours(deadline.getHours() + relativeHours);
+
+    return deadline;
+  }
+
+  if (meeting.deadlineId === "custom-deadline" && meeting.customDeadline) {
+    const parsed = new Date(meeting.customDeadline);
+
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  return null;
+}
+
+function reminderHoursFromId(reminderId: string) {
+  const match = reminderId.match(/^(\d+)h$/);
+
+  return match ? Number(match[1]) : null;
+}
+
+function validReminderLabels(meeting: MeetingCreateMock) {
+  const deadlineDate = deadlineDateFromMeeting(meeting);
+  const now = new Date();
+  const labels = (meeting.reminderIds.length > 0
+    ? meeting.reminderIds
+    : meeting.reminderId
+      ? [meeting.reminderId]
+      : []
+  )
+    .map((id) => {
+      const option = meetingCreateOptions.reminders.find((item) => item.id === id);
+      const hours = reminderHoursFromId(id);
+
+      if (!option || hours === null || !deadlineDate) return option?.label ?? "";
+
+      const sendAt = new Date(deadlineDate);
+      sendAt.setHours(sendAt.getHours() - hours);
+
+      return sendAt > now && sendAt < deadlineDate ? option.label : "";
+    })
+    .filter(Boolean);
+
+  if (meeting.reminderIds.includes("custom-reminder") && meeting.customReminderDateTime) {
+    const customDate = new Date(meeting.customReminderDateTime);
+
+    if (
+      deadlineDate &&
+      !Number.isNaN(customDate.getTime()) &&
+      customDate > now &&
+      customDate < deadlineDate
+    ) {
+      labels.push("직접 선택");
+    }
+  }
+
+  return labels;
+}
+
 function timesForWeekday(weekday: number) {
   if (weekday === 1) return ["10:00", "14:00"];
   if (weekday === 2) return ["10:00", "15:00"];
@@ -111,10 +179,8 @@ export function createMeetingSummaries(meeting: MeetingCreateMock) {
   const deadline =
     optionLabel(deadlineOptions, meeting.deadlineId) ||
     (meeting.deadlineId === "custom-deadline" ? meeting.customDeadline : "");
-  const reminder = optionLabel(
-    meetingCreateOptions.reminders,
-    meeting.reminderId,
-  ) || (meeting.customReminderHours ? `마감 ${meeting.customReminderHours}시간 전` : "");
+  const reminderLabels = validReminderLabels(meeting);
+  const reminder = reminderLabels.join(", ");
   const selectedTimes = meeting.timeIds
     .map((id) => optionLabel(candidateTimes, id))
     .filter(Boolean)
@@ -142,8 +208,8 @@ export function createMeetingSummaries(meeting: MeetingCreateMock) {
     reminder,
     reminderText: meeting.reminderEnabled
       ? reminder && deadline
-        ? `${meeting.unansweredOnly ? "미응답자에게" : "참석자에게"} ${reminder}에 자동 리마인드를 보냅니다. (마감: ${deadline})`
-        : "리마인드 시간을 선택해주세요."
+        ? `응답하지 않은 참석자에게만 ${reminder} 리마인드를 보냅니다. (마감: ${deadline})`
+        : "응답하지 않은 참석자에게만 리마인드를 보냅니다."
       : "자동 리마인드를 사용하지 않습니다.",
   };
 }

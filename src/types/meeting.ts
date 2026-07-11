@@ -37,7 +37,9 @@ export type MeetingCreateMock = {
   reminderEnabled: boolean;
   unansweredOnly: boolean;
   reminderId: string;
+  reminderIds: string[];
   customReminderHours: string;
+  customReminderDateTime: string;
 };
 
 export type SelectOption = {
