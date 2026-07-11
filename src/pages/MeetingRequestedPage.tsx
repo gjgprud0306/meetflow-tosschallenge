@@ -77,7 +77,7 @@ function RequestedMeetingCard() {
       </div>
       <div className="border-t border-[#E0E4EB] px-5 py-4">
         <p className="mb-4 text-sm font-medium leading-[21px] text-[#667085]">
-          필수 참석자 3명에게 먼저 일정 응답 요청을 보냈습니다.
+          필수 참석자 {requiredAttendees.length}명에게 먼저 일정 응답 요청을 보냈습니다.
           필수 참석자가 모두 응답하면 선택 참석자에게 후보 일정을 보낼 수 있습니다.
         </p>
         <Button

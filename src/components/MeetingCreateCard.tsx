@@ -305,6 +305,7 @@ const teamAvailabilitySummaries = [
     dateLabel: "7월 15일 수요일",
     timeLabel: "15:00–16:00",
     availableCount: 6,
+    unavailableIds: [],
     unavailableNames: [],
     unavailableRequiredIds: [],
   },
@@ -313,6 +314,7 @@ const teamAvailabilitySummaries = [
     dateLabel: "7월 16일 목요일",
     timeLabel: "10:00–11:00",
     availableCount: 6,
+    unavailableIds: [],
     unavailableNames: [],
     unavailableRequiredIds: [],
   },
@@ -321,6 +323,7 @@ const teamAvailabilitySummaries = [
     dateLabel: "7월 17일 금요일",
     timeLabel: "14:00–15:00",
     availableCount: 6,
+    unavailableIds: [],
     unavailableNames: [],
     unavailableRequiredIds: [],
   },
@@ -329,6 +332,7 @@ const teamAvailabilitySummaries = [
     dateLabel: "7월 14일 화요일",
     timeLabel: "14:00–15:00",
     availableCount: 4,
+    unavailableIds: ["seo", "ji"],
     unavailableNames: ["윤서연", "윤지은"],
     unavailableRequiredIds: [],
   },
@@ -337,6 +341,7 @@ const teamAvailabilitySummaries = [
     dateLabel: "7월 13일 월요일",
     timeLabel: "11:00–12:00",
     availableCount: 3,
+    unavailableIds: ["seo", "ji", "eun"],
     unavailableNames: ["윤서연", "윤지은", "박은주"],
     unavailableRequiredIds: [],
   },
@@ -361,23 +366,33 @@ function shortDateLabelFromAvailability(dateLabel: string) {
   };
 }
 
-function availabilityStatus(item?: (typeof teamAvailabilitySummaries)[number]) {
+function availabilityStatus(
+  item?: (typeof teamAvailabilitySummaries)[number],
+  requiredIds = new Set<string>(),
+) {
   if (!item) return { label: "선택 불가", tone: "disabled" as const };
+  const unavailableRequiredCount = item.unavailableIds.filter((id) =>
+    requiredIds.has(id),
+  ).length;
+
   if (item.id === "slot-7-15-15") {
     return { label: "추천", tone: "recommended" as const };
   }
   if (item.availableCount === 6) {
     return { label: "전원 가능", tone: "all" as const };
   }
-  if (item.availableCount === 3 && item.unavailableRequiredIds.length === 0) {
+  if (unavailableRequiredCount === 0) {
     return { label: "필참 가능", tone: "required" as const };
   }
 
   return { label: "일부 불가", tone: "partial" as const };
 }
 
-function calendarCellBadge(item?: (typeof teamAvailabilitySummaries)[number]) {
-  const status = availabilityStatus(item);
+function calendarCellBadge(
+  item: (typeof teamAvailabilitySummaries)[number] | undefined,
+  requiredIds: Set<string>,
+) {
+  const status = availabilityStatus(item, requiredIds);
 
   if (!item) return "";
   if (status.tone === "recommended") return "추천";
@@ -456,8 +471,12 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
     return aRequired ? -1 : 1;
   });
   const recommendedDateSummaries = [...teamAvailabilitySummaries].sort((a, b) => {
-    const aRequiredAvailable = requiredCount - a.unavailableRequiredIds.length;
-    const bRequiredAvailable = requiredCount - b.unavailableRequiredIds.length;
+    const aRequiredAvailable =
+      requiredCount -
+      a.unavailableIds.filter((id) => requiredAttendeeIds.has(id)).length;
+    const bRequiredAvailable =
+      requiredCount -
+      b.unavailableIds.filter((id) => requiredAttendeeIds.has(id)).length;
 
     if (aRequiredAvailable !== bRequiredAvailable) {
       return bRequiredAvailable - aRequiredAvailable;
@@ -649,12 +668,12 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                         <span
                           className={cn(
                             "rounded-full px-2 py-[2px] text-[11px] font-bold leading-[16px]",
-                            attendee.required
+                            required
                               ? "bg-[#F0EEFF] text-[#635BFF]"
                               : "bg-[#F3F4F6] text-[#667085]",
                           )}
                         >
-                          {attendee.required ? "필수 참석자" : "선택 참석자"}
+                          {required ? "필수 참석자" : "선택 참석자"}
                         </span>
                       </span>
                       <span className="block text-xs font-medium leading-[18px] text-[#808CA1]">
@@ -724,8 +743,8 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
 
                 const selected = draftDateIds.includes(date.id);
                 const availability = availabilityForDate(date.id);
-                const status = availabilityStatus(availability);
-                const badge = calendarCellBadge(availability);
+                const status = availabilityStatus(availability, requiredAttendeeIds);
+                const badge = calendarCellBadge(availability, requiredAttendeeIds);
                 const past = isPastCalendarDate(date);
                 const disabled = past || !availability;
 
@@ -907,7 +926,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                 <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
                   {candidateChecklistItems.map((item) => {
                     const selected = draftTimeIds.includes(item.id);
-                    const status = availabilityStatus(item);
+                    const status = availabilityStatus(item, requiredAttendeeIds);
                     const dateParts = shortDateLabelFromAvailability(item.dateLabel);
 
                     return (

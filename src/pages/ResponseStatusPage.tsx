@@ -32,9 +32,6 @@ type ResponseStatus = "가능" | "불가능" | "미응답" | "요청 전";
 const scheduleStorageKey = "mflow-my-schedule-cards";
 const confirmedScheduleId = "confirmed-review-meeting";
 
-const requiredIds = ["owner", "min", "jun"];
-const optionalIds = ["seo", "ji", "eun"];
-
 const candidateSlots = [
   {
     id: "slot-7-15-15",
@@ -68,42 +65,6 @@ const candidateSlots = [
   },
 ];
 
-const recommendationCards = [
-  {
-    id: "recommend-1",
-    badge: "추천 1 · 전원 참석 가능",
-    title: "7월 15일 수요일 15:00–16:00",
-    requiredText: "필수 참석자 3명 참석 가능",
-    optionalText: "선택 참석자 3명 참석 가능",
-    totalText: "6명 중 6명 참석 가능",
-    description: "6명 모두 참석할 수 있는 가장 빠른 일정이에요.",
-    unavailableText: "",
-    emphasis: true,
-  },
-  {
-    id: "recommend-2",
-    badge: "추천 2 · 더 빠른 대안",
-    title: "7월 14일 화요일 14:00–15:00",
-    requiredText: "필수 참석자 3명 참석 가능",
-    optionalText: "박은주 참석 가능",
-    totalText: "6명 중 4명 참석 가능",
-    description: "선택 참석자 2명을 제외하면 하루 더 빠르게 진행할 수 있어요.",
-    unavailableText: "참석 어려움: 윤서연, 윤지은",
-    emphasis: false,
-  },
-  {
-    id: "recommend-3",
-    badge: "추천 3 · 필수 참석자 우선",
-    title: "7월 13일 월요일 11:00–12:00",
-    requiredText: "허혜경, 김민서, 박준호 참석 가능",
-    optionalText: "윤서연, 윤지은, 박은주 참석 불가",
-    totalText: "6명 중 3명 참석 가능",
-    description: "필수 참석자 모두가 가능한 가장 빠른 일정이에요.",
-    unavailableText: "필수 참석자 전원 가능",
-    emphasis: false,
-  },
-];
-
 function attendeeById(id: string) {
   return attendees.find((attendee) => attendee.id === id);
 }
@@ -116,7 +77,11 @@ function roleBadge(required: boolean) {
   return required ? "필수 참석자" : "선택 참석자";
 }
 
-function getRespondedIds(stage: ResponseStage) {
+function getRespondedIds(
+  stage: ResponseStage,
+  requiredIds: string[],
+  optionalIds: string[],
+) {
   const ids: string[] = [];
 
   if (
@@ -129,9 +94,10 @@ function getRespondedIds(stage: ResponseStage) {
       "optionalTwo",
       "allComplete",
       "confirmed",
-    ].includes(stage)
+    ].includes(stage) &&
+    requiredIds[0]
   ) {
-    ids.push("owner");
+    ids.push(requiredIds[0]);
   }
   if (
     [
@@ -142,9 +108,10 @@ function getRespondedIds(stage: ResponseStage) {
       "optionalTwo",
       "allComplete",
       "confirmed",
-    ].includes(stage)
+    ].includes(stage) &&
+    requiredIds[1]
   ) {
-    ids.push("min");
+    ids.push(requiredIds[1]);
   }
   if (
     [
@@ -154,25 +121,30 @@ function getRespondedIds(stage: ResponseStage) {
       "optionalTwo",
       "allComplete",
       "confirmed",
-    ].includes(stage)
+    ].includes(stage) &&
+    requiredIds[2]
   ) {
-    ids.push("jun");
+    ids.push(requiredIds[2]);
   }
   if (["optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
-    ids.push("seo");
+    if (optionalIds[0]) ids.push(optionalIds[0]);
   }
   if (["optionalTwo", "allComplete", "confirmed"].includes(stage)) {
-    ids.push("ji");
+    if (optionalIds[1]) ids.push(optionalIds[1]);
   }
   if (["allComplete", "confirmed"].includes(stage)) {
-    ids.push("eun");
+    if (optionalIds[2]) ids.push(optionalIds[2]);
   }
 
   return ids;
 }
 
-function getCounts(stage: ResponseStage) {
-  const respondedIds = getRespondedIds(stage);
+function getCounts(
+  stage: ResponseStage,
+  requiredIds: string[],
+  optionalIds: string[],
+) {
+  const respondedIds = getRespondedIds(stage, requiredIds, optionalIds);
   const requiredCount = requiredIds.filter((id) => respondedIds.includes(id)).length;
   const optionalCount = optionalIds.filter((id) => respondedIds.includes(id)).length;
 
@@ -184,15 +156,28 @@ function getCounts(stage: ResponseStage) {
   };
 }
 
-function progressPercent(stage: ResponseStage) {
-  return `${(getCounts(stage).totalCount / 6) * 100}%`;
+function progressPercent(
+  stage: ResponseStage,
+  requiredIds: string[],
+  optionalIds: string[],
+) {
+  const total = requiredIds.length + optionalIds.length;
+
+  if (total === 0) return "0%";
+
+  return `${(getCounts(stage, requiredIds, optionalIds).totalCount / total) * 100}%`;
 }
 
-function getMemberStatus(stage: ResponseStage, id: string): ResponseStatus {
-  const { respondedIds, requiredCount } = getCounts(stage);
+function getMemberStatus(
+  stage: ResponseStage,
+  id: string,
+  requiredIds: string[],
+  optionalIds: string[],
+): ResponseStatus {
+  const { respondedIds, requiredCount } = getCounts(stage, requiredIds, optionalIds);
 
   if (!respondedIds.includes(id)) {
-    if (optionalIds.includes(id) && requiredCount < 3) return "요청 전";
+    if (optionalIds.includes(id) && requiredCount < requiredIds.length) return "요청 전";
     return "미응답";
   }
 
@@ -289,7 +274,15 @@ function ChatLine({
   );
 }
 
-function ProgressBar({ stage }: { stage: ResponseStage }) {
+function ProgressBar({
+  optionalIds,
+  requiredIds,
+  stage,
+}: {
+  optionalIds: string[];
+  requiredIds: string[];
+  stage: ResponseStage;
+}) {
   const confirmed = stage === "confirmed";
   const allComplete = stage === "allComplete" || confirmed;
   const optionalStarted = ["optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage);
@@ -299,7 +292,9 @@ function ProgressBar({ stage }: { stage: ResponseStage }) {
       <div className="absolute left-0 right-0 top-3 h-1 rounded-full bg-[#E5E7EB]">
         <div
           className="h-1 rounded-full bg-[#635BFF] transition-all duration-500 ease-out"
-          style={{ width: confirmed ? "100%" : progressPercent(stage) }}
+          style={{
+            width: confirmed ? "100%" : progressPercent(stage, requiredIds, optionalIds),
+          }}
         />
       </div>
       <div className="absolute inset-x-0 top-0">
@@ -353,7 +348,64 @@ function ProgressBar({ stage }: { stage: ResponseStage }) {
   );
 }
 
-function RecommendationResults() {
+function RecommendationResults({
+  optionalIds,
+  requiredIds,
+}: {
+  optionalIds: string[];
+  requiredIds: string[];
+}) {
+  const totalAttendees = requiredIds.length + optionalIds.length;
+  const eligibleSlots = candidateSlots.filter((slot) =>
+    requiredIds.every((id) => slot.availableIds.includes(id)),
+  );
+  const allAvailableSlots = eligibleSlots.filter(
+    (slot) => slot.availableIds.length === totalAttendees,
+  );
+  const firstAllAvailable = allAvailableSlots[0];
+  const fasterAlternative = eligibleSlots.find(
+    (slot) => slot.id === "slot-7-14-14",
+  );
+  const requiredFirst = eligibleSlots.find((slot) => slot.id === "slot-7-13-11");
+  const cards = [
+    firstAllAvailable
+      ? {
+          badge: "추천 1 · 전원 참석 가능",
+          description: `${totalAttendees}명 모두 참석할 수 있는 가장 빠른 일정이에요.`,
+          emphasis: true,
+          id: "recommend-1",
+          slot: firstAllAvailable,
+        }
+      : null,
+    fasterAlternative
+      ? {
+          badge: "추천 2 · 더 빠른 대안",
+          description: "일부 선택 참석자를 제외하면 더 빠르게 진행할 수 있어요.",
+          emphasis: false,
+          id: "recommend-2",
+          slot: fasterAlternative,
+        }
+      : null,
+    requiredFirst
+      ? {
+          badge: "추천 3 · 필수 참석자 우선",
+          description: "현재 필수 참석자 모두가 가능한 가장 빠른 일정이에요.",
+          emphasis: false,
+          id: "recommend-3",
+          slot: requiredFirst,
+        }
+      : null,
+  ].filter(Boolean) as {
+    badge: string;
+    description: string;
+    emphasis: boolean;
+    id: string;
+    slot: (typeof candidateSlots)[number];
+  }[];
+  const extraAllAvailableSlots = allAvailableSlots.filter(
+    (slot) => slot.id !== firstAllAvailable?.id,
+  );
+
   return (
     <section className="w-full max-w-[680px] rounded-xl border border-[#E0E4EB] bg-white p-5 shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
       <div className="mb-4">
@@ -365,7 +417,20 @@ function RecommendationResults() {
         </p>
       </div>
       <div className="space-y-3">
-        {recommendationCards.map((card) => (
+        {cards.map((card) => {
+          const unavailableOptionalIds = optionalIds.filter((id) =>
+            card.slot.unavailableIds.includes(id),
+          );
+          const unavailableOptionalNames = unavailableOptionalIds
+            .map((id) => attendeeById(id)?.name)
+            .filter(Boolean)
+            .join(", ");
+          const requiredNames = requiredIds
+            .map((id) => attendeeById(id)?.name)
+            .filter(Boolean)
+            .join(", ");
+
+          return (
           <article
             className={cn(
               "rounded-xl border p-4",
@@ -388,37 +453,51 @@ function RecommendationResults() {
                   {card.badge}
                 </span>
                 <h4 className="mt-3 text-base font-bold leading-6 text-[#101828]">
-                  {card.title}
+                  {card.slot.label}
                 </h4>
               </div>
               <span className="shrink-0 text-sm font-bold leading-[21px] text-[#635BFF]">
-                {card.totalText}
+                {totalAttendees}명 중 {card.slot.availableIds.length}명 참석 가능
               </span>
             </div>
             <div className="mt-3 space-y-1 text-sm font-medium leading-[21px] text-[#475467]">
-              <p>{card.requiredText}</p>
-              <p>{card.optionalText}</p>
-              {card.unavailableText ? (
-                <p className="font-bold text-[#667085]">{card.unavailableText}</p>
+              <p>필수 참석자 {requiredIds.length}명 참석 가능</p>
+              <p>
+                선택 참석자 {optionalIds.length - unavailableOptionalIds.length}명 참석 가능
+              </p>
+              {unavailableOptionalNames ? (
+                <p className="font-bold text-[#667085]">
+                  참석 어려움: {unavailableOptionalNames}
+                </p>
+              ) : null}
+              {card.id === "recommend-3" ? (
+                <p className="font-bold text-[#635BFF]">
+                  필수 참석자 전원 가능: {requiredNames}
+                </p>
               ) : null}
             </div>
             <p className="mt-3 text-sm font-bold leading-[21px] text-[#101828]">
               {card.description}
             </p>
           </article>
-        ))}
+          );
+        })}
       </div>
-      <div className="mt-4 rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-4 py-3">
-        <h4 className="text-sm font-bold leading-[21px] text-[#101828]">
-          전원 참석 가능 추가 후보
-        </h4>
-        <p className="mt-2 text-sm font-medium leading-[21px] text-[#475467]">
-          2순위: 7월 16일 목요일 10:00–11:00
-        </p>
-        <p className="text-sm font-medium leading-[21px] text-[#475467]">
-          3순위: 7월 17일 금요일 14:00–15:00
-        </p>
-      </div>
+      {extraAllAvailableSlots.length > 0 ? (
+        <div className="mt-4 rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-4 py-3">
+          <h4 className="text-sm font-bold leading-[21px] text-[#101828]">
+            전원 참석 가능 추가 후보
+          </h4>
+          {extraAllAvailableSlots.map((slot, index) => (
+            <p
+              className="mt-2 text-sm font-medium leading-[21px] text-[#475467]"
+              key={slot.id}
+            >
+              {index + 2}순위: {slot.label}
+            </p>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -426,15 +505,23 @@ function RecommendationResults() {
 function ManagementCard({
   onConfirm,
   onSendOptional,
+  optionalIds,
+  requiredIds,
   stage,
 }: {
   onConfirm: () => void;
   onSendOptional: () => void;
+  optionalIds: string[];
+  requiredIds: string[];
   stage: ResponseStage;
 }) {
   const { meeting, summaries } = useMeetingFlow();
-  const { optionalCount, requiredCount, totalCount } = getCounts(stage);
-  const requiredComplete = requiredCount === 3;
+  const { optionalCount, requiredCount, totalCount } = getCounts(
+    stage,
+    requiredIds,
+    optionalIds,
+  );
+  const requiredComplete = requiredCount === requiredIds.length;
   const allComplete = stage === "allComplete" || stage === "confirmed";
   const confirmed = stage === "confirmed";
   const optionalSent = ["optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage);
@@ -451,7 +538,7 @@ function ManagementCard({
               {meeting.title || "리뷰회의"}
             </h2>
             <p className="text-sm font-medium leading-[21px] text-[#475467]">
-              1시간 · 마감 {summaries.deadline} · {totalCount}/6명 응답
+              1시간 · 마감 {summaries.deadline} · {totalCount}/{meeting.attendeeIds.length}명 응답
             </p>
           </div>
         </div>
@@ -466,7 +553,7 @@ function ManagementCard({
             필수 참석자 응답
           </span>
           <span className="mt-1 text-[28px] font-bold leading-10 text-[#635BFF]">
-            {requiredCount}/3명
+            {requiredCount}/{requiredIds.length}명
           </span>
         </div>
         <div className="flex flex-col justify-center border-l border-[#E0E4EB] px-6">
@@ -474,7 +561,7 @@ function ManagementCard({
             선택 참석자 응답
           </span>
           <span className="mt-1 text-[28px] font-bold leading-10 text-[#475467]">
-            {optionalSent ? `${optionalCount}/3명` : "대기"}
+            {optionalSent ? `${optionalCount}/${optionalIds.length}명` : "대기"}
           </span>
         </div>
       </div>
@@ -489,10 +576,10 @@ function ManagementCard({
               ? optionalSent
                 ? "선택 참석자 응답 반영 중"
                 : "필수 참석자 응답 완료"
-              : `필수 참석자 3명 중 ${requiredCount}명이 응답했어요.`}
+              : `필수 참석자 ${requiredIds.length}명 중 ${requiredCount}명이 응답했어요.`}
           </span>
         </div>
-        <ProgressBar stage={stage} />
+        <ProgressBar optionalIds={optionalIds} requiredIds={requiredIds} stage={stage} />
       </div>
 
       <div className="flex items-center justify-between px-6 py-5">
@@ -539,9 +626,13 @@ function ManagementCard({
 
 function ResponseTable({
   onRetry,
+  optionalIds,
+  requiredIds,
   stage,
 }: {
   onRetry: (id: string) => void;
+  optionalIds: string[];
+  requiredIds: string[];
   stage: ResponseStage;
 }) {
   return (
@@ -558,7 +649,8 @@ function ResponseTable({
       </div>
       <div className="space-y-3">
         {attendees.map((attendee) => {
-          const status = getMemberStatus(stage, attendee.id);
+          const required = requiredIds.includes(attendee.id);
+          const status = getMemberStatus(stage, attendee.id, requiredIds, optionalIds);
           const pending = status === "미응답";
 
           return (
@@ -575,12 +667,12 @@ function ResponseTable({
                     <span
                       className={cn(
                         "rounded-full px-2 py-[2px] text-[11px] font-bold leading-[16px]",
-                        attendee.required
+                        required
                           ? "bg-[#F0EEFF] text-[#635BFF]"
                           : "bg-[#F3F4F6] text-[#667085]",
                       )}
                     >
-                      {roleBadge(attendee.required)}
+                      {roleBadge(required)}
                     </span>
                   </div>
                   <p className="mt-1 text-sm font-medium leading-[21px] text-[#667085]">
@@ -621,16 +713,25 @@ function StatusPanel({
   confirmedSchedule,
   onRetry,
   onViewSchedule,
+  optionalIds,
+  requiredIds,
   stage,
 }: {
   confirmedSchedule: ReturnType<typeof getConfirmedScheduleInfo>;
   onRetry: (id: string) => void;
   onViewSchedule: () => void;
+  optionalIds: string[];
+  requiredIds: string[];
   stage: ResponseStage;
 }) {
-  const { optionalCount, requiredCount, totalCount } = getCounts(stage);
+  const { optionalCount, requiredCount, totalCount } = getCounts(
+    stage,
+    requiredIds,
+    optionalIds,
+  );
   const confirmed = stage === "confirmed";
   const allComplete = stage === "allComplete" || confirmed;
+  const totalAttendees = requiredIds.length + optionalIds.length;
 
   return (
     <aside className="flex h-[100dvh] max-h-[100dvh] w-[328px] shrink-0 flex-col overflow-hidden border-l border-[#E5E7EB] bg-[#F9FAFB]">
@@ -639,10 +740,10 @@ function StatusPanel({
           응답 현황
         </h2>
         <p className="mt-2 text-sm font-medium leading-[21px] text-[#475467]">
-          {requiredCount < 3
-            ? `필수 참석자 3명 중 ${requiredCount}명이 응답했어요.`
-            : optionalCount < 3
-              ? `선택 참석자 3명 중 ${optionalCount}명이 응답했어요.`
+          {requiredCount < requiredIds.length
+            ? `필수 참석자 ${requiredIds.length}명 중 ${requiredCount}명이 응답했어요.`
+            : optionalCount < optionalIds.length
+              ? `선택 참석자 ${optionalIds.length}명 중 ${optionalCount}명이 응답했어요.`
               : "필수 참석자의 응답이 모두 완료됐어요."}
         </p>
 
@@ -651,22 +752,30 @@ function StatusPanel({
             {confirmed ? "회의 확정" : allComplete ? "집계 완료" : "응답 수집"}
           </span>
           <h3 className="mt-5 text-[30px] font-bold leading-10 text-[#635BFF]">
-            {totalCount}/6명 응답
+            {totalCount}/{totalAttendees}명 응답
           </h3>
           <div className="mt-4 h-1.5 rounded-full bg-[#E5E7EB]">
             <div
               className="h-1.5 rounded-full bg-[#635BFF] transition-all duration-500 ease-out"
-              style={{ width: confirmed ? "100%" : progressPercent(stage) }}
+              style={{
+                width: confirmed
+                  ? "100%"
+                  : progressPercent(stage, requiredIds, optionalIds),
+              }}
             />
           </div>
           <div className="mt-5 space-y-3">
             <div className="flex items-center justify-between text-sm font-medium leading-[21px]">
               <span className="text-[#475467]">필수 참석자</span>
-              <span className="text-[#635BFF]">{requiredCount}/3명 완료</span>
+              <span className="text-[#635BFF]">
+                {requiredCount}/{requiredIds.length}명 완료
+              </span>
             </div>
             <div className="flex items-center justify-between text-sm font-medium leading-[21px]">
               <span className="text-[#475467]">선택 참석자</span>
-              <span className="text-[#667085]">{optionalCount}/3명 완료</span>
+              <span className="text-[#667085]">
+                {optionalCount}/{optionalIds.length}명 완료
+              </span>
             </div>
           </div>
         </section>
@@ -677,7 +786,8 @@ function StatusPanel({
           </h3>
           <div className="mt-4 space-y-3">
             {attendees.map((attendee) => {
-              const status = getMemberStatus(stage, attendee.id);
+              const required = requiredIds.includes(attendee.id);
+              const status = getMemberStatus(stage, attendee.id, requiredIds, optionalIds);
 
               return (
                 <div
@@ -686,7 +796,7 @@ function StatusPanel({
                 >
                   <span className="flex min-w-0 items-center gap-2 text-[#475467]">
                     {shortName(attendee.name)}
-                    {attendee.required ? (
+                    {required ? (
                       <span className="rounded-full bg-[#F0EEFF] px-2 py-[2px] text-[11px] font-bold leading-[16px] text-[#635BFF]">
                         필수
                       </span>
@@ -707,7 +817,8 @@ function StatusPanel({
           </div>
         </section>
 
-        {getCounts(stage).respondedIds.length < 6 ? (
+        {getCounts(stage, requiredIds, optionalIds).respondedIds.length <
+        totalAttendees ? (
           <Button
             className="mt-5 h-12 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
             onClick={() => onRetry("all")}
@@ -775,6 +886,18 @@ export function ResponseStatusPage() {
     () => getConfirmedScheduleInfo(meeting.title),
     [meeting.title],
   );
+  const requiredParticipantIds = useMemo(
+    () =>
+      meeting.attendeeIds.filter((id) => meeting.requiredAttendeeIds.includes(id)),
+    [meeting.attendeeIds, meeting.requiredAttendeeIds],
+  );
+  const optionalParticipantIds = useMemo(
+    () =>
+      meeting.attendeeIds.filter(
+        (id) => !meeting.requiredAttendeeIds.includes(id),
+      ),
+    [meeting.attendeeIds, meeting.requiredAttendeeIds],
+  );
 
   useEffect(() => {
     const hyeTimer = window.setTimeout(() => setStage("requiredOne"), 1000);
@@ -813,7 +936,7 @@ export function ResponseStatusPage() {
         author: "MFlow",
         initial: "M",
         time: "오전 10:12",
-        message: "허혜경님이 응답했습니다.",
+        message: `${attendeeById(requiredParticipantIds[0])?.name ?? "필수 참석자"}님이 응답했습니다.`,
       });
     }
     if (["requiredTwo", "requiredComplete", "optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
@@ -822,7 +945,7 @@ export function ResponseStatusPage() {
         author: "MFlow",
         initial: "M",
         time: "오전 10:13",
-        message: "김민서님이 응답했습니다.",
+        message: `${attendeeById(requiredParticipantIds[1])?.name ?? "필수 참석자"}님이 응답했습니다.`,
       });
     }
     if (["requiredComplete", "optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
@@ -849,7 +972,7 @@ export function ResponseStatusPage() {
         author: "MFlow",
         initial: "M",
         time: "오전 10:16",
-        message: "윤서연님이 응답했습니다.",
+        message: `${attendeeById(optionalParticipantIds[0])?.name ?? "선택 참석자"}님이 응답했습니다.`,
       });
     }
     if (["optionalTwo", "allComplete", "confirmed"].includes(stage)) {
@@ -858,7 +981,7 @@ export function ResponseStatusPage() {
         author: "MFlow",
         initial: "M",
         time: "오전 10:17",
-        message: "윤지은님이 응답했습니다.",
+        message: `${attendeeById(optionalParticipantIds[1])?.name ?? "선택 참석자"}님이 응답했습니다.`,
       });
     }
     if (["allComplete", "confirmed"].includes(stage)) {
@@ -867,7 +990,7 @@ export function ResponseStatusPage() {
         author: "MFlow",
         initial: "M",
         time: "오전 10:18",
-        message: "박은주님이 응답했습니다. 전체 응답을 기반으로 일정 집계를 완료했습니다.",
+        message: `${attendeeById(optionalParticipantIds[2])?.name ?? "선택 참석자"}님이 응답했습니다. 전체 응답을 기반으로 일정 집계를 완료했습니다.`,
       });
     }
     if (retryMessage) {
@@ -906,7 +1029,7 @@ export function ResponseStatusPage() {
     }
 
     return messages;
-  }, [confirmedSchedule, retryMessage, stage]);
+  }, [confirmedSchedule, optionalParticipantIds, requiredParticipantIds, retryMessage, stage]);
 
   useEffect(() => {
     const previousCount = previousMessageCountRef.current;
@@ -960,6 +1083,8 @@ export function ResponseStatusPage() {
               <ManagementCard
                 onConfirm={confirmMeeting}
                 onSendOptional={sendOptionalRequests}
+                optionalIds={optionalParticipantIds}
+                requiredIds={requiredParticipantIds}
                 stage={stage}
               />
               {followUpMessages.length > 0 ? (
@@ -975,9 +1100,17 @@ export function ResponseStatusPage() {
                   ))}
                 </div>
               ) : null}
-              <ResponseTable onRetry={retryRequest} stage={stage} />
+              <ResponseTable
+                onRetry={retryRequest}
+                optionalIds={optionalParticipantIds}
+                requiredIds={requiredParticipantIds}
+                stage={stage}
+              />
               {(stage === "allComplete" || stage === "confirmed") && (
-                <RecommendationResults />
+                <RecommendationResults
+                  optionalIds={optionalParticipantIds}
+                  requiredIds={requiredParticipantIds}
+                />
               )}
             </div>
           </div>
@@ -987,6 +1120,8 @@ export function ResponseStatusPage() {
           confirmedSchedule={confirmedSchedule}
           onRetry={retryRequest}
           onViewSchedule={viewConfirmedSchedule}
+          optionalIds={optionalParticipantIds}
+          requiredIds={requiredParticipantIds}
           stage={stage}
         />
       </div>
