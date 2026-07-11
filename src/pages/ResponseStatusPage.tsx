@@ -4,6 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
+import {
+  baseAvailabilitySlots,
+  getAdditionalAllAvailableSlots,
+  getRecommendationCards,
+} from "@/context/availabilityUtils";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { attendees } from "@/mocks";
 import { cn } from "@/lib/utils";
@@ -31,39 +36,6 @@ type ResponseStatus = "가능" | "불가능" | "미응답" | "요청 전";
 
 const scheduleStorageKey = "mflow-my-schedule-cards";
 const confirmedScheduleId = "confirmed-review-meeting";
-
-const candidateSlots = [
-  {
-    id: "slot-7-15-15",
-    label: "7월 15일 수요일 15:00–16:00",
-    availableIds: ["owner", "min", "jun", "seo", "ji", "eun"],
-    unavailableIds: [],
-  },
-  {
-    id: "slot-7-16-10",
-    label: "7월 16일 목요일 10:00–11:00",
-    availableIds: ["owner", "min", "jun", "seo", "ji", "eun"],
-    unavailableIds: [],
-  },
-  {
-    id: "slot-7-17-14",
-    label: "7월 17일 금요일 14:00–15:00",
-    availableIds: ["owner", "min", "jun", "seo", "ji", "eun"],
-    unavailableIds: [],
-  },
-  {
-    id: "slot-7-14-14",
-    label: "7월 14일 화요일 14:00–15:00",
-    availableIds: ["owner", "min", "jun", "eun"],
-    unavailableIds: ["seo", "ji"],
-  },
-  {
-    id: "slot-7-13-11",
-    label: "7월 13일 월요일 11:00–12:00",
-    availableIds: ["owner", "min", "jun"],
-    unavailableIds: ["seo", "ji", "eun"],
-  },
-];
 
 function attendeeById(id: string) {
   return attendees.find((attendee) => attendee.id === id);
@@ -187,7 +159,7 @@ function getMemberStatus(
 function getMemberSelectedTime(id: string, status: ResponseStatus) {
   if (status === "미응답" || status === "요청 전") return "-";
 
-  const unavailableSlot = candidateSlots.find((slot) =>
+  const unavailableSlot = baseAvailabilitySlots.find((slot) =>
     slot.unavailableIds.includes(id),
   );
 
@@ -355,56 +327,10 @@ function RecommendationResults({
   optionalIds: string[];
   requiredIds: string[];
 }) {
+  const { meeting } = useMeetingFlow();
   const totalAttendees = requiredIds.length + optionalIds.length;
-  const eligibleSlots = candidateSlots.filter((slot) =>
-    requiredIds.every((id) => slot.availableIds.includes(id)),
-  );
-  const allAvailableSlots = eligibleSlots.filter(
-    (slot) => slot.availableIds.length === totalAttendees,
-  );
-  const firstAllAvailable = allAvailableSlots[0];
-  const fasterAlternative = eligibleSlots.find(
-    (slot) => slot.id === "slot-7-14-14",
-  );
-  const requiredFirst = eligibleSlots.find((slot) => slot.id === "slot-7-13-11");
-  const cards = [
-    firstAllAvailable
-      ? {
-          badge: "추천 1 · 전원 참석 가능",
-          description: `${totalAttendees}명 모두 참석할 수 있는 가장 빠른 일정이에요.`,
-          emphasis: true,
-          id: "recommend-1",
-          slot: firstAllAvailable,
-        }
-      : null,
-    fasterAlternative
-      ? {
-          badge: "추천 2 · 더 빠른 대안",
-          description: "일부 선택 참석자를 제외하면 더 빠르게 진행할 수 있어요.",
-          emphasis: false,
-          id: "recommend-2",
-          slot: fasterAlternative,
-        }
-      : null,
-    requiredFirst
-      ? {
-          badge: "추천 3 · 필수 참석자 우선",
-          description: "현재 필수 참석자 모두가 가능한 가장 빠른 일정이에요.",
-          emphasis: false,
-          id: "recommend-3",
-          slot: requiredFirst,
-        }
-      : null,
-  ].filter(Boolean) as {
-    badge: string;
-    description: string;
-    emphasis: boolean;
-    id: string;
-    slot: (typeof candidateSlots)[number];
-  }[];
-  const extraAllAvailableSlots = allAvailableSlots.filter(
-    (slot) => slot.id !== firstAllAvailable?.id,
-  );
+  const cards = getRecommendationCards(meeting);
+  const extraAllAvailableSlots = getAdditionalAllAvailableSlots(meeting);
 
   return (
     <section className="w-full max-w-[680px] rounded-xl border border-[#E0E4EB] bg-white p-5 shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
@@ -470,7 +396,7 @@ function RecommendationResults({
                   참석 어려움: {unavailableOptionalNames}
                 </p>
               ) : null}
-              {card.id === "recommend-3" ? (
+              {card.kind === "requiredOnly" ? (
                 <p className="font-bold text-[#635BFF]">
                   필수 참석자 전원 가능: {requiredNames}
                 </p>

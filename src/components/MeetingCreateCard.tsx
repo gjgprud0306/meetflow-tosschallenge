@@ -3,6 +3,14 @@ import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { Button } from "@/components/ui/button";
+import {
+  attendeeName,
+  getAvailabilityStatus,
+  getChronologicalEligibleSlots,
+  getEligibleAvailabilitySlots,
+  teamRegisteredSchedules,
+  type AvailabilitySlot,
+} from "@/context/availabilityUtils";
 import { createDeadlineOptions } from "@/context/meetingFlowUtils";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { attendees } from "@/mocks";
@@ -230,123 +238,6 @@ function isPastCalendarDate(date: { value: Date }) {
   return date.value < todayStart;
 }
 
-const registeredTeamSchedules = [
-  {
-    attendeeId: "owner",
-    name: "허혜경",
-    schedules: [
-      "7/13(월) 09:00~10:00 주간 업무 회의",
-      "7/14(화) 10:00~11:00 프로젝트 진행 상황 공유",
-      "7/15(수) 13:00~14:00 리더 미팅",
-      "7/16(목) 15:00~16:00 개발 일정 점검",
-      "7/17(금) 10:00~11:00 회고 회의",
-    ],
-  },
-  {
-    attendeeId: "min",
-    name: "김민서",
-    schedules: [
-      "7/13(월) 14:00~15:00 디자인 리뷰",
-      "7/14(화) 11:00~12:00 화면 설계 회의",
-      "7/15(수) 10:00~11:00 디자인 시스템 점검",
-      "7/16(목) 13:00~14:00 개발 협업 회의",
-      "7/17(금) 11:00~12:00 사용자 테스트 정리",
-    ],
-  },
-  {
-    attendeeId: "jun",
-    name: "박준호",
-    schedules: [
-      "7/13(월) 13:00~14:00 개발 스프린트 회의",
-      "7/14(화) 09:00~10:00 코드 리뷰",
-      "7/15(수) 11:00~12:00 서버 연동 점검",
-      "7/16(목) 14:00~15:00 QA 이슈 확인",
-      "7/17(금) 10:00~11:00 배포 준비 회의",
-    ],
-  },
-  {
-    attendeeId: "seo",
-    name: "윤서연",
-    schedules: [
-      "7/13(월) 10:30~12:00 캠페인 기획 회의",
-      "7/14(화) 13:30~15:30 마케팅 성과 리뷰",
-      "7/15(수) 10:00~11:00 광고 소재 검토",
-      "7/16(목) 14:00~15:00 콘텐츠 일정 회의",
-      "7/17(금) 11:00~12:00 채널 운영 회의",
-    ],
-  },
-  {
-    attendeeId: "ji",
-    name: "윤지은",
-    schedules: [
-      "7/13(월) 10:00~12:00 주간 대시보드 정리",
-      "7/14(화) 13:00~15:00 사용자 데이터 분석",
-      "7/15(수) 09:00~10:00 데이터팀 회의",
-      "7/16(목) 11:00~12:00 지표 정의 회의",
-      "7/17(금) 10:00~11:00 리포트 작성 회의",
-    ],
-  },
-  {
-    attendeeId: "eun",
-    name: "박은주",
-    schedules: [
-      "7/13(월) 10:30~12:00 콘텐츠 촬영",
-      "7/14(화) 10:00~11:00 콘텐츠 기획 회의",
-      "7/15(수) 13:00~14:00 이미지 제작 회의",
-      "7/16(목) 15:00~16:00 브랜드 디자인 검토",
-      "7/17(금) 11:00~12:00 콘텐츠 결과 공유",
-    ],
-  },
-];
-
-const teamAvailabilitySummaries = [
-  {
-    id: "slot-7-15-15",
-    dateLabel: "7월 15일 수요일",
-    timeLabel: "15:00–16:00",
-    availableCount: 6,
-    unavailableIds: [],
-    unavailableNames: [],
-    unavailableRequiredIds: [],
-  },
-  {
-    id: "slot-7-16-10",
-    dateLabel: "7월 16일 목요일",
-    timeLabel: "10:00–11:00",
-    availableCount: 6,
-    unavailableIds: [],
-    unavailableNames: [],
-    unavailableRequiredIds: [],
-  },
-  {
-    id: "slot-7-17-14",
-    dateLabel: "7월 17일 금요일",
-    timeLabel: "14:00–15:00",
-    availableCount: 6,
-    unavailableIds: [],
-    unavailableNames: [],
-    unavailableRequiredIds: [],
-  },
-  {
-    id: "slot-7-14-14",
-    dateLabel: "7월 14일 화요일",
-    timeLabel: "14:00–15:00",
-    availableCount: 4,
-    unavailableIds: ["seo", "ji"],
-    unavailableNames: ["윤서연", "윤지은"],
-    unavailableRequiredIds: [],
-  },
-  {
-    id: "slot-7-13-11",
-    dateLabel: "7월 13일 월요일",
-    timeLabel: "11:00–12:00",
-    availableCount: 3,
-    unavailableIds: ["seo", "ji", "eun"],
-    unavailableNames: ["윤서연", "윤지은", "박은주"],
-    unavailableRequiredIds: [],
-  },
-];
-
 function dateIdFromAvailability(dateLabel: string) {
   const match = dateLabel.match(/(\d+)월\s+(\d+)일/);
 
@@ -366,48 +257,26 @@ function shortDateLabelFromAvailability(dateLabel: string) {
   };
 }
 
-function availabilityStatus(
-  item?: (typeof teamAvailabilitySummaries)[number],
-  requiredIds = new Set<string>(),
-) {
-  if (!item) return { label: "선택 불가", tone: "disabled" as const };
-  const unavailableRequiredCount = item.unavailableIds.filter((id) =>
-    requiredIds.has(id),
-  ).length;
-
-  if (item.id === "slot-7-15-15") {
-    return { label: "추천", tone: "recommended" as const };
-  }
-  if (item.availableCount === 6) {
-    return { label: "전원 가능", tone: "all" as const };
-  }
-  if (unavailableRequiredCount === 0) {
-    return { label: "필참 가능", tone: "required" as const };
-  }
-
-  return { label: "일부 불가", tone: "partial" as const };
-}
-
 function calendarCellBadge(
-  item: (typeof teamAvailabilitySummaries)[number] | undefined,
-  requiredIds: Set<string>,
+  item: AvailabilitySlot | undefined,
+  meeting: Parameters<typeof getAvailabilityStatus>[1],
 ) {
-  const status = availabilityStatus(item, requiredIds);
+  const status = getAvailabilityStatus(item, meeting);
 
   if (!item) return "";
   if (status.tone === "recommended") return "추천";
   if (status.tone === "required") return "필참";
 
-  return `${item.availableCount}명`;
+  return `${item.availableIds.length}명`;
 }
 
-function availabilityForDate(dateId: string) {
-  return teamAvailabilitySummaries.find(
+function availabilityForDate(dateId: string, slots: AvailabilitySlot[]) {
+  return slots.find(
     (item) => dateIdFromAvailability(item.dateLabel) === dateId,
   );
 }
 
-function timeOptionFromAvailability(item: (typeof teamAvailabilitySummaries)[number]) {
+function timeOptionFromAvailability(item: AvailabilitySlot) {
   return {
     id: item.id,
     label: `${item.dateLabel} ${item.timeLabel}`,
@@ -461,28 +330,15 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
       customReminderDate <= new Date() ||
       (deadlineDate ? customReminderDate >= deadlineDate : false));
   const requiredAttendeeIds = new Set(meeting.requiredAttendeeIds);
-  const requiredCount = meeting.requiredAttendeeIds.length;
-  const orderedTeamSchedules = [...registeredTeamSchedules].sort((a, b) => {
+  const eligibleSlots = getEligibleAvailabilitySlots(meeting);
+  const chronologicalSlots = getChronologicalEligibleSlots(meeting);
+  const orderedTeamSchedules = [...teamRegisteredSchedules].sort((a, b) => {
     const aRequired = requiredAttendeeIds.has(a.attendeeId);
     const bRequired = requiredAttendeeIds.has(b.attendeeId);
 
     if (aRequired === bRequired) return 0;
 
     return aRequired ? -1 : 1;
-  });
-  const recommendedDateSummaries = [...teamAvailabilitySummaries].sort((a, b) => {
-    const aRequiredAvailable =
-      requiredCount -
-      a.unavailableIds.filter((id) => requiredAttendeeIds.has(id)).length;
-    const bRequiredAvailable =
-      requiredCount -
-      b.unavailableIds.filter((id) => requiredAttendeeIds.has(id)).length;
-
-    if (aRequiredAvailable !== bRequiredAvailable) {
-      return bRequiredAvailable - aRequiredAvailable;
-    }
-
-    return b.availableCount - a.availableCount;
   });
 
   function toggleAttendee(attendeeId: string) {
@@ -615,7 +471,13 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
               일정 집계 결과
             </h3>
             <div className="mt-3 space-y-2">
-              {recommendedDateSummaries.map((item) => (
+              {eligibleSlots.map((item) => {
+                const optionalAvailableNames = item.availableIds
+                  .filter((id) => !requiredAttendeeIds.has(id))
+                  .map(attendeeName)
+                  .filter(Boolean);
+
+                return (
                 <div
                   className="text-sm font-medium leading-[21px] text-[#475467]"
                   key={item.id}
@@ -624,13 +486,19 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                     {item.dateLabel} {item.timeLabel}
                   </span>
                   <span className="ml-2">
-                    가능 {item.availableCount}명
-                    {item.unavailableNames.length > 0
-                      ? ` · 확인 필요: ${item.unavailableNames.join(", ")}`
+                    가능 {item.availableIds.length}명 · 필수 전원 가능
+                    {optionalAvailableNames.length > 0
+                      ? ` · 선택 가능: ${optionalAvailableNames.join(", ")}`
                       : ""}
                   </span>
                 </div>
-              ))}
+                );
+              })}
+              {eligibleSlots.length === 0 ? (
+                <div className="text-sm font-medium leading-[21px] text-[#98A2B3]">
+                  필수 참석자 전원이 가능한 후보 일정이 없습니다.
+                </div>
+              ) : null}
             </div>
           </div>
           <Button
@@ -742,9 +610,9 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                 }
 
                 const selected = draftDateIds.includes(date.id);
-                const availability = availabilityForDate(date.id);
-                const status = availabilityStatus(availability, requiredAttendeeIds);
-                const badge = calendarCellBadge(availability, requiredAttendeeIds);
+                const availability = availabilityForDate(date.id, chronologicalSlots);
+                const status = getAvailabilityStatus(availability, meeting);
+                const badge = calendarCellBadge(availability, meeting);
                 const past = isPastCalendarDate(date);
                 const disabled = past || !availability;
 
@@ -762,7 +630,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                         "border-[#837CFF] bg-[#837CFF] text-white",
                       status.tone === "all" &&
                         "border-[#837CFF] bg-[#F7F6FF] text-[#635BFF]",
-                      (status.tone === "required" || status.tone === "partial") &&
+                      status.tone === "required" &&
                         "border-[#837CFF] bg-white text-[#475467]",
                       !disabled &&
                         !selected &&
@@ -864,7 +732,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
 
     if (modal === "times") {
       const selectedDates = selectedDateLabelsFromMeeting(summaries.dateRange);
-      const candidateChecklistItems = teamAvailabilitySummaries.filter((item) =>
+      const candidateChecklistItems = chronologicalSlots.filter((item) =>
         selectedDates.some(
           (date) => date.id === dateIdFromAvailability(item.dateLabel),
         ),
@@ -926,7 +794,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                 <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
                   {candidateChecklistItems.map((item) => {
                     const selected = draftTimeIds.includes(item.id);
-                    const status = availabilityStatus(item, requiredAttendeeIds);
+                    const status = getAvailabilityStatus(item, meeting);
                     const dateParts = shortDateLabelFromAvailability(item.dateLabel);
 
                     return (
@@ -980,7 +848,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                         </span>
                         <span className="shrink-0 text-right">
                           <span className="block text-xs font-bold leading-[18px] text-[#667085]">
-                            {item.availableCount}명 가능
+                            {item.availableIds.length}명 가능
                           </span>
                           <span
                             className={cn(
@@ -991,8 +859,6 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                                 "bg-[#F0EEFF] text-[#635BFF]",
                               status.tone === "required" &&
                                 "border border-[#837CFF] bg-white text-[#635BFF]",
-                              status.tone === "partial" &&
-                                "bg-[#F3F4F6] text-[#667085]",
                             )}
                           >
                             {status.label}
