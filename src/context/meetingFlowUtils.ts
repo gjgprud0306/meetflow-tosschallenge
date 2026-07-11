@@ -10,10 +10,6 @@ function optionLabel(
   return options.find((option) => option.id === selectedId)?.label ?? "";
 }
 
-function shortName(name: string) {
-  return name.length > 2 ? name.slice(-2) : name;
-}
-
 function getDateRangeLabel(meeting: MeetingCreateMock) {
   if (meeting.dateRangeId === "custom-date-range") {
     return meeting.customDateRange;
@@ -48,9 +44,9 @@ function formatDateTimeOption(date: Date, time: string) {
 
 function deadlineDateFromMeeting(meeting: MeetingCreateMock) {
   const hoursByDeadlineId: Record<string, number> = {
+    "deadline-6h": 6,
+    "deadline-12h": 12,
     "deadline-24h": 24,
-    "deadline-48h": 48,
-    "deadline-3d": 72,
   };
   const relativeHours = hoursByDeadlineId[meeting.deadlineId];
 
@@ -107,7 +103,7 @@ function validReminderLabels(meeting: MeetingCreateMock) {
       customDate > now &&
       customDate < deadlineDate
     ) {
-      labels.push("직접 선택");
+      labels.push("직접 입력");
     }
   }
 
@@ -148,9 +144,9 @@ export function createDeadlineOptions(meeting: MeetingCreateMock): SelectOption[
 
   const now = new Date();
   const relativeOptions = [
+    { hours: 6, id: "deadline-6h", label: "6시간 후" },
+    { hours: 12, id: "deadline-12h", label: "12시간 후" },
     { hours: 24, id: "deadline-24h", label: "24시간 후" },
-    { hours: 48, id: "deadline-48h", label: "48시간 후" },
-    { hours: 72, id: "deadline-3d", label: "3일 후" },
   ];
 
   return relativeOptions.map((option) => {
@@ -172,9 +168,13 @@ export function createDeadlineOptions(meeting: MeetingCreateMock): SelectOption[
 
 export function createMeetingSummaries(meeting: MeetingCreateMock) {
   const candidateTimes = meeting.customTimeOptions;
-  const firstRequired = attendees.find(
-    (attendee) => attendee.id === meeting.requiredAttendeeIds[0],
+  const selectedAttendees = attendees.filter((attendee) =>
+    meeting.attendeeIds.includes(attendee.id),
   );
+  const requiredAttendees = selectedAttendees.filter((attendee) =>
+    meeting.requiredAttendeeIds.includes(attendee.id),
+  );
+  const optionalCount = selectedAttendees.length - requiredAttendees.length;
   const deadlineOptions = createDeadlineOptions(meeting);
   const deadline =
     optionLabel(deadlineOptions, meeting.deadlineId) ||
@@ -188,15 +188,7 @@ export function createMeetingSummaries(meeting: MeetingCreateMock) {
 
   return {
     attendeesLabel: `${meeting.attendeeIds.length}명 선택`,
-    requiredLabel:
-      meeting.requiredAttendeeIds.length > 1
-        ? attendees
-            .filter((attendee) =>
-              meeting.requiredAttendeeIds.includes(attendee.id),
-            )
-            .map((attendee) => shortName(attendee.name))
-            .join(", ")
-        : (firstRequired ? shortName(firstRequired.name) : "선택 없음"),
+    requiredLabel: `필수 ${requiredAttendees.length}명 · 선택 ${optionalCount}명`,
     dateRange:
       meeting.dateRangeId === "custom-date-range"
         ? meeting.customDateRange

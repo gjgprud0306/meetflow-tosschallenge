@@ -930,7 +930,10 @@ export function ResponseStatusPage() {
   const followUpMessages = useMemo<FollowUpMessage[]>(() => {
     const messages: FollowUpMessage[] = [];
 
-    if (["requiredOne", "requiredTwo", "requiredComplete", "optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
+    if (
+      requiredParticipantIds[0] &&
+      ["requiredOne", "requiredTwo", "requiredComplete", "optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)
+    ) {
       messages.push({
         id: "owner-response",
         author: "MFlow",
@@ -939,7 +942,10 @@ export function ResponseStatusPage() {
         message: `${attendeeById(requiredParticipantIds[0])?.name ?? "필수 참석자"}님이 응답했습니다.`,
       });
     }
-    if (["requiredTwo", "requiredComplete", "optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
+    if (
+      requiredParticipantIds[1] &&
+      ["requiredTwo", "requiredComplete", "optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)
+    ) {
       messages.push({
         id: "min-response",
         author: "MFlow",
@@ -948,7 +954,10 @@ export function ResponseStatusPage() {
         message: `${attendeeById(requiredParticipantIds[1])?.name ?? "필수 참석자"}님이 응답했습니다.`,
       });
     }
-    if (["requiredComplete", "optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
+    if (
+      requiredParticipantIds.length > 0 &&
+      ["requiredComplete", "optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)
+    ) {
       messages.push({
         id: "jun-response",
         author: "MFlow",

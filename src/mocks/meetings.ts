@@ -70,7 +70,7 @@ export const meetingCreateIntro: ChatMessage = {
 export const meetingCreateMock: MeetingCreateMock = {
   title: "",
   attendeeIds: ["owner", "min", "jun", "seo", "ji", "eun"],
-  requiredAttendeeIds: ["owner", "min", "jun"],
+  requiredAttendeeIds: [],
   dateRangeId: "",
   customDateRange: "",
   timeIds: [],
@@ -79,8 +79,8 @@ export const meetingCreateMock: MeetingCreateMock = {
   customDeadline: "",
   reminderEnabled: true,
   unansweredOnly: true,
-  reminderId: "12h",
-  reminderIds: ["12h", "3h"],
+  reminderId: "3h",
+  reminderIds: ["3h"],
   customReminderHours: "",
   customReminderDateTime: "",
 };
@@ -106,7 +106,6 @@ export const meetingCreateOptions: MeetingCreateOptions = {
   ],
   deadlines: [],
   reminders: [
-    { id: "12h", label: "마감 12시간 전" },
     { id: "3h", label: "마감 3시간 전" },
     { id: "1h", label: "마감 1시간 전" },
   ],

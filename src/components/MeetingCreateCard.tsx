@@ -442,9 +442,9 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
     ? new Date(meeting.customReminderDateTime)
     : null;
   const deadlineHoursById: Record<string, number> = {
+    "deadline-6h": 6,
+    "deadline-12h": 12,
     "deadline-24h": 24,
-    "deadline-48h": 48,
-    "deadline-3d": 72,
   };
   const deadlineDate = deadlineHoursById[meeting.deadlineId]
     ? (() => {
@@ -1252,7 +1252,7 @@ function CustomReminderOption({
         >
           <Check className="h-[11px] w-[11px]" strokeWidth={3} />
         </span>
-        <span>직접 선택</span>
+        <span>직접 입력</span>
       </button>
       {selected ? (
         <div className="pb-3 pl-[30px]">
