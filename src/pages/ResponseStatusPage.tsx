@@ -15,12 +15,10 @@ import { cn } from "@/lib/utils";
 
 type ResponseStage =
   | "requiredCollecting"
-  | "requiredOne"
-  | "requiredTwo"
-  | "requiredComplete"
-  | "optionalSent"
-  | "optionalOne"
-  | "optionalTwo"
+  | "requiredAggregating"
+  | "adjustmentPending"
+  | "dateConfirmed"
+  | "optionalCollecting"
   | "allComplete"
   | "confirmed";
 
@@ -32,7 +30,12 @@ type FollowUpMessage = {
   message: string;
 };
 
-type ResponseStatus = "가능" | "불가능" | "미응답" | "요청 전";
+type ResponseStatus = "희망" | "가능" | "불가능" | "미응답" | "요청 전";
+
+type ParticipantResponse = {
+  preferredSlotId: string;
+  unavailableSlotIds: string[];
+};
 
 const scheduleStorageKey = "mflow-my-schedule-cards";
 const confirmedScheduleId = "confirmed-review-meeting";
@@ -49,95 +52,138 @@ function roleBadge(required: boolean) {
   return required ? "필수 참석자" : "선택 참석자";
 }
 
-function getRespondedIds(
-  stage: ResponseStage,
-  requiredIds: string[],
-  optionalIds: string[],
-) {
-  const ids: string[] = [];
+const responseProfiles: Record<string, ParticipantResponse> = {
+  owner: {
+    preferredSlotId: "slot-7-15-15",
+    unavailableSlotIds: [],
+  },
+  min: {
+    preferredSlotId: "slot-7-15-15",
+    unavailableSlotIds: [],
+  },
+  jun: {
+    preferredSlotId: "slot-7-14-14",
+    unavailableSlotIds: ["slot-7-15-15"],
+  },
+  seo: {
+    preferredSlotId: "slot-7-15-15",
+    unavailableSlotIds: ["slot-7-13-11", "slot-7-14-14"],
+  },
+  ji: {
+    preferredSlotId: "slot-7-15-15",
+    unavailableSlotIds: ["slot-7-13-11", "slot-7-14-14"],
+  },
+  eun: {
+    preferredSlotId: "slot-7-15-15",
+    unavailableSlotIds: ["slot-7-13-11"],
+  },
+};
 
-  if (
-    [
-      "requiredOne",
-      "requiredTwo",
-      "requiredComplete",
-      "optionalSent",
-      "optionalOne",
-      "optionalTwo",
-      "allComplete",
-      "confirmed",
-    ].includes(stage) &&
-    requiredIds[0]
-  ) {
-    ids.push(requiredIds[0]);
-  }
-  if (
-    [
-      "requiredTwo",
-      "requiredComplete",
-      "optionalSent",
-      "optionalOne",
-      "optionalTwo",
-      "allComplete",
-      "confirmed",
-    ].includes(stage) &&
-    requiredIds[1]
-  ) {
-    ids.push(requiredIds[1]);
-  }
-  if (
-    [
-      "requiredComplete",
-      "optionalSent",
-      "optionalOne",
-      "optionalTwo",
-      "allComplete",
-      "confirmed",
-    ].includes(stage) &&
-    requiredIds[2]
-  ) {
-    ids.push(requiredIds[2]);
-  }
-  if (["optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
-    if (optionalIds[0]) ids.push(optionalIds[0]);
-  }
-  if (["optionalTwo", "allComplete", "confirmed"].includes(stage)) {
-    if (optionalIds[1]) ids.push(optionalIds[1]);
-  }
-  if (["allComplete", "confirmed"].includes(stage)) {
-    if (optionalIds[2]) ids.push(optionalIds[2]);
-  }
+function responseProfile(id: string): ParticipantResponse {
+  return (
+    responseProfiles[id] ?? {
+      preferredSlotId: "slot-7-15-15",
+      unavailableSlotIds: [],
+    }
+  );
+}
 
-  return ids;
+function slotById(id: string) {
+  return baseAvailabilitySlots.find((slot) => slot.id === id) ?? baseAvailabilitySlots[0];
+}
+
+function respondedRequiredIds(requiredIds: string[], count: number) {
+  return requiredIds.slice(0, Math.min(count, requiredIds.length));
+}
+
+function respondedOptionalIds(optionalIds: string[], count: number) {
+  return optionalIds.slice(0, Math.min(count, optionalIds.length));
 }
 
 function getCounts(
-  stage: ResponseStage,
   requiredIds: string[],
   optionalIds: string[],
+  requiredResponseCount: number,
+  optionalResponseCount: number,
 ) {
-  const respondedIds = getRespondedIds(stage, requiredIds, optionalIds);
-  const requiredCount = requiredIds.filter((id) => respondedIds.includes(id)).length;
-  const optionalCount = optionalIds.filter((id) => respondedIds.includes(id)).length;
+  const requiredRespondedIds = respondedRequiredIds(requiredIds, requiredResponseCount);
+  const optionalRespondedIds = respondedOptionalIds(optionalIds, optionalResponseCount);
+  const respondedIds = [...requiredRespondedIds, ...optionalRespondedIds];
 
   return {
-    optionalCount,
-    requiredCount,
+    optionalCount: optionalRespondedIds.length,
+    requiredCount: requiredRespondedIds.length,
     respondedIds,
-    totalCount: requiredCount + optionalCount,
+    totalCount: respondedIds.length,
   };
 }
 
 function progressPercent(
-  stage: ResponseStage,
   requiredIds: string[],
   optionalIds: string[],
+  requiredResponseCount: number,
+  optionalResponseCount: number,
 ) {
   const total = requiredIds.length + optionalIds.length;
 
   if (total === 0) return "0%";
 
-  return `${(getCounts(stage, requiredIds, optionalIds).totalCount / total) * 100}%`;
+  return `${(getCounts(requiredIds, optionalIds, requiredResponseCount, optionalResponseCount).totalCount / total) * 100}%`;
+}
+
+function getRequiredAggregation(requiredIds: string[], requiredResponseCount: number) {
+  const requiredRespondedIds = respondedRequiredIds(requiredIds, requiredResponseCount);
+  const sortedSlots = [...baseAvailabilitySlots].sort((a, b) => {
+    const aHope = requiredRespondedIds.filter(
+      (id) => responseProfile(id).preferredSlotId === a.id,
+    ).length;
+    const bHope = requiredRespondedIds.filter(
+      (id) => responseProfile(id).preferredSlotId === b.id,
+    ).length;
+    const aAvailable = requiredRespondedIds.filter(
+      (id) => !responseProfile(id).unavailableSlotIds.includes(a.id),
+    ).length;
+    const bAvailable = requiredRespondedIds.filter(
+      (id) => !responseProfile(id).unavailableSlotIds.includes(b.id),
+    ).length;
+
+    if (bHope !== aHope) return bHope - aHope;
+    if (bAvailable !== aAvailable) return bAvailable - aAvailable;
+
+    return baseAvailabilitySlots.findIndex((slot) => slot.id === a.id) -
+      baseAvailabilitySlots.findIndex((slot) => slot.id === b.id);
+  });
+  const selectedSlot = sortedSlots[0] ?? baseAvailabilitySlots[0];
+  const hopeIds = requiredRespondedIds.filter(
+    (id) => responseProfile(id).preferredSlotId === selectedSlot.id,
+  );
+  const unavailableIds = requiredRespondedIds.filter((id) =>
+    responseProfile(id).unavailableSlotIds.includes(selectedSlot.id),
+  );
+  const possibleIds = requiredRespondedIds.filter(
+    (id) => !responseProfile(id).unavailableSlotIds.includes(selectedSlot.id),
+  );
+
+  return {
+    hopeIds,
+    possibleIds,
+    selectedSlot,
+    unavailableIds,
+  };
+}
+
+function flowStageLabel(stage: ResponseStage) {
+  const labels: Record<ResponseStage, string> = {
+    requiredCollecting: "필수 참석자 응답 수집 중",
+    requiredAggregating: "다수 선택 날짜 집계",
+    adjustmentPending: "일정 조정 확인 중",
+    dateConfirmed: "필수 참석자 날짜 1차 확정",
+    optionalCollecting: "선택 참석자 시간 응답 수집 중",
+    allComplete: "최종 일정 확정 준비",
+    confirmed: "최종 일정 확정",
+  };
+
+  return labels[stage];
 }
 
 function getMemberStatus(
@@ -145,38 +191,73 @@ function getMemberStatus(
   id: string,
   requiredIds: string[],
   optionalIds: string[],
+  requiredResponseCount: number,
+  optionalResponseCount: number,
+  selectedSlotId: string,
+  adjustmentResolved: boolean,
 ): ResponseStatus {
-  const { respondedIds, requiredCount } = getCounts(stage, requiredIds, optionalIds);
+  const requiredResponded = respondedRequiredIds(requiredIds, requiredResponseCount);
+  const optionalResponded = respondedOptionalIds(optionalIds, optionalResponseCount);
+  const required = requiredIds.includes(id);
+  const optional = optionalIds.includes(id);
 
-  if (!respondedIds.includes(id)) {
-    if (optionalIds.includes(id) && requiredCount < requiredIds.length) return "요청 전";
+  if (required && !requiredResponded.includes(id)) return "미응답";
+  if (optional && !optionalResponded.includes(id)) {
+    if (!["optionalCollecting", "allComplete", "confirmed"].includes(stage)) {
+      return "요청 전";
+    }
     return "미응답";
   }
+
+  const response = responseProfile(id);
+
+  if (
+    required &&
+    response.unavailableSlotIds.includes(selectedSlotId) &&
+    !adjustmentResolved
+  ) {
+    return "불가능";
+  }
+
+  if (response.preferredSlotId === selectedSlotId) return "희망";
 
   return "가능";
 }
 
-function getMemberSelectedTime(id: string, status: ResponseStatus) {
+function getMemberSelectedTime(
+  id: string,
+  status: ResponseStatus,
+  selectedSlotId: string,
+) {
   if (status === "미응답" || status === "요청 전") return "-";
 
-  const unavailableSlot = baseAvailabilitySlots.find((slot) =>
-    slot.unavailableIds.includes(id),
-  );
+  const response = responseProfile(id);
+  const preferredSlot = slotById(response.preferredSlotId);
+  const selectedSlot = slotById(selectedSlotId);
+  const unavailableSlots = response.unavailableSlotIds
+    .map(slotById)
+    .map((slot) => slot.label)
+    .join(", ");
 
-  if (unavailableSlot) return `${unavailableSlot.label} 불가능`;
+  if (status === "불가능") return `희망: ${preferredSlot.label} · 불가능: ${selectedSlot.label}`;
+  if (unavailableSlots) return `희망: ${preferredSlot.label} · 불가능: ${unavailableSlots}`;
 
-  return "7월 15일 수요일 15:00–16:00 가능";
+  return `희망: ${preferredSlot.label}`;
 }
 
-function getConfirmedScheduleInfo(title: string) {
+function getConfirmedScheduleInfo(
+  title: string,
+  slot = slotById("slot-7-15-15"),
+  attendeeCount = 6,
+) {
   return {
-    dateLabel: "7월 15일 수요일",
-    displayDateTime: "7월 15일 수요일 15:00–16:00",
+    dateLabel: slot.dateLabel,
+    displayDateTime: slot.label,
     id: confirmedScheduleId,
-    meta: "7/15(수) 오후 3:00 · 참석자 6명",
-    timeLabel: "15:00–16:00",
+    meta: `${slot.shortDateLabel} ${slot.timeLabel} · 참석자 ${attendeeCount}명`,
+    timeLabel: slot.timeLabel,
     title: title || "리뷰회의",
-    weekday: "수요일",
+    weekday: slot.dateLabel.replace(/^.+\s/, ""),
   };
 }
 
@@ -248,16 +329,20 @@ function ChatLine({
 
 function ProgressBar({
   optionalIds,
+  optionalResponseCount,
+  requiredResponseCount,
   requiredIds,
   stage,
 }: {
   optionalIds: string[];
+  optionalResponseCount: number;
+  requiredResponseCount: number;
   requiredIds: string[];
   stage: ResponseStage;
 }) {
   const confirmed = stage === "confirmed";
   const allComplete = stage === "allComplete" || confirmed;
-  const optionalStarted = ["optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage);
+  const dateConfirmed = ["dateConfirmed", "optionalCollecting", "allComplete", "confirmed"].includes(stage);
 
   return (
     <div className="relative pb-[44px]">
@@ -265,19 +350,26 @@ function ProgressBar({
         <div
           className="h-1 rounded-full bg-[#635BFF] transition-all duration-500 ease-out"
           style={{
-            width: confirmed ? "100%" : progressPercent(stage, requiredIds, optionalIds),
+            width: confirmed
+              ? "100%"
+              : progressPercent(
+                  requiredIds,
+                  optionalIds,
+                  requiredResponseCount,
+                  optionalResponseCount,
+                ),
           }}
         />
       </div>
       <div className="absolute inset-x-0 top-0">
-        {["필수 응답", "선택 응답", "회의 확정"].map((label, index) => {
+        {["필수 응답", "날짜 확정", "회의 확정"].map((label, index) => {
           const done =
-            (index === 0 && optionalStarted) ||
+            (index === 0 && dateConfirmed) ||
             (index === 1 && allComplete) ||
             (index === 2 && confirmed);
           const active =
-            (index === 0 && !optionalStarted) ||
-            (index === 1 && optionalStarted && !allComplete) ||
+            (index === 0 && !dateConfirmed) ||
+            (index === 1 && dateConfirmed && !allComplete) ||
             (index === 2 && allComplete && !confirmed);
           const position =
             index === 0
@@ -429,28 +521,71 @@ function RecommendationResults({
 }
 
 function ManagementCard({
+  adjustmentResolved,
+  aggregation,
   onConfirm,
+  onRequestAdjustment,
   onSendOptional,
   optionalIds,
+  optionalResponseCount,
+  optionalStarted,
+  requiredResponseCount,
   requiredIds,
   stage,
 }: {
+  adjustmentResolved: boolean;
+  aggregation: ReturnType<typeof getRequiredAggregation>;
   onConfirm: () => void;
+  onRequestAdjustment: () => void;
   onSendOptional: () => void;
   optionalIds: string[];
+  optionalResponseCount: number;
+  optionalStarted: boolean;
+  requiredResponseCount: number;
   requiredIds: string[];
   stage: ResponseStage;
 }) {
   const { meeting, summaries } = useMeetingFlow();
   const { optionalCount, requiredCount, totalCount } = getCounts(
-    stage,
     requiredIds,
     optionalIds,
+    requiredResponseCount,
+    optionalResponseCount,
   );
   const requiredComplete = requiredCount === requiredIds.length;
   const allComplete = stage === "allComplete" || stage === "confirmed";
   const confirmed = stage === "confirmed";
-  const optionalSent = ["optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage);
+  const dateConfirmed = ["dateConfirmed", "optionalCollecting", "allComplete", "confirmed"].includes(stage);
+  const adjustmentNeeded =
+    requiredComplete &&
+    aggregation.unavailableIds.length > 0 &&
+    !adjustmentResolved;
+  const unavailableNames = aggregation.unavailableIds
+    .map((id) => attendeeById(id)?.name)
+    .filter(Boolean)
+    .join(", ");
+  const headline = confirmed
+    ? "회의를 확정했습니다."
+    : allComplete
+      ? "전체 응답을 기반으로 추천 일정을 확인하세요."
+      : adjustmentNeeded
+        ? `필수 참석자 ${requiredIds.length}명 중 ${aggregation.hopeIds.length}명이 ${aggregation.selectedSlot.dateLabel}을 선택했어요.`
+        : dateConfirmed && !optionalStarted
+          ? "필수 참석자 일정이 1차 확정됐어요."
+          : requiredComplete
+            ? "필수 참석자의 응답이 모두 완료됐어요."
+            : "필수 참석자 응답을 먼저 기다리고 있습니다.";
+  const description = confirmed
+    ? "참여자에게 일정이 공유되었습니다."
+    : allComplete
+      ? "전원 참석 가능 일정과 빠른 대안을 비교할 수 있습니다."
+      : adjustmentNeeded
+        ? `${unavailableNames}님의 일정 조정 확인이 필요해요.`
+        : dateConfirmed && !optionalStarted
+          ? `${aggregation.selectedSlot.dateLabel} 중 가능한 시간을 선택 참석자에게 물어볼 수 있습니다.`
+          : requiredComplete
+            ? "필수 참석자 응답을 기준으로 날짜를 집계했습니다."
+            : "필수 참석자 응답 전에는 선택 참석자에게 요청하지 않습니다.";
 
   return (
     <section className="w-full max-w-[680px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
@@ -469,7 +604,7 @@ function ManagementCard({
           </div>
         </div>
         <span className="rounded-full bg-[#635BFF] px-3 py-1 text-xs font-bold leading-[18px] text-white">
-          {confirmed ? "회의 확정" : allComplete ? "집계 완료" : optionalSent ? "선택 응답 수집" : "필수 응답 수집"}
+          {flowStageLabel(stage)}
         </span>
       </div>
 
@@ -487,7 +622,7 @@ function ManagementCard({
             선택 참석자 응답
           </span>
           <span className="mt-1 text-[28px] font-bold leading-10 text-[#475467]">
-            {optionalSent ? `${optionalCount}/${optionalIds.length}명` : "대기"}
+            {optionalStarted ? `${optionalCount}/${optionalIds.length}명` : "요청 전"}
           </span>
         </div>
       </div>
@@ -499,37 +634,40 @@ function ManagementCard({
           </h3>
           <span className="text-xs font-medium leading-[18px] text-[#98A2B3]">
             {requiredComplete
-              ? optionalSent
+              ? optionalStarted
                 ? "선택 참석자 응답 반영 중"
-                : "필수 참석자 응답 완료"
+                : adjustmentNeeded
+                  ? `${unavailableNames}님의 일정 조정 확인이 필요해요.`
+                  : "필수 참석자 날짜가 1차 확정됐어요."
               : `필수 참석자 ${requiredIds.length}명 중 ${requiredCount}명이 응답했어요.`}
           </span>
         </div>
-        <ProgressBar optionalIds={optionalIds} requiredIds={requiredIds} stage={stage} />
+        <ProgressBar
+          optionalIds={optionalIds}
+          optionalResponseCount={optionalResponseCount}
+          requiredIds={requiredIds}
+          requiredResponseCount={requiredResponseCount}
+          stage={stage}
+        />
       </div>
 
       <div className="flex items-center justify-between px-6 py-5">
         <div>
           <h3 className="text-base font-bold leading-6 text-[#101828]">
-            {confirmed
-              ? "회의를 확정했습니다."
-              : allComplete
-                ? "전체 응답을 기반으로 추천 일정을 확인하세요."
-                : requiredComplete && !optionalSent
-                  ? "필수 참석자의 응답이 모두 완료됐어요."
-                  : "필수 참석자 응답을 먼저 기다리고 있습니다."}
+            {headline}
           </h3>
           <p className="mt-1 text-[13px] font-medium leading-5 text-[#98A2B3]">
-            {confirmed
-              ? "참여자에게 일정이 공유되었습니다."
-              : allComplete
-                ? "전원 참석 가능 일정과 빠른 대안을 비교할 수 있습니다."
-                : requiredComplete && !optionalSent
-                  ? "이제 선택 참석자에게 후보 일정을 보낼 수 있습니다."
-                  : "필수 참석자 응답 전에는 선택 참석자에게 요청하지 않습니다."}
+            {description}
           </p>
         </div>
-        {requiredComplete && !optionalSent ? (
+        {adjustmentNeeded ? (
+          <Button
+            className="h-12 w-40 rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+            onClick={onRequestAdjustment}
+          >
+            일정 조정 요청
+          </Button>
+        ) : dateConfirmed && !optionalStarted && optionalIds.length > 0 ? (
           <Button
             className="h-12 w-48 rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
             onClick={onSendOptional}
@@ -539,7 +677,7 @@ function ManagementCard({
         ) : (
           <Button
             className="h-12 w-36 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
-            disabled={!allComplete || confirmed}
+            disabled={(!allComplete && optionalIds.length > 0) || confirmed || !dateConfirmed}
             onClick={allComplete && !confirmed ? onConfirm : undefined}
           >
             {confirmed ? "확정 완료" : "회의 확정"}
@@ -551,14 +689,24 @@ function ManagementCard({
 }
 
 function ResponseTable({
+  adjustmentResolved,
+  attendeeIds,
   onRetry,
   optionalIds,
+  optionalResponseCount,
+  requiredResponseCount,
   requiredIds,
+  selectedSlotId,
   stage,
 }: {
+  adjustmentResolved: boolean;
+  attendeeIds: string[];
   onRetry: (id: string) => void;
   optionalIds: string[];
+  optionalResponseCount: number;
+  requiredResponseCount: number;
   requiredIds: string[];
+  selectedSlotId: string;
   stage: ResponseStage;
 }) {
   return (
@@ -574,9 +722,22 @@ function ResponseTable({
         </div>
       </div>
       <div className="space-y-3">
-        {attendees.map((attendee) => {
+        {attendeeIds.map((attendeeId) => {
+          const attendee = attendeeById(attendeeId);
+
+          if (!attendee) return null;
+
           const required = requiredIds.includes(attendee.id);
-          const status = getMemberStatus(stage, attendee.id, requiredIds, optionalIds);
+          const status = getMemberStatus(
+            stage,
+            attendee.id,
+            requiredIds,
+            optionalIds,
+            requiredResponseCount,
+            optionalResponseCount,
+            selectedSlotId,
+            adjustmentResolved,
+          );
           const pending = status === "미응답";
 
           return (
@@ -602,13 +763,14 @@ function ResponseTable({
                     </span>
                   </div>
                   <p className="mt-1 text-sm font-medium leading-[21px] text-[#667085]">
-                    {getMemberSelectedTime(attendee.id, status)}
+                    {getMemberSelectedTime(attendee.id, status, selectedSlotId)}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <span
                     className={cn(
                       "rounded-full px-3 py-1 text-xs font-bold leading-[18px]",
+                      status === "희망" && "bg-[#F0EEFF] text-[#635BFF]",
                       status === "가능" && "bg-[#F0EEFF] text-[#635BFF]",
                       status === "불가능" && "bg-[#FFF4ED] text-[#B54708]",
                       status === "미응답" && "bg-[#F3F4F6] text-[#667085]",
@@ -636,28 +798,50 @@ function ResponseTable({
 }
 
 function StatusPanel({
+  adjustmentResolved,
+  attendeeIds,
   confirmedSchedule,
+  onRequestAdjustment,
   onRetry,
+  onSendOptional,
   onViewSchedule,
   optionalIds,
+  optionalResponseCount,
+  optionalStarted,
+  requiredResponseCount,
   requiredIds,
+  selectedSlotId,
   stage,
 }: {
+  adjustmentResolved: boolean;
+  attendeeIds: string[];
   confirmedSchedule: ReturnType<typeof getConfirmedScheduleInfo>;
+  onRequestAdjustment: () => void;
   onRetry: (id: string) => void;
+  onSendOptional: () => void;
   onViewSchedule: () => void;
   optionalIds: string[];
+  optionalResponseCount: number;
+  optionalStarted: boolean;
+  requiredResponseCount: number;
   requiredIds: string[];
+  selectedSlotId: string;
   stage: ResponseStage;
 }) {
-  const { optionalCount, requiredCount, totalCount } = getCounts(
-    stage,
+  const { optionalCount, requiredCount, respondedIds, totalCount } = getCounts(
     requiredIds,
     optionalIds,
+    requiredResponseCount,
+    optionalResponseCount,
   );
   const confirmed = stage === "confirmed";
   const allComplete = stage === "allComplete" || confirmed;
   const totalAttendees = requiredIds.length + optionalIds.length;
+  const dateConfirmed = ["dateConfirmed", "optionalCollecting", "allComplete", "confirmed"].includes(stage);
+  const adjustmentPending =
+    respondedRequiredIds(requiredIds, requiredResponseCount).some((id) =>
+      responseProfile(id).unavailableSlotIds.includes(selectedSlotId),
+    ) && !adjustmentResolved;
 
   return (
     <aside className="flex h-[100dvh] max-h-[100dvh] w-[328px] shrink-0 flex-col overflow-hidden border-l border-[#E5E7EB] bg-[#F9FAFB]">
@@ -669,7 +853,9 @@ function StatusPanel({
           {requiredCount < requiredIds.length
             ? `필수 참석자 ${requiredIds.length}명 중 ${requiredCount}명이 응답했어요.`
             : optionalCount < optionalIds.length
-              ? `선택 참석자 ${optionalIds.length}명 중 ${optionalCount}명이 응답했어요.`
+              ? optionalStarted
+                ? `선택 참석자 ${optionalIds.length}명 중 ${optionalCount}명이 응답했어요.`
+                : "선택 참석자는 아직 요청 전입니다."
               : "필수 참석자의 응답이 모두 완료됐어요."}
         </p>
 
@@ -686,7 +872,12 @@ function StatusPanel({
               style={{
                 width: confirmed
                   ? "100%"
-                  : progressPercent(stage, requiredIds, optionalIds),
+                  : progressPercent(
+                      requiredIds,
+                      optionalIds,
+                      requiredResponseCount,
+                      optionalResponseCount,
+                    ),
               }}
             />
           </div>
@@ -700,7 +891,9 @@ function StatusPanel({
             <div className="flex items-center justify-between text-sm font-medium leading-[21px]">
               <span className="text-[#475467]">선택 참석자</span>
               <span className="text-[#667085]">
-                {optionalCount}/{optionalIds.length}명 완료
+                {optionalStarted
+                  ? `${optionalCount}/${optionalIds.length}명 완료`
+                  : "요청 전"}
               </span>
             </div>
           </div>
@@ -711,9 +904,22 @@ function StatusPanel({
             팀원별 상태
           </h3>
           <div className="mt-4 space-y-3">
-            {attendees.map((attendee) => {
+            {attendeeIds.map((attendeeId) => {
+              const attendee = attendeeById(attendeeId);
+
+              if (!attendee) return null;
+
               const required = requiredIds.includes(attendee.id);
-              const status = getMemberStatus(stage, attendee.id, requiredIds, optionalIds);
+              const status = getMemberStatus(
+                stage,
+                attendee.id,
+                requiredIds,
+                optionalIds,
+                requiredResponseCount,
+                optionalResponseCount,
+                selectedSlotId,
+                adjustmentResolved,
+              );
 
               return (
                 <div
@@ -730,7 +936,9 @@ function StatusPanel({
                   </span>
                   <span
                     className={cn(
+                      status === "희망" && "text-[#635BFF]",
                       status === "가능" && "text-[#635BFF]",
+                      status === "불가능" && "text-[#B54708]",
                       status === "미응답" && "text-[#98A2B3]",
                       status === "요청 전" && "text-[#98A2B3]",
                     )}
@@ -743,8 +951,21 @@ function StatusPanel({
           </div>
         </section>
 
-        {getCounts(stage, requiredIds, optionalIds).respondedIds.length <
-        totalAttendees ? (
+        {adjustmentPending ? (
+          <Button
+            className="mt-5 h-12 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+            onClick={onRequestAdjustment}
+          >
+            일정 조정 요청
+          </Button>
+        ) : dateConfirmed && !optionalStarted && optionalIds.length > 0 ? (
+          <Button
+            className="mt-5 h-12 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+            onClick={onSendOptional}
+          >
+            선택 참석자에게 일정 보내기
+          </Button>
+        ) : respondedIds.length < totalAttendees ? (
           <Button
             className="mt-5 h-12 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
             onClick={() => onRetry("all")}
@@ -765,7 +986,7 @@ function StatusPanel({
               {confirmedSchedule.dateLabel} · {confirmedSchedule.timeLabel}
             </p>
             <p className="mt-3 text-sm font-medium leading-[21px] text-[#635BFF]">
-              모든 참여자 6명에게 확정된 일정을 공유했습니다.
+              모든 참여자 {totalAttendees}명에게 확정된 일정을 공유했습니다.
             </p>
           </div>
         )}
@@ -803,15 +1024,14 @@ function ResponseComposer() {
 export function ResponseStatusPage() {
   const navigate = useNavigate();
   const { meeting } = useMeetingFlow();
-  const [stage, setStage] = useState<ResponseStage>("requiredCollecting");
+  const [requiredResponseCount, setRequiredResponseCount] = useState(0);
+  const [optionalResponseCount, setOptionalResponseCount] = useState(0);
+  const [adjustmentRequested, setAdjustmentRequested] = useState(false);
+  const [adjustmentResolved, setAdjustmentResolved] = useState(false);
   const [optionalStarted, setOptionalStarted] = useState(false);
   const [retryMessage, setRetryMessage] = useState("");
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const previousMessageCountRef = useRef(0);
-  const confirmedSchedule = useMemo(
-    () => getConfirmedScheduleInfo(meeting.title),
-    [meeting.title],
-  );
   const requiredParticipantIds = useMemo(
     () =>
       meeting.attendeeIds.filter((id) => meeting.requiredAttendeeIds.includes(id)),
@@ -824,110 +1044,173 @@ export function ResponseStatusPage() {
       ),
     [meeting.attendeeIds, meeting.requiredAttendeeIds],
   );
+  const requiredAggregation = useMemo(
+    () => getRequiredAggregation(requiredParticipantIds, requiredResponseCount),
+    [requiredParticipantIds, requiredResponseCount],
+  );
+  const confirmedSchedule = useMemo(
+    () =>
+      getConfirmedScheduleInfo(
+        meeting.title,
+        requiredAggregation.selectedSlot,
+        meeting.attendeeIds.length,
+      ),
+    [meeting.attendeeIds.length, meeting.title, requiredAggregation.selectedSlot],
+  );
+  const requiredComplete =
+    requiredParticipantIds.length === 0 ||
+    requiredResponseCount >= requiredParticipantIds.length;
+  const adjustmentNeeded =
+    requiredComplete &&
+    requiredAggregation.unavailableIds.length > 0 &&
+    !adjustmentResolved;
+  const dateConfirmed =
+    requiredComplete && (!requiredAggregation.unavailableIds.length || adjustmentResolved);
+  const optionalComplete =
+    optionalStarted && optionalResponseCount >= optionalParticipantIds.length;
+  const allComplete =
+    dateConfirmed &&
+    (optionalParticipantIds.length === 0 || optionalComplete);
+  const [confirmed, setConfirmed] = useState(false);
+  const stage: ResponseStage = confirmed
+    ? "confirmed"
+    : allComplete
+      ? "allComplete"
+      : optionalStarted
+        ? "optionalCollecting"
+        : dateConfirmed
+          ? "dateConfirmed"
+          : adjustmentRequested && adjustmentNeeded
+            ? "adjustmentPending"
+            : requiredComplete
+              ? "requiredAggregating"
+              : "requiredCollecting";
 
   useEffect(() => {
-    const hyeTimer = window.setTimeout(() => setStage("requiredOne"), 1000);
-    const minTimer = window.setTimeout(() => setStage("requiredTwo"), 2000);
-    const junTimer = window.setTimeout(() => setStage("requiredComplete"), 3000);
+    const timer = window.setTimeout(() => {
+      setRequiredResponseCount(0);
+      setOptionalResponseCount(0);
+      setAdjustmentRequested(false);
+      setAdjustmentResolved(false);
+      setOptionalStarted(false);
+      setConfirmed(false);
+    }, 0);
 
-    return () => {
-      window.clearTimeout(hyeTimer);
-      window.clearTimeout(minTimer);
-      window.clearTimeout(junTimer);
-    };
-  }, []);
+    return () => window.clearTimeout(timer);
+  }, [meeting.attendeeIds, meeting.requiredAttendeeIds]);
+
+  useEffect(() => {
+    if (requiredResponseCount >= requiredParticipantIds.length) return undefined;
+
+    const timer = window.setTimeout(() => {
+      setRequiredResponseCount((current) =>
+        Math.min(current + 1, requiredParticipantIds.length),
+      );
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [requiredParticipantIds.length, requiredResponseCount]);
 
   useEffect(() => {
     if (!optionalStarted) return undefined;
+    if (optionalResponseCount >= optionalParticipantIds.length) return undefined;
 
-    const sentTimer = window.setTimeout(() => setStage("optionalSent"), 0);
-    const seoTimer = window.setTimeout(() => setStage("optionalOne"), 1000);
-    const jiTimer = window.setTimeout(() => setStage("optionalTwo"), 2000);
-    const eunTimer = window.setTimeout(() => setStage("allComplete"), 3000);
+    const timer = window.setTimeout(() => {
+      setOptionalResponseCount((current) =>
+        Math.min(current + 1, optionalParticipantIds.length),
+      );
+    }, 1000);
 
-    return () => {
-      window.clearTimeout(sentTimer);
-      window.clearTimeout(seoTimer);
-      window.clearTimeout(jiTimer);
-      window.clearTimeout(eunTimer);
-    };
-  }, [optionalStarted]);
+    return () => window.clearTimeout(timer);
+  }, [optionalParticipantIds.length, optionalResponseCount, optionalStarted]);
 
   const followUpMessages = useMemo<FollowUpMessage[]>(() => {
     const messages: FollowUpMessage[] = [];
 
-    if (
-      requiredParticipantIds[0] &&
-      ["requiredOne", "requiredTwo", "requiredComplete", "optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)
-    ) {
+    respondedRequiredIds(requiredParticipantIds, requiredResponseCount).forEach(
+      (id, index) => {
+        const attendee = attendeeById(id);
+        const response = responseProfile(id);
+        const preferredSlot = slotById(response.preferredSlotId);
+        const unavailableSlots = response.unavailableSlotIds
+          .map(slotById)
+          .map((slot) => slot.label)
+          .join(", ");
+
+        messages.push({
+          id: `required-${id}`,
+          author: "MFlow",
+          initial: "M",
+          time: `오전 10:${String(12 + index).padStart(2, "0")}`,
+          message: `${attendee?.name ?? "필수 참석자"}님이 응답했습니다. 희망: ${preferredSlot.label}${unavailableSlots ? ` · 불가능: ${unavailableSlots}` : ""}`,
+        });
+      },
+    );
+
+    if (requiredComplete) {
       messages.push({
-        id: "owner-response",
+        id: "required-aggregate",
         author: "MFlow",
         initial: "M",
-        time: "오전 10:12",
-        message: `${attendeeById(requiredParticipantIds[0])?.name ?? "필수 참석자"}님이 응답했습니다.`,
+        time: "오전 10:18",
+        message: adjustmentNeeded
+          ? `필수 참석자 ${requiredParticipantIds.length}명 중 ${requiredAggregation.hopeIds.length}명이 ${requiredAggregation.selectedSlot.dateLabel}을 선택했어요. ${requiredAggregation.unavailableIds.map((id) => attendeeById(id)?.name).filter(Boolean).join(", ")}님의 일정 조정 확인이 필요해요.`
+          : `필수 참석자 일정이 ${requiredAggregation.selectedSlot.dateLabel}로 1차 확정됐어요.`,
       });
     }
-    if (
-      requiredParticipantIds[1] &&
-      ["requiredTwo", "requiredComplete", "optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)
-    ) {
+
+    if (adjustmentRequested) {
       messages.push({
-        id: "min-response",
+        id: "adjustment-request",
         author: "MFlow",
         initial: "M",
-        time: "오전 10:13",
-        message: `${attendeeById(requiredParticipantIds[1])?.name ?? "필수 참석자"}님이 응답했습니다.`,
+        time: "오전 10:19",
+        message: "일정 조정 요청을 보냈습니다.",
       });
     }
-    if (
-      requiredParticipantIds.length > 0 &&
-      ["requiredComplete", "optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)
-    ) {
+
+    if (adjustmentResolved) {
       messages.push({
-        id: "jun-response",
+        id: "adjustment-resolved",
         author: "MFlow",
         initial: "M",
-        time: "오전 10:14",
-        message: "필수 참석자의 응답이 모두 완료됐어요.",
+        time: "오전 10:20",
+        message: `필수 참석자 일정이 ${requiredAggregation.selectedSlot.dateLabel}로 1차 확정됐어요.`,
       });
     }
-    if (["optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
+
+    if (optionalStarted) {
       messages.push({
         id: "optional-sent",
         author: "MFlow",
         initial: "M",
-        time: "오전 10:15",
-        message: "선택 참석자에게 후보 일정을 보냈습니다.",
+        time: "오전 10:21",
+        message: `${requiredAggregation.selectedSlot.dateLabel} 중 가능한 시간을 선택해주세요.`,
       });
     }
-    if (["optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
+
+    respondedOptionalIds(optionalParticipantIds, optionalResponseCount).forEach(
+      (id, index) => {
+        messages.push({
+          id: `optional-${id}`,
+          author: "MFlow",
+          initial: "M",
+          time: `오전 10:${String(22 + index).padStart(2, "0")}`,
+          message: `${attendeeById(id)?.name ?? "선택 참석자"}님이 응답했습니다.`,
+        });
+      },
+    );
+
+    if (allComplete) {
       messages.push({
-        id: "seo-response",
+        id: "all-complete",
         author: "MFlow",
         initial: "M",
-        time: "오전 10:16",
-        message: `${attendeeById(optionalParticipantIds[0])?.name ?? "선택 참석자"}님이 응답했습니다.`,
+        time: "오전 10:28",
+        message: "선택 참석자 응답을 반영해 최종 일정을 집계했습니다.",
       });
     }
-    if (["optionalTwo", "allComplete", "confirmed"].includes(stage)) {
-      messages.push({
-        id: "ji-response",
-        author: "MFlow",
-        initial: "M",
-        time: "오전 10:17",
-        message: `${attendeeById(optionalParticipantIds[1])?.name ?? "선택 참석자"}님이 응답했습니다.`,
-      });
-    }
-    if (["allComplete", "confirmed"].includes(stage)) {
-      messages.push({
-        id: "eun-response",
-        author: "MFlow",
-        initial: "M",
-        time: "오전 10:18",
-        message: `${attendeeById(optionalParticipantIds[2])?.name ?? "선택 참석자"}님이 응답했습니다. 전체 응답을 기반으로 일정 집계를 완료했습니다.`,
-      });
-    }
+
     if (retryMessage) {
       messages.push({
         id: "retry-request",
@@ -964,7 +1247,22 @@ export function ResponseStatusPage() {
     }
 
     return messages;
-  }, [confirmedSchedule, optionalParticipantIds, requiredParticipantIds, retryMessage, stage]);
+  }, [
+    adjustmentNeeded,
+    adjustmentRequested,
+    adjustmentResolved,
+    allComplete,
+    confirmedSchedule,
+    optionalParticipantIds,
+    optionalResponseCount,
+    optionalStarted,
+    requiredAggregation,
+    requiredComplete,
+    requiredParticipantIds,
+    requiredResponseCount,
+    retryMessage,
+    stage,
+  ]);
 
   useEffect(() => {
     const previousCount = previousMessageCountRef.current;
@@ -985,8 +1283,16 @@ export function ResponseStatusPage() {
   }, [followUpMessages.length, stage]);
 
   function sendOptionalRequests() {
-    if (optionalStarted) return;
+    if (optionalStarted || !dateConfirmed) return;
     setOptionalStarted(true);
+  }
+
+  function requestAdjustment() {
+    if (adjustmentRequested) return;
+    setAdjustmentRequested(true);
+    window.setTimeout(() => {
+      setAdjustmentResolved(true);
+    }, 1000);
   }
 
   function retryRequest(id: string) {
@@ -997,9 +1303,9 @@ export function ResponseStatusPage() {
   }
 
   function confirmMeeting() {
-    if (stage !== "allComplete") return;
+    if (!allComplete) return;
     saveConfirmedSchedule(confirmedSchedule);
-    setStage("confirmed");
+    setConfirmed(true);
   }
 
   function viewConfirmedSchedule() {
@@ -1016,9 +1322,15 @@ export function ResponseStatusPage() {
           >
             <div className="flex w-full flex-col gap-5">
               <ManagementCard
+                adjustmentResolved={adjustmentResolved}
+                aggregation={requiredAggregation}
                 onConfirm={confirmMeeting}
+                onRequestAdjustment={requestAdjustment}
                 onSendOptional={sendOptionalRequests}
                 optionalIds={optionalParticipantIds}
+                optionalResponseCount={optionalResponseCount}
+                optionalStarted={optionalStarted}
+                requiredResponseCount={requiredResponseCount}
                 requiredIds={requiredParticipantIds}
                 stage={stage}
               />
@@ -1036,9 +1348,14 @@ export function ResponseStatusPage() {
                 </div>
               ) : null}
               <ResponseTable
+                adjustmentResolved={adjustmentResolved}
+                attendeeIds={meeting.attendeeIds}
                 onRetry={retryRequest}
                 optionalIds={optionalParticipantIds}
+                optionalResponseCount={optionalResponseCount}
+                requiredResponseCount={requiredResponseCount}
                 requiredIds={requiredParticipantIds}
+                selectedSlotId={requiredAggregation.selectedSlot.id}
                 stage={stage}
               />
               {(stage === "allComplete" || stage === "confirmed") && (
@@ -1052,11 +1369,19 @@ export function ResponseStatusPage() {
           <ResponseComposer />
         </div>
         <StatusPanel
+          adjustmentResolved={adjustmentResolved}
+          attendeeIds={meeting.attendeeIds}
           confirmedSchedule={confirmedSchedule}
+          onRequestAdjustment={requestAdjustment}
           onRetry={retryRequest}
+          onSendOptional={sendOptionalRequests}
           onViewSchedule={viewConfirmedSchedule}
           optionalIds={optionalParticipantIds}
+          optionalResponseCount={optionalResponseCount}
+          optionalStarted={optionalStarted}
+          requiredResponseCount={requiredResponseCount}
           requiredIds={requiredParticipantIds}
+          selectedSlotId={requiredAggregation.selectedSlot.id}
           stage={stage}
         />
       </div>
