@@ -383,6 +383,16 @@ function availabilityStatus(item?: (typeof teamAvailabilitySummaries)[number]) {
   return { label: "일부 불가", tone: "partial" as const };
 }
 
+function calendarCellBadge(item?: (typeof teamAvailabilitySummaries)[number]) {
+  const status = availabilityStatus(item);
+
+  if (!item) return "";
+  if (status.tone === "recommended") return "추천";
+  if (status.tone === "required") return "필참";
+
+  return `${item.availableCount}명`;
+}
+
 function availabilityForDate(dateId: string) {
   return teamAvailabilitySummaries.find(
     (item) => dateIdFromAvailability(item.dateLabel) === dateId,
@@ -713,29 +723,79 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                 }
 
                 const selected = draftDateIds.includes(date.id);
-                const disabled = isPastCalendarDate(date);
+                const availability = availabilityForDate(date.id);
+                const status = availabilityStatus(availability);
+                const badge = calendarCellBadge(availability);
+                const past = isPastCalendarDate(date);
+                const disabled = past || !availability;
 
                 return (
                   <button
                     aria-pressed={selected}
                     className={cn(
-                      "flex h-11 items-center justify-center rounded-lg border text-sm font-bold leading-[21px] transition-colors",
-                      disabled
-                        ? "cursor-not-allowed border-transparent bg-[#F3F4F6] text-[#C9CED8]"
-                        : selected
-                        ? "border-[#837CFF] bg-[#837CFF] text-white"
-                        : "border-transparent bg-white text-[#475467] hover:border-[#C9C5FF] hover:bg-[#F7F6FF] hover:text-[#837CFF]",
+                      "relative flex h-11 flex-col items-center justify-center rounded-lg border text-sm font-bold leading-[18px] transition-colors",
+                      past &&
+                        "cursor-not-allowed border-transparent bg-[#F3F4F6] text-[#C9CED8]",
+                      !past &&
+                        !availability &&
+                        "cursor-not-allowed border-transparent bg-white text-[#C9CED8]",
+                      status.tone === "recommended" &&
+                        "border-[#837CFF] bg-[#837CFF] text-white",
+                      status.tone === "all" &&
+                        "border-[#837CFF] bg-[#F7F6FF] text-[#635BFF]",
+                      (status.tone === "required" || status.tone === "partial") &&
+                        "border-[#837CFF] bg-white text-[#475467]",
+                      !disabled &&
+                        !selected &&
+                        status.tone !== "recommended" &&
+                        "hover:bg-[#F7F6FF] hover:text-[#837CFF]",
+                      selected && "ring-2 ring-[#C9C5FF]",
                     )}
                     disabled={disabled}
                     key={date.id}
                     onClick={() => toggleDate(date.id)}
                     type="button"
                   >
-                    {date.day}
+                    <span>{date.day}</span>
+                    {badge ? (
+                      <span
+                        className={cn(
+                          "mt-0.5 text-[10px] font-bold leading-[12px]",
+                          status.tone === "recommended"
+                            ? "text-white"
+                            : "text-[#635BFF]",
+                        )}
+                      >
+                        {badge}
+                      </span>
+                    ) : null}
+                    {selected ? (
+                      <span
+                        className={cn(
+                          "absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full",
+                          status.tone === "recommended"
+                            ? "bg-white text-[#635BFF]"
+                            : "bg-[#837CFF] text-white",
+                        )}
+                      >
+                        <Check className="h-2.5 w-2.5" strokeWidth={3} />
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}
             </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="rounded-full bg-[#837CFF] px-2.5 py-1 text-[11px] font-bold leading-[16px] text-white">
+              추천
+            </span>
+            <span className="rounded-full border border-[#837CFF] bg-[#F7F6FF] px-2.5 py-1 text-[11px] font-bold leading-[16px] text-[#635BFF]">
+              전원 가능
+            </span>
+            <span className="rounded-full border border-[#837CFF] bg-white px-2.5 py-1 text-[11px] font-bold leading-[16px] text-[#635BFF]">
+              필참 가능
+            </span>
           </div>
           <div className="mt-4 grid grid-cols-[1fr_2fr] gap-2">
             <Button
