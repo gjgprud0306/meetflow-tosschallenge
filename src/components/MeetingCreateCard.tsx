@@ -345,6 +345,58 @@ const candidateTimeChipOptions = Array.from(
   (_, index) => `${String(index + 9).padStart(2, "0")}:00`,
 );
 
+function dateIdFromAvailability(dateLabel: string) {
+  const match = dateLabel.match(/(\d+)월\s+(\d+)일/);
+
+  if (!match) return "";
+
+  return `date-${Number(match[1])}-${Number(match[2])}`;
+}
+
+function shortDateLabelFromAvailability(dateLabel: string) {
+  const match = dateLabel.match(/(\d+)월\s+(\d+)일\s+(.+)요일/);
+
+  if (!match) return { date: dateLabel, weekday: "" };
+
+  return {
+    date: `${Number(match[1])}/${Number(match[2])}`,
+    weekday: match[3],
+  };
+}
+
+function startTimeFromRange(timeLabel: string) {
+  return timeLabel.split("–")[0] ?? timeLabel;
+}
+
+function availabilityStatus(item?: (typeof teamAvailabilitySummaries)[number]) {
+  if (!item) return { label: "선택 불가", tone: "disabled" as const };
+  if (item.id === "slot-7-15-15") {
+    return { label: "추천", tone: "recommended" as const };
+  }
+  if (item.availableCount === 6) {
+    return { label: "전원 가능", tone: "all" as const };
+  }
+  if (item.availableCount === 3 && item.unavailableRequiredIds.length === 0) {
+    return { label: "필참 가능", tone: "required" as const };
+  }
+
+  return { label: "일부 불가", tone: "partial" as const };
+}
+
+function availabilityForDate(dateId: string) {
+  return teamAvailabilitySummaries.find(
+    (item) => dateIdFromAvailability(item.dateLabel) === dateId,
+  );
+}
+
+function availabilityForDateTime(dateId: string, time: string) {
+  return teamAvailabilitySummaries.find(
+    (item) =>
+      dateIdFromAvailability(item.dateLabel) === dateId &&
+      startTimeFromRange(item.timeLabel) === time,
+  );
+}
+
 export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   const navigate = useNavigate();
   const { meeting, updateMeeting, summaries } = useMeetingFlow();
@@ -448,9 +500,11 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
   }
 
   function getTimeOption(date: SelectOption, time: string) {
+    const slot = availabilityForDateTime(date.id, time);
+
     return {
-      id: `custom-time-${date.id}-${time.replace(/\D/g, "")}`,
-      label: `${date.label} ${time}`,
+      id: slot?.id ?? `custom-time-${date.id}-${time.replace(/\D/g, "")}`,
+      label: slot ? `${slot.dateLabel} ${slot.timeLabel}` : `${date.label} ${time}`,
     };
   }
 
@@ -743,25 +797,66 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
           {selectedDates.length > 0 ? (
             <>
               <p className="mb-3 text-xs font-medium leading-[18px] text-[#94A3B8]">
-                후보 날짜를 선택한 뒤 가능한 시간을 선택하세요.
+                팀원 일정 집계 결과를 확인하고 후보 날짜와 시간을 선택하세요.
               </p>
               <div className="rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] p-3">
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {selectedDates.map((date) => {
                     const isActive = date.id === activeDate?.id;
+                    const availability = availabilityForDate(date.id);
+                    const status = availabilityStatus(availability);
+                    const dateParts = availability
+                      ? shortDateLabelFromAvailability(availability.dateLabel)
+                      : null;
 
                     return (
                       <button
-                        className={`h-9 min-w-[76px] rounded-full px-3 text-sm font-bold leading-[21px] transition ${
-                          isActive
-                            ? "bg-[#837CFF] text-white"
-                            : "border border-[#E0E4EB] bg-white text-[#475467]"
-                        }`}
+                        className={cn(
+                          "min-h-[76px] min-w-[112px] rounded-xl border px-3 py-2 text-left transition",
+                          status.tone === "recommended" &&
+                            "border-[#837CFF] bg-[#837CFF] text-white",
+                          status.tone === "all" &&
+                            "border-[#837CFF] bg-[#F7F6FF] text-[#635BFF]",
+                          status.tone === "required" &&
+                            "border-[#837CFF] bg-white text-[#475467]",
+                          status.tone === "partial" &&
+                            "border-[#E0E4EB] bg-white text-[#475467]",
+                          isActive &&
+                            status.tone !== "recommended" &&
+                            "bg-[#F0EEFF] ring-2 ring-[#C9C5FF]",
+                        )}
                         key={date.id}
                         onClick={() => setActiveTimeDateId(date.id)}
                         type="button"
                       >
-                        {date.label.replace(/\s\(.+\)/, "")}
+                        <span className="block text-sm font-bold leading-[21px]">
+                          {dateParts ? `${dateParts.date} ${dateParts.weekday}` : date.label}
+                        </span>
+                        <span
+                          className={cn(
+                            "mt-0.5 block text-xs font-medium leading-[18px]",
+                            status.tone === "recommended"
+                              ? "text-white/90"
+                              : "text-[#667085]",
+                          )}
+                        >
+                          {availability ? `${availability.availableCount}명 가능` : "후보 없음"}
+                        </span>
+                        <span
+                          className={cn(
+                            "mt-1 inline-flex rounded-full px-2 py-[2px] text-[11px] font-bold leading-[16px]",
+                            status.tone === "recommended" &&
+                              "bg-white text-[#635BFF]",
+                            status.tone === "all" &&
+                              "bg-[#F0EEFF] text-[#635BFF]",
+                            status.tone === "required" &&
+                              "bg-[#F7F6FF] text-[#635BFF]",
+                            status.tone === "partial" &&
+                              "bg-[#F3F4F6] text-[#667085]",
+                          )}
+                        >
+                          {status.label}
+                        </span>
                       </button>
                     );
                   })}
@@ -771,19 +866,45 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                     {candidateTimeChipOptions.map((time) => {
                       const option = getTimeOption(activeDate, time);
                       const isSelected = draftTimeIds.includes(option.id);
+                      const availability = availabilityForDateTime(activeDate.id, time);
+                      const disabled = !availability;
+                      const status = availabilityStatus(availability);
+                      const timeCaption =
+                        availability?.availableCount === 3
+                          ? "필참 3명 가능"
+                          : availability
+                            ? `${availability.availableCount}명 가능`
+                            : "선택 불가";
 
                       return (
                         <button
-                          className={`h-10 rounded-lg border px-3 text-sm font-bold leading-[21px] transition ${
-                            isSelected
-                              ? "border-[#837CFF] bg-[#F0EEFF] text-[#635BFF]"
-                              : "border-[#E0E4EB] bg-white text-[#475467]"
-                          }`}
+                          className={cn(
+                            "min-h-[58px] rounded-lg border px-3 py-2 text-left transition",
+                            disabled &&
+                              "cursor-not-allowed border-[#E0E4EB] bg-[#F3F4F6] text-[#C9CED8]",
+                            !disabled &&
+                              !isSelected &&
+                              "border-[#E0E4EB] bg-white text-[#475467] hover:border-[#C9C5FF] hover:bg-[#F7F6FF]",
+                            isSelected &&
+                              "border-[#837CFF] bg-[#F0EEFF] text-[#635BFF]",
+                          )}
+                          disabled={disabled}
                           key={option.id}
                           onClick={() => toggleTimeForDate(activeDate, time)}
                           type="button"
                         >
-                          {time}
+                          <span className="block text-sm font-bold leading-[21px]">
+                            {time}
+                          </span>
+                          <span
+                            className={cn(
+                              "block text-[11px] font-bold leading-[16px]",
+                              disabled ? "text-[#C9CED8]" : "text-[#667085]",
+                              status.tone === "recommended" && !disabled && "text-[#635BFF]",
+                            )}
+                          >
+                            {timeCaption}
+                          </span>
                         </button>
                       );
                     })}
@@ -798,10 +919,24 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                   {selectedTimeOptions.length > 0 ? (
                     selectedTimeOptions.map((option) => (
                       <span
-                        className="rounded-full bg-[#F0EEFF] px-3 py-1 text-xs font-bold leading-[18px] text-[#635BFF]"
+                        className="inline-flex items-center gap-2 rounded-full bg-[#F0EEFF] py-1 pl-3 pr-1 text-xs font-bold leading-[18px] text-[#635BFF]"
                         key={option.id}
                       >
                         {option.label}
+                        <button
+                          className="flex h-5 w-5 items-center justify-center rounded-full hover:bg-[#E4E2FF]"
+                          onClick={() => {
+                            setDraftTimeIds((current) =>
+                              current.filter((id) => id !== option.id),
+                            );
+                            setDraftCustomTimeOptions((current) =>
+                              current.filter((item) => item.id !== option.id),
+                            );
+                          }}
+                          type="button"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                       </span>
                     ))
                   ) : (
