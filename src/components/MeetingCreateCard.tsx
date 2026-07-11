@@ -81,7 +81,7 @@ function Field({
             {value}
           </span>
         )}
-        {label !== "1. 회의 제목" && label !== "2. 팀원 일정" ? (
+        {!badge ? (
           <ChevronRight className="h-4 w-4 text-[#98A7BA]" strokeWidth={2} />
         ) : null}
       </button>
@@ -100,15 +100,20 @@ function TitleField({
     <div className="w-96">
       <div className="mb-2 flex h-5 w-[360px] items-center justify-between">
         <div className="text-[13px] font-bold leading-5 text-[#101828]">
-          1. 회의 제목
+          1. 회의 제목 *
         </div>
       </div>
       <input
         className="flex h-12 w-[360px] items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-[17px] text-sm font-medium leading-[21px] text-[#101828] outline-none placeholder:text-[#98A2B3] focus:border-[#635BFF]"
         onChange={(event) => onChange(event.target.value)}
-        placeholder="회의 제목을 입력해주세요"
+        placeholder="회의 제목을 입력해주세요."
         value={value}
       />
+      {value.trim().length === 0 ? (
+        <p className="mt-2 text-xs font-medium leading-[18px] text-[#F04438]">
+          회의 제목을 입력해주세요.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -225,20 +230,57 @@ function isPastCalendarDate(date: { value: Date }) {
 
 const registeredTeamSchedules = [
   {
+    attendeeId: "owner",
     name: "허혜경",
-    schedules: ["수 14:00~15:00 디자인 리뷰", "목 10:00~11:00 팀 싱크"],
+    schedules: [
+      "7/15(수) 14:00~15:00 디자인 리뷰",
+      "7/16(목) 10:00~11:00 팀 싱크",
+    ],
   },
-  { name: "김민서", schedules: ["수 15:00~17:00 개발 작업"] },
-  { name: "박준호", schedules: ["목 오전 외근"] },
-  { name: "윤서연", schedules: ["금 13:00~14:00 QA 확인"] },
-  { name: "윤지은", schedules: [] },
-  { name: "박은주", schedules: ["목 16:00~17:00 고객 미팅"] },
+  {
+    attendeeId: "min",
+    name: "김민서",
+    schedules: ["7/15(수) 15:00~17:00 개발 작업"],
+  },
+  { attendeeId: "jun", name: "박준호", schedules: ["7/16(목) 오전 외근"] },
+  {
+    attendeeId: "seo",
+    name: "윤서연",
+    schedules: ["7/17(금) 13:00~14:00 QA 확인"],
+  },
+  { attendeeId: "ji", name: "윤지은", schedules: [] },
+  {
+    attendeeId: "eun",
+    name: "박은주",
+    schedules: ["7/16(목) 16:00~17:00 고객 미팅"],
+  },
 ];
 
-const availableDateSummaries = [
-  { id: "date-7-13", label: "가능 6명 · 7/13(월)" },
-  { id: "date-7-14", label: "가능 5명 · 7/14(화)" },
-  { id: "date-7-15", label: "가능 5명 · 7/15(수)" },
+const teamAvailabilitySummaries = [
+  {
+    id: "date-7-14",
+    dateLabel: "7/14(화)",
+    timeLabel: "15:00~16:00",
+    availableCount: 4,
+    unavailableNames: ["윤지은", "박은주"],
+    unavailableRequiredIds: [],
+  },
+  {
+    id: "date-7-15",
+    dateLabel: "7/15(수)",
+    timeLabel: "10:00~11:00",
+    availableCount: 5,
+    unavailableNames: ["박은주"],
+    unavailableRequiredIds: [],
+  },
+  {
+    id: "date-7-16",
+    dateLabel: "7/16(목)",
+    timeLabel: "16:00~17:00",
+    availableCount: 6,
+    unavailableNames: [],
+    unavailableRequiredIds: [],
+  },
 ];
 
 const candidateTimeChipOptions = Array.from(
@@ -264,6 +306,26 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
     summaries.dateRange !== "후보 날짜 선택" &&
     meeting.timeIds.length > 0 &&
     summaries.deadline !== "응답 마감 선택";
+  const requiredAttendeeIds = new Set(meeting.requiredAttendeeIds);
+  const requiredCount = meeting.requiredAttendeeIds.length;
+  const orderedTeamSchedules = [...registeredTeamSchedules].sort((a, b) => {
+    const aRequired = requiredAttendeeIds.has(a.attendeeId);
+    const bRequired = requiredAttendeeIds.has(b.attendeeId);
+
+    if (aRequired === bRequired) return 0;
+
+    return aRequired ? -1 : 1;
+  });
+  const recommendedDateSummaries = [...teamAvailabilitySummaries].sort((a, b) => {
+    const aRequiredAvailable = requiredCount - a.unavailableRequiredIds.length;
+    const bRequiredAvailable = requiredCount - b.unavailableRequiredIds.length;
+
+    if (aRequiredAvailable !== bRequiredAvailable) {
+      return bRequiredAvailable - aRequiredAvailable;
+    }
+
+    return b.availableCount - a.availableCount;
+  });
 
   function toggleAttendee(attendeeId: string) {
     const selected = meeting.attendeeIds.includes(attendeeId);
@@ -363,51 +425,70 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             회의 전 팀원들의 등록된 일정을 확인하세요.
           </p>
           <div className="max-h-[300px] space-y-3 overflow-y-auto pr-1">
-            {registeredTeamSchedules.map((item) => (
-              <div
-                className="rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-4 py-3"
-                key={item.name}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="text-sm font-bold leading-[21px] text-[#101828]">
-                    {item.name}
-                  </div>
-                  {item.schedules.length === 0 ? (
-                    <span className="rounded-full bg-[#F3F4F6] px-2 py-[3px] text-xs font-bold leading-[18px] text-[#98A2B3]">
-                      미등록
-                    </span>
-                  ) : null}
-                </div>
-                {item.schedules.length > 0 ? (
-                  <div className="mt-2 space-y-1">
-                    {item.schedules.map((schedule) => (
-                      <div
-                        className="text-sm font-medium leading-[21px] text-[#475467]"
-                        key={schedule}
-                      >
-                        {schedule}
+            {orderedTeamSchedules.map((item) => {
+              const required = requiredAttendeeIds.has(item.attendeeId);
+
+              return (
+                <div
+                  className="rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-4 py-3"
+                  key={item.name}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-bold leading-[21px] text-[#101828]">
+                        {item.name}
                       </div>
-                    ))}
+                      {required ? (
+                        <span className="rounded-full bg-[#F0EEFF] px-2 py-[3px] text-[11px] font-bold leading-[17px] text-[#635BFF]">
+                          필수
+                        </span>
+                      ) : null}
+                    </div>
+                    {item.schedules.length === 0 ? (
+                      <span className="rounded-full bg-[#F3F4F6] px-2 py-[3px] text-xs font-bold leading-[18px] text-[#98A2B3]">
+                        미등록
+                      </span>
+                    ) : null}
                   </div>
-                ) : (
-                  <div className="mt-2 text-sm font-medium leading-[21px] text-[#98A2B3]">
-                    등록된 일정이 없습니다.
-                  </div>
-                )}
-              </div>
-            ))}
+                  {item.schedules.length > 0 ? (
+                    <div className="mt-2 space-y-1">
+                      {item.schedules.map((schedule) => (
+                        <div
+                          className="text-sm font-medium leading-[21px] text-[#475467]"
+                          key={schedule}
+                        >
+                          {schedule}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-sm font-medium leading-[21px] text-[#98A2B3]">
+                      등록된 일정이 없습니다.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <div className="mt-5 rounded-lg border border-[#E0E4EB] bg-white px-4 py-3">
             <h3 className="text-sm font-bold leading-[21px] text-[#101828]">
               일정 집계 결과
             </h3>
             <div className="mt-3 space-y-2">
-              {availableDateSummaries.map((item) => (
+              {recommendedDateSummaries.map((item) => (
                 <div
                   className="text-sm font-medium leading-[21px] text-[#475467]"
                   key={item.id}
                 >
-                  {item.label}
+                  <span className="font-bold text-[#101828]">
+                    {item.dateLabel} {item.timeLabel}
+                  </span>
+                  <span className="ml-2">
+                    가능 {item.availableCount}명
+                    {item.unavailableNames.length > 0
+                      ? ` · 확인 필요: ${item.unavailableNames.join(", ")}`
+                      : ""}
+                  </span>
                 </div>
               ))}
             </div>
@@ -535,28 +616,48 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
               })}
             </div>
           </div>
-          <Button
-            className="mt-4 h-12 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 disabled:bg-[#C9CED8] disabled:text-white"
-            disabled={draftDateIds.length === 0}
-            onClick={() => {
-              const selectedDates = calendarCandidateDates.filter((date) =>
-                draftDateIds.includes(date.id),
-              );
-              const label = selectedDates.map((date) => date.label).join(", ");
+          <div className="mt-4 grid grid-cols-[1fr_2fr] gap-2">
+            <Button
+              className="h-12 rounded-lg border border-[#E0E4EB] bg-white text-sm font-bold leading-[21px] text-[#667085] hover:bg-[#F9FAFB]"
+              disabled={draftDateIds.length === 0}
+              onClick={() => {
+                setDraftDateIds([]);
+                updateMeeting({
+                  customDateRange: "",
+                  dateRangeId: "",
+                  timeIds: [],
+                  customTimeOptions: [],
+                  deadlineId: "",
+                  customDeadline: "",
+                });
+              }}
+              type="button"
+            >
+              선택 취소
+            </Button>
+            <Button
+              className="h-12 rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 disabled:bg-[#C9CED8] disabled:text-white"
+              disabled={draftDateIds.length === 0}
+              onClick={() => {
+                const selectedDates = calendarCandidateDates.filter((date) =>
+                  draftDateIds.includes(date.id),
+                );
+                const label = selectedDates.map((date) => date.label).join(", ");
 
-              updateMeeting({
-                customDateRange: label,
-                dateRangeId: "custom-date-range",
-                timeIds: [],
-                customTimeOptions: [],
-                deadlineId: "",
-                customDeadline: "",
-              });
-              setModal(null);
-            }}
-          >
-            선택 완료
-          </Button>
+                updateMeeting({
+                  customDateRange: label,
+                  dateRangeId: "custom-date-range",
+                  timeIds: [],
+                  customTimeOptions: [],
+                  deadlineId: "",
+                  customDeadline: "",
+                });
+                setModal(null);
+              }}
+            >
+              선택 완료
+            </Button>
+          </div>
         </ChoiceModal>
       );
     }
@@ -733,28 +834,28 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             value={meeting.title}
           />
           <Field
+            label="2. 참석자"
+            onClick={() => setModal("attendees")}
+            value={summaries.requiredLabel}
+          />
+          <Field
             badge
-            label="2. 팀원 일정"
+            label="3. 팀원 일정"
             onClick={openTeamScheduleModal}
             value="일정 확인 (6명)"
           />
           <Field
-            label="3. 후보 날짜"
+            label="4. 후보 날짜"
             onClick={openDateModal}
             placeholder={summaries.dateRange === "후보 날짜 선택"}
             value={summaries.dateRange}
           />
           <Field
             helper="2~5개 선택"
-            label="4. 후보 시간"
+            label="5. 후보 시간"
             onClick={openTimesModal}
             placeholder={meeting.timeIds.length === 0}
             value={summaries.timeCount}
-          />
-          <Field
-            label="5. 참석자"
-            onClick={() => setModal("attendees")}
-            value={summaries.requiredLabel}
           />
           <Field
             label="6. 응답 마감"
