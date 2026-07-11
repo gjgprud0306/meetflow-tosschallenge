@@ -233,52 +233,109 @@ const registeredTeamSchedules = [
     attendeeId: "owner",
     name: "허혜경",
     schedules: [
-      "7/15(수) 14:00~15:00 디자인 리뷰",
-      "7/16(목) 10:00~11:00 팀 싱크",
+      "7/13(월) 09:00~10:00 주간 업무 회의",
+      "7/14(화) 10:00~11:00 프로젝트 진행 상황 공유",
+      "7/15(수) 13:00~14:00 리더 미팅",
+      "7/16(목) 15:00~16:00 개발 일정 점검",
+      "7/17(금) 10:00~11:00 회고 회의",
     ],
   },
   {
     attendeeId: "min",
     name: "김민서",
-    schedules: ["7/15(수) 15:00~17:00 개발 작업"],
+    schedules: [
+      "7/13(월) 14:00~15:00 디자인 리뷰",
+      "7/14(화) 11:00~12:00 화면 설계 회의",
+      "7/15(수) 10:00~11:00 디자인 시스템 점검",
+      "7/16(목) 13:00~14:00 개발 협업 회의",
+      "7/17(금) 11:00~12:00 사용자 테스트 정리",
+    ],
   },
-  { attendeeId: "jun", name: "박준호", schedules: ["7/16(목) 오전 외근"] },
+  {
+    attendeeId: "jun",
+    name: "박준호",
+    schedules: [
+      "7/13(월) 13:00~14:00 개발 스프린트 회의",
+      "7/14(화) 09:00~10:00 코드 리뷰",
+      "7/15(수) 11:00~12:00 서버 연동 점검",
+      "7/16(목) 14:00~15:00 QA 이슈 확인",
+      "7/17(금) 10:00~11:00 배포 준비 회의",
+    ],
+  },
   {
     attendeeId: "seo",
     name: "윤서연",
-    schedules: ["7/17(금) 13:00~14:00 QA 확인"],
+    schedules: [
+      "7/13(월) 10:30~12:00 캠페인 기획 회의",
+      "7/14(화) 13:30~15:30 마케팅 성과 리뷰",
+      "7/15(수) 10:00~11:00 광고 소재 검토",
+      "7/16(목) 14:00~15:00 콘텐츠 일정 회의",
+      "7/17(금) 11:00~12:00 채널 운영 회의",
+    ],
   },
-  { attendeeId: "ji", name: "윤지은", schedules: [] },
+  {
+    attendeeId: "ji",
+    name: "윤지은",
+    schedules: [
+      "7/13(월) 10:00~12:00 주간 대시보드 정리",
+      "7/14(화) 13:00~15:00 사용자 데이터 분석",
+      "7/15(수) 09:00~10:00 데이터팀 회의",
+      "7/16(목) 11:00~12:00 지표 정의 회의",
+      "7/17(금) 10:00~11:00 리포트 작성 회의",
+    ],
+  },
   {
     attendeeId: "eun",
     name: "박은주",
-    schedules: ["7/16(목) 16:00~17:00 고객 미팅"],
+    schedules: [
+      "7/13(월) 10:30~12:00 콘텐츠 촬영",
+      "7/14(화) 10:00~11:00 콘텐츠 기획 회의",
+      "7/15(수) 13:00~14:00 이미지 제작 회의",
+      "7/16(목) 15:00~16:00 브랜드 디자인 검토",
+      "7/17(금) 11:00~12:00 콘텐츠 결과 공유",
+    ],
   },
 ];
 
 const teamAvailabilitySummaries = [
   {
-    id: "date-7-14",
-    dateLabel: "7/14(화)",
-    timeLabel: "15:00~16:00",
-    availableCount: 4,
-    unavailableNames: ["윤지은", "박은주"],
-    unavailableRequiredIds: [],
-  },
-  {
-    id: "date-7-15",
-    dateLabel: "7/15(수)",
-    timeLabel: "10:00~11:00",
-    availableCount: 5,
-    unavailableNames: ["박은주"],
-    unavailableRequiredIds: [],
-  },
-  {
-    id: "date-7-16",
-    dateLabel: "7/16(목)",
-    timeLabel: "16:00~17:00",
+    id: "slot-7-15-15",
+    dateLabel: "7월 15일 수요일",
+    timeLabel: "15:00–16:00",
     availableCount: 6,
     unavailableNames: [],
+    unavailableRequiredIds: [],
+  },
+  {
+    id: "slot-7-16-10",
+    dateLabel: "7월 16일 목요일",
+    timeLabel: "10:00–11:00",
+    availableCount: 6,
+    unavailableNames: [],
+    unavailableRequiredIds: [],
+  },
+  {
+    id: "slot-7-17-14",
+    dateLabel: "7월 17일 금요일",
+    timeLabel: "14:00–15:00",
+    availableCount: 6,
+    unavailableNames: [],
+    unavailableRequiredIds: [],
+  },
+  {
+    id: "slot-7-14-14",
+    dateLabel: "7월 14일 화요일",
+    timeLabel: "14:00–15:00",
+    availableCount: 4,
+    unavailableNames: ["윤서연", "윤지은"],
+    unavailableRequiredIds: [],
+  },
+  {
+    id: "slot-7-13-11",
+    dateLabel: "7월 13일 월요일",
+    timeLabel: "11:00–12:00",
+    availableCount: 3,
+    unavailableNames: ["윤서연", "윤지은", "박은주"],
     unavailableRequiredIds: [],
   },
 ];
@@ -523,8 +580,18 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                   >
                     <AvatarBadge color={attendee.color} initial={attendee.initial} />
                     <span className="ml-3">
-                      <span className="block text-sm font-bold leading-[21px] text-[#101828]">
+                      <span className="flex items-center gap-2 text-sm font-bold leading-[21px] text-[#101828]">
                         {attendee.name}
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-[2px] text-[11px] font-bold leading-[16px]",
+                            attendee.required
+                              ? "bg-[#F0EEFF] text-[#635BFF]"
+                              : "bg-[#F3F4F6] text-[#667085]",
+                          )}
+                        >
+                          {attendee.required ? "필수 참석자" : "선택 참석자"}
+                        </span>
                       </span>
                       <span className="block text-xs font-medium leading-[18px] text-[#808CA1]">
                         {attendee.role}

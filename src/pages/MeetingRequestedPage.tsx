@@ -43,28 +43,43 @@ function SystemMessage({ title }: { title: string }) {
 function RequestedMeetingCard() {
   const navigate = useNavigate();
   const { meeting, summaries } = useMeetingFlow();
-  const requiredNames = attendees
-    .filter((attendee) => meeting.requiredAttendeeIds.includes(attendee.id))
+  const requiredAttendees = attendees.filter((attendee) =>
+    meeting.requiredAttendeeIds.includes(attendee.id),
+  );
+  const optionalAttendees = attendees.filter(
+    (attendee) =>
+      meeting.attendeeIds.includes(attendee.id) &&
+      !meeting.requiredAttendeeIds.includes(attendee.id),
+  );
+  const requiredNames = requiredAttendees
+    .map((attendee) => shortName(attendee.name))
+    .join(", ");
+  const optionalNames = optionalAttendees
     .map((attendee) => shortName(attendee.name))
     .join(", ");
 
   return (
-    <section className="w-[480px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
+    <section className="w-[520px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
       <div className="flex h-[70px] items-center justify-between bg-[#F7F6FF] px-5">
         <h2 className="text-lg font-bold leading-7 text-[#101828]">
           {meeting.title || "회의 제목"}
         </h2>
         <span className="rounded-full bg-[#635BFF] px-3 py-1 text-xs font-bold leading-[18px] text-white">
-          응답 요청
+          필수 응답 요청
         </span>
       </div>
       <div className="space-y-4 px-5 py-5">
         <SummaryLine label="후보 기간" value={summaries.dateRange} />
         <SummaryLine label="후보 시간" value={summaries.selectedTimes} />
-        <SummaryLine label="필수 참석자" value={requiredNames} />
+        <SummaryLine label="필수 참석" value={requiredNames} />
+        <SummaryLine label="선택 참석" value={optionalNames || "필수 응답 완료 후 발송"} />
         <SummaryLine label="응답 마감" value={summaries.deadline} />
       </div>
-      <div className="border-t border-[#E0E4EB] p-5">
+      <div className="border-t border-[#E0E4EB] px-5 py-4">
+        <p className="mb-4 text-sm font-medium leading-[21px] text-[#667085]">
+          필수 참석자 3명에게 먼저 일정 응답 요청을 보냈습니다.
+          필수 참석자가 모두 응답하면 선택 참석자에게 후보 일정을 보낼 수 있습니다.
+        </p>
         <Button
           className="h-12 w-full rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
           onClick={() => navigate("/meetings/response-status")}
@@ -78,6 +93,14 @@ function RequestedMeetingCard() {
 
 function RequestedRightPanel() {
   const { meeting, summaries } = useMeetingFlow();
+  const requiredAttendees = attendees.filter((attendee) =>
+    meeting.requiredAttendeeIds.includes(attendee.id),
+  );
+  const optionalAttendees = attendees.filter(
+    (attendee) =>
+      meeting.attendeeIds.includes(attendee.id) &&
+      !meeting.requiredAttendeeIds.includes(attendee.id),
+  );
 
   return (
     <aside className="h-full w-[328px] shrink-0 border-l border-[#E5E7EB] bg-[#F9FAFB] px-6 pt-7">
@@ -85,7 +108,7 @@ function RequestedRightPanel() {
         응답 요청 전송 완료
       </h2>
       <p className="mt-2 text-sm font-medium leading-[21px] text-[#475467]">
-        참여자 응답을 기다리는 중 · 마감 {summaries.deadline}
+        필수 참석자 응답 대기 중 · 마감 {summaries.deadline}
       </p>
 
       <section className="mt-6 rounded-xl border border-[#E0E4EB] bg-white p-5">
@@ -94,7 +117,7 @@ function RequestedRightPanel() {
             {meeting.title || "회의 제목"}
           </h3>
           <span className="rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#6F6A9F]">
-            수집 중
+            필수 수집 중
           </span>
         </div>
 
@@ -105,30 +128,53 @@ function RequestedRightPanel() {
 
         <div className="mt-6">
           <div className="flex items-center justify-between text-sm font-bold leading-[21px]">
-            <span className="text-[#475467]">응답률</span>
-            <span className="text-[#635BFF]">0 / {meeting.attendeeIds.length}명</span>
+            <span className="text-[#475467]">필수 응답률</span>
+            <span className="text-[#635BFF]">0 / {requiredAttendees.length}명</span>
           </div>
           <div className="mt-3 h-1.5 rounded-full bg-[#E5E7EB]" />
         </div>
 
         <div className="mt-5 space-y-3">
-          {attendees
-            .filter((attendee) => meeting.attendeeIds.includes(attendee.id))
-            .map((attendee) => (
+          {requiredAttendees.map((attendee) => (
+            <div
+              className="flex items-center justify-between text-sm font-medium leading-[21px]"
+              key={attendee.id}
+            >
+              <span className="flex items-center gap-2 text-[#475467]">
+                {shortName(attendee.name)}
+                <span className="rounded-full bg-[#F0EEFF] px-2 py-[2px] text-[11px] font-bold leading-[16px] text-[#635BFF]">
+                  필수
+                </span>
+              </span>
+              <span className="text-[#98A2B3]">대기 중</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 border-t border-[#E0E4EB] pt-4">
+          <p className="text-xs font-bold leading-[18px] text-[#98A2B3]">
+            선택 참석자는 필수 참석자 응답 완료 후 발송
+          </p>
+          <div className="mt-3 space-y-2">
+            {optionalAttendees.map((attendee) => (
               <div
                 className="flex items-center justify-between text-sm font-medium leading-[21px]"
                 key={attendee.id}
               >
-                <span className="text-[#475467]">{shortName(attendee.name)}</span>
-                <span className="text-[#98A2B3]">대기 중</span>
+                <span className="text-[#667085]">{shortName(attendee.name)}</span>
+                <span className="rounded-full bg-[#F3F4F6] px-2 py-[2px] text-[11px] font-bold leading-[16px] text-[#667085]">
+                  선택
+                </span>
               </div>
             ))}
+          </div>
         </div>
       </section>
 
     </aside>
   );
 }
+
 
 function RequestedComposer() {
   return (

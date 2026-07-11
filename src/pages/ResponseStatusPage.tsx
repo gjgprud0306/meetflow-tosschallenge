@@ -5,16 +5,18 @@ import { AvatarBadge } from "@/components/AvatarBadge";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
+import { attendees } from "@/mocks";
 import { cn } from "@/lib/utils";
 
 type ResponseStage =
-  | "initial"
-  | "seoResponded"
-  | "junResponded"
-  | "partial"
-  | "reminded"
-  | "minResponded"
-  | "complete"
+  | "requiredCollecting"
+  | "requiredOne"
+  | "requiredTwo"
+  | "requiredComplete"
+  | "optionalSent"
+  | "optionalOne"
+  | "optionalTwo"
+  | "allComplete"
   | "confirmed";
 
 type FollowUpMessage = {
@@ -25,58 +27,199 @@ type FollowUpMessage = {
   message: string;
 };
 
-const responseNames = [
-  { id: "owner", label: "혜경" },
-  { id: "min", label: "민수" },
-  { id: "jun", label: "준혁" },
-  { id: "seo", label: "서연" },
-  { id: "ji", label: "지수" },
-  { id: "tae", label: "태민" },
-];
+type ResponseStatus = "가능" | "불가능" | "미응답" | "요청 전";
 
 const scheduleStorageKey = "mflow-my-schedule-cards";
 const confirmedScheduleId = "confirmed-review-meeting";
 
-function formatConfirmedTimeLabel(rawTime: string) {
-  const [hourText, minuteText = "00"] = rawTime.split(":");
-  const hour = Number(hourText);
-  const minute = minuteText.padStart(2, "0");
+const requiredIds = ["owner", "min", "jun"];
+const optionalIds = ["seo", "ji", "eun"];
 
-  if (Number.isNaN(hour)) return rawTime;
-  if (hour === 0) return `오전 12:${minute}`;
-  if (hour < 12) return `오전 ${hour}:${minute}`;
-  if (hour === 12) return `오후 12:${minute}`;
+const candidateSlots = [
+  {
+    id: "slot-7-15-15",
+    label: "7월 15일 수요일 15:00–16:00",
+    availableIds: ["owner", "min", "jun", "seo", "ji", "eun"],
+    unavailableIds: [],
+  },
+  {
+    id: "slot-7-16-10",
+    label: "7월 16일 목요일 10:00–11:00",
+    availableIds: ["owner", "min", "jun", "seo", "ji", "eun"],
+    unavailableIds: [],
+  },
+  {
+    id: "slot-7-17-14",
+    label: "7월 17일 금요일 14:00–15:00",
+    availableIds: ["owner", "min", "jun", "seo", "ji", "eun"],
+    unavailableIds: [],
+  },
+  {
+    id: "slot-7-14-14",
+    label: "7월 14일 화요일 14:00–15:00",
+    availableIds: ["owner", "min", "jun", "eun"],
+    unavailableIds: ["seo", "ji"],
+  },
+  {
+    id: "slot-7-13-11",
+    label: "7월 13일 월요일 11:00–12:00",
+    availableIds: ["owner", "min", "jun"],
+    unavailableIds: ["seo", "ji", "eun"],
+  },
+];
 
-  return `오후 ${hour - 12}:${minute}`;
+const recommendationCards = [
+  {
+    id: "recommend-1",
+    badge: "추천 1 · 전원 참석 가능",
+    title: "7월 15일 수요일 15:00–16:00",
+    requiredText: "필수 참석자 3명 참석 가능",
+    optionalText: "선택 참석자 3명 참석 가능",
+    totalText: "6명 중 6명 참석 가능",
+    description: "6명 모두 참석할 수 있는 가장 빠른 일정이에요.",
+    unavailableText: "",
+    emphasis: true,
+  },
+  {
+    id: "recommend-2",
+    badge: "추천 2 · 더 빠른 대안",
+    title: "7월 14일 화요일 14:00–15:00",
+    requiredText: "필수 참석자 3명 참석 가능",
+    optionalText: "박은주 참석 가능",
+    totalText: "6명 중 4명 참석 가능",
+    description: "선택 참석자 2명을 제외하면 하루 더 빠르게 진행할 수 있어요.",
+    unavailableText: "참석 어려움: 윤서연, 윤지은",
+    emphasis: false,
+  },
+  {
+    id: "recommend-3",
+    badge: "추천 3 · 필수 참석자 우선",
+    title: "7월 13일 월요일 11:00–12:00",
+    requiredText: "허혜경, 김민서, 박준호 참석 가능",
+    optionalText: "윤서연, 윤지은, 박은주 참석 불가",
+    totalText: "6명 중 3명 참석 가능",
+    description: "필수 참석자 모두가 가능한 가장 빠른 일정이에요.",
+    unavailableText: "필수 참석자 전원 가능",
+    emphasis: false,
+  },
+];
+
+function attendeeById(id: string) {
+  return attendees.find((attendee) => attendee.id === id);
 }
 
-function getConfirmedScheduleInfo(title: string, selectedTimes: string) {
-  const firstTime = selectedTimes.split(",")[0]?.trim();
-  const match = firstTime?.match(/(\d{1,2})\/(\d{1,2})\s*\(([^)]+)\)\s*(\d{1,2}:\d{2})/);
+function shortName(name: string) {
+  return name.length > 2 ? name.slice(-2) : name;
+}
 
-  if (!match) {
-    return {
-      dateLabel: "7/14(화)",
-      displayDateTime: "7/14(화) 오후 3:00",
-      id: confirmedScheduleId,
-      meta: "7/14(화) 오후 3:00 · 참석자 6명",
-      timeLabel: "오후 3:00",
-      title: title || "리뷰회의",
-      weekday: "화",
-    };
+function roleBadge(required: boolean) {
+  return required ? "필수 참석자" : "선택 참석자";
+}
+
+function getRespondedIds(stage: ResponseStage) {
+  const ids: string[] = [];
+
+  if (
+    [
+      "requiredOne",
+      "requiredTwo",
+      "requiredComplete",
+      "optionalSent",
+      "optionalOne",
+      "optionalTwo",
+      "allComplete",
+      "confirmed",
+    ].includes(stage)
+  ) {
+    ids.push("owner");
+  }
+  if (
+    [
+      "requiredTwo",
+      "requiredComplete",
+      "optionalSent",
+      "optionalOne",
+      "optionalTwo",
+      "allComplete",
+      "confirmed",
+    ].includes(stage)
+  ) {
+    ids.push("min");
+  }
+  if (
+    [
+      "requiredComplete",
+      "optionalSent",
+      "optionalOne",
+      "optionalTwo",
+      "allComplete",
+      "confirmed",
+    ].includes(stage)
+  ) {
+    ids.push("jun");
+  }
+  if (["optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
+    ids.push("seo");
+  }
+  if (["optionalTwo", "allComplete", "confirmed"].includes(stage)) {
+    ids.push("ji");
+  }
+  if (["allComplete", "confirmed"].includes(stage)) {
+    ids.push("eun");
   }
 
-  const [, month, day, weekday, time] = match;
-  const timeLabel = formatConfirmedTimeLabel(time);
+  return ids;
+}
+
+function getCounts(stage: ResponseStage) {
+  const respondedIds = getRespondedIds(stage);
+  const requiredCount = requiredIds.filter((id) => respondedIds.includes(id)).length;
+  const optionalCount = optionalIds.filter((id) => respondedIds.includes(id)).length;
 
   return {
-    dateLabel: `${month}/${day}(${weekday})`,
-    displayDateTime: `${month}/${day}(${weekday}) ${timeLabel}`,
+    optionalCount,
+    requiredCount,
+    respondedIds,
+    totalCount: requiredCount + optionalCount,
+  };
+}
+
+function progressPercent(stage: ResponseStage) {
+  return `${(getCounts(stage).totalCount / 6) * 100}%`;
+}
+
+function getMemberStatus(stage: ResponseStage, id: string): ResponseStatus {
+  const { respondedIds, requiredCount } = getCounts(stage);
+
+  if (!respondedIds.includes(id)) {
+    if (optionalIds.includes(id) && requiredCount < 3) return "요청 전";
+    return "미응답";
+  }
+
+  return "가능";
+}
+
+function getMemberSelectedTime(id: string, status: ResponseStatus) {
+  if (status === "미응답" || status === "요청 전") return "-";
+
+  const unavailableSlot = candidateSlots.find((slot) =>
+    slot.unavailableIds.includes(id),
+  );
+
+  if (unavailableSlot) return `${unavailableSlot.label} 불가능`;
+
+  return "7월 15일 수요일 15:00–16:00 가능";
+}
+
+function getConfirmedScheduleInfo(title: string) {
+  return {
+    dateLabel: "7월 15일 수요일",
+    displayDateTime: "7월 15일 수요일 15:00–16:00",
     id: confirmedScheduleId,
-    meta: `${month}/${day}(${weekday}) ${timeLabel} · 참석자 6명`,
-    timeLabel,
+    meta: "7/15(수) 오후 3:00 · 참석자 6명",
+    timeLabel: "15:00–16:00",
     title: title || "리뷰회의",
-    weekday,
+    weekday: "수요일",
   };
 }
 
@@ -115,68 +258,60 @@ function saveConfirmedSchedule(schedule: ReturnType<typeof getConfirmedScheduleI
   window.localStorage.setItem(scheduleStorageKey, JSON.stringify(nextCards));
 }
 
-function responseCountForStage(stage: ResponseStage) {
-  if (stage === "complete" || stage === "confirmed") return 6;
-  if (stage === "minResponded") return 5;
-  if (stage === "partial" || stage === "reminded") return 4;
-  if (stage === "junResponded") return 3;
-  if (stage === "seoResponded") return 2;
-  return 1;
-}
-
-function progressPercentForStage(stage: ResponseStage) {
-  return `${(responseCountForStage(stage) / 6) * 100}%`;
-}
-
-function missingNamesForStage(stage: ResponseStage) {
-  if (stage === "complete" || stage === "confirmed") return "";
-  if (stage === "minResponded") return "태민";
-  if (stage === "partial" || stage === "reminded") return "민수, 태민";
-  if (stage === "junResponded") return "지수, 민수, 태민";
-  if (stage === "seoResponded") return "준혁, 지수, 민수, 태민";
-  return "서연, 준혁, 지수, 민수, 태민";
-}
-
-function hasResponded(stage: ResponseStage, attendeeId: string) {
-  if (stage === "complete" || stage === "confirmed") return true;
-  if (attendeeId === "owner") return true;
-  if (attendeeId === "seo") {
-    return [
-      "seoResponded",
-      "junResponded",
-      "partial",
-      "reminded",
-      "minResponded",
-    ].includes(stage);
-  }
-  if (attendeeId === "jun") {
-    return ["junResponded", "partial", "reminded", "minResponded"].includes(
-      stage,
-    );
-  }
-  if (attendeeId === "ji") {
-    return ["partial", "reminded", "minResponded"].includes(stage);
-  }
-  if (attendeeId === "min") return stage === "minResponded";
-
-  return false;
+function ChatLine({
+  author,
+  initial,
+  message,
+  time,
+}: {
+  author: string;
+  initial: string;
+  message: string;
+  time: string;
+}) {
+  return (
+    <article className="flex items-end px-[clamp(20px,4vw,56px)]">
+      <AvatarBadge color="primary" initial={initial} />
+      <div className="ml-2 flex max-w-[700px] flex-col items-start">
+        <div className="flex h-[21px] items-center gap-1.5">
+          <span className="text-sm font-bold leading-[21px] text-[#101828]">
+            {author}
+          </span>
+          <span className="text-xs font-normal leading-[18px] text-[#98A2B3]">
+            {time}
+          </span>
+        </div>
+        <div className="mt-2 inline-flex min-h-11 max-w-[660px] items-center rounded-2xl bg-[#F7F6FF] px-4 py-2 text-sm font-medium leading-[21px] text-[#6F6A9F]">
+          {message}
+        </div>
+      </div>
+    </article>
+  );
 }
 
 function ProgressBar({ stage }: { stage: ResponseStage }) {
-  const complete = stage === "complete" || stage === "confirmed";
+  const confirmed = stage === "confirmed";
+  const allComplete = stage === "allComplete" || confirmed;
+  const optionalStarted = ["optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage);
 
   return (
     <div className="relative pb-[44px]">
       <div className="absolute left-0 right-0 top-3 h-1 rounded-full bg-[#E5E7EB]">
         <div
           className="h-1 rounded-full bg-[#635BFF] transition-all duration-500 ease-out"
-          style={{ width: complete ? "100%" : progressPercentForStage(stage) }}
+          style={{ width: confirmed ? "100%" : progressPercent(stage) }}
         />
       </div>
       <div className="absolute inset-x-0 top-0">
-        {["회의 생성", "응답 수집", "회의 확정"].map((label, index) => {
-          const done = complete ? index < 2 : index === 0;
-          const active = complete ? index === 2 : index === 1;
+        {["필수 응답", "선택 응답", "회의 확정"].map((label, index) => {
+          const done =
+            (index === 0 && optionalStarted) ||
+            (index === 1 && allComplete) ||
+            (index === 2 && confirmed);
+          const active =
+            (index === 0 && !optionalStarted) ||
+            (index === 1 && optionalStarted && !allComplete) ||
+            (index === 2 && allComplete && !confirmed);
           const position =
             index === 0
               ? "left-0 items-start text-left"
@@ -218,80 +353,91 @@ function ProgressBar({ stage }: { stage: ResponseStage }) {
   );
 }
 
-function ChatLine({
-  author,
-  initial,
-  message,
-  time,
-}: {
-  author: string;
-  initial: string;
-  message: string;
-  time: string;
-}) {
-  const isSystem = author === "MFlow";
-  const isHost = author.includes("주최자");
-
+function RecommendationResults() {
   return (
-    <article
-      className={`flex items-end px-[clamp(20px,4vw,56px)] ${isHost ? "justify-end" : "justify-start"}`}
-    >
-      {!isHost ? (
-        <AvatarBadge color={isSystem ? "primary" : "muted"} initial={initial} />
-      ) : null}
-      <div
-        className={
-          isHost
-            ? "mr-2 flex max-w-[700px] flex-col items-end"
-            : "ml-2 flex max-w-[700px] flex-col items-start"
-        }
-      >
-        <div
-          className={`flex h-[21px] items-center gap-1.5 ${
-            isHost ? "justify-end" : ""
-          }`}
-        >
-          <span className="text-sm font-bold leading-[21px] text-[#101828]">
-            {author}
-          </span>
-          <span className="text-xs font-normal leading-[18px] text-[#98A2B3]">
-            {time}
-          </span>
-        </div>
-        {isSystem ? (
-          <div className="mt-2 inline-flex h-11 max-w-[660px] items-center rounded-2xl bg-[#F7F6FF] px-4 text-sm font-medium leading-[21px] text-[#6F6A9F]">
-            {message}
-          </div>
-        ) : (
-          <p
-            className={`mt-2 max-w-[660px] rounded-2xl px-4 py-2 text-[15px] font-normal leading-6 ${
-              isHost
-                ? "bg-[#F7F6FF] text-right text-[#101828]"
-                : "bg-[#F9FAFB] text-left text-[#1D2939]"
-            }`}
-          >
-            {message}
-          </p>
-        )}
+    <section className="w-full max-w-[680px] rounded-xl border border-[#E0E4EB] bg-white p-5 shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
+      <div className="mb-4">
+        <h3 className="text-lg font-bold leading-7 text-[#101828]">
+          일정 집계 결과
+        </h3>
+        <p className="mt-1 text-sm font-medium leading-[21px] text-[#667085]">
+          필수 참석자가 모두 가능한 후보만 추천합니다.
+        </p>
       </div>
-      {isHost ? <AvatarBadge color="primary" initial={initial} /> : null}
-    </article>
+      <div className="space-y-3">
+        {recommendationCards.map((card) => (
+          <article
+            className={cn(
+              "rounded-xl border p-4",
+              card.emphasis
+                ? "border-[#837CFF] bg-[#F7F6FF]"
+                : "border-[#E0E4EB] bg-white",
+            )}
+            key={card.id}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <span
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-bold leading-[18px]",
+                    card.emphasis
+                      ? "bg-[#635BFF] text-white"
+                      : "bg-[#F0EEFF] text-[#635BFF]",
+                  )}
+                >
+                  {card.badge}
+                </span>
+                <h4 className="mt-3 text-base font-bold leading-6 text-[#101828]">
+                  {card.title}
+                </h4>
+              </div>
+              <span className="shrink-0 text-sm font-bold leading-[21px] text-[#635BFF]">
+                {card.totalText}
+              </span>
+            </div>
+            <div className="mt-3 space-y-1 text-sm font-medium leading-[21px] text-[#475467]">
+              <p>{card.requiredText}</p>
+              <p>{card.optionalText}</p>
+              {card.unavailableText ? (
+                <p className="font-bold text-[#667085]">{card.unavailableText}</p>
+              ) : null}
+            </div>
+            <p className="mt-3 text-sm font-bold leading-[21px] text-[#101828]">
+              {card.description}
+            </p>
+          </article>
+        ))}
+      </div>
+      <div className="mt-4 rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-4 py-3">
+        <h4 className="text-sm font-bold leading-[21px] text-[#101828]">
+          전원 참석 가능 추가 후보
+        </h4>
+        <p className="mt-2 text-sm font-medium leading-[21px] text-[#475467]">
+          2순위: 7월 16일 목요일 10:00–11:00
+        </p>
+        <p className="text-sm font-medium leading-[21px] text-[#475467]">
+          3순위: 7월 17일 금요일 14:00–15:00
+        </p>
+      </div>
+    </section>
   );
 }
 
 function ManagementCard({
   onConfirm,
+  onSendOptional,
   stage,
 }: {
   onConfirm: () => void;
+  onSendOptional: () => void;
   stage: ResponseStage;
 }) {
   const { meeting, summaries } = useMeetingFlow();
+  const { optionalCount, requiredCount, totalCount } = getCounts(stage);
+  const requiredComplete = requiredCount === 3;
+  const allComplete = stage === "allComplete" || stage === "confirmed";
   const confirmed = stage === "confirmed";
-  const complete = stage === "complete" || confirmed;
-  const responseCount = responseCountForStage(stage);
-  const missingNames = missingNamesForStage(stage);
-  const missingCount = 6 - responseCount;
+  const optionalSent = ["optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage);
 
   return (
     <section className="w-full max-w-[680px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
@@ -305,30 +451,30 @@ function ManagementCard({
               {meeting.title || "리뷰회의"}
             </h2>
             <p className="text-sm font-medium leading-[21px] text-[#475467]">
-              1시간 · 마감 {summaries.deadline} · {responseCount}/6명 응답
+              1시간 · 마감 {summaries.deadline} · {totalCount}/6명 응답
             </p>
           </div>
         </div>
         <span className="rounded-full bg-[#635BFF] px-3 py-1 text-xs font-bold leading-[18px] text-white">
-          {confirmed ? "회의 확정" : complete ? "응답 완료" : "응답 수집"}
+          {confirmed ? "회의 확정" : allComplete ? "집계 완료" : optionalSent ? "선택 응답 수집" : "필수 응답 수집"}
         </span>
       </div>
 
-      <div className="grid h-[92px] grid-cols-2 border-b border-[#E0E4EB]">
+      <div className="grid h-[102px] grid-cols-2 border-b border-[#E0E4EB]">
         <div className="flex flex-col justify-center px-6">
           <span className="text-sm font-bold leading-[21px] text-[#98A2B3]">
-            응답 현황
+            필수 참석자 응답
           </span>
           <span className="mt-1 text-[28px] font-bold leading-10 text-[#635BFF]">
-            {responseCount}/6명 응답
+            {requiredCount}/3명
           </span>
         </div>
         <div className="flex flex-col justify-center border-l border-[#E0E4EB] px-6">
           <span className="text-sm font-bold leading-[21px] text-[#98A2B3]">
-            {complete ? "모두 응답 완료" : `미응답자 ${missingCount}명`}
+            선택 참석자 응답
           </span>
-          <span className="mt-2 text-lg font-bold leading-7 text-[#101828]">
-            {complete ? "-" : missingNames}
+          <span className="mt-1 text-[28px] font-bold leading-10 text-[#475467]">
+            {optionalSent ? `${optionalCount}/3명` : "대기"}
           </span>
         </div>
       </div>
@@ -339,7 +485,11 @@ function ManagementCard({
             응답 진행
           </h3>
           <span className="text-xs font-medium leading-[18px] text-[#98A2B3]">
-            {complete ? "회의 확정 가능" : `${responseCount}명 제출 · 마감 전까지 응답 대기`}
+            {requiredComplete
+              ? optionalSent
+                ? "선택 참석자 응답 반영 중"
+                : "필수 참석자 응답 완료"
+              : `필수 참석자 3명 중 ${requiredCount}명이 응답했어요.`}
           </span>
         </div>
         <ProgressBar stage={stage} />
@@ -350,25 +500,118 @@ function ManagementCard({
           <h3 className="text-base font-bold leading-6 text-[#101828]">
             {confirmed
               ? "회의를 확정했습니다."
-              : complete
-                ? "응답이 모두 모였습니다. 회의를 확정하세요."
-                : "미응답자에게 마감 시간을 확인하세요"}
+              : allComplete
+                ? "전체 응답을 기반으로 추천 일정을 확인하세요."
+                : requiredComplete && !optionalSent
+                  ? "필수 참석자의 응답이 모두 완료됐어요."
+                  : "필수 참석자 응답을 먼저 기다리고 있습니다."}
           </h3>
           <p className="mt-1 text-[13px] font-medium leading-5 text-[#98A2B3]">
             {confirmed
               ? "참여자에게 일정이 공유되었습니다."
-              : complete
-                ? "회의 확정 후 참여자에게 알림이 전송됩니다."
-                : "응답이 모두 모이면 회의 확정으로 진행합니다."}
+              : allComplete
+                ? "전원 참석 가능 일정과 빠른 대안을 비교할 수 있습니다."
+                : requiredComplete && !optionalSent
+                  ? "이제 선택 참석자에게 후보 일정을 보낼 수 있습니다."
+                  : "필수 참석자 응답 전에는 선택 참석자에게 요청하지 않습니다."}
           </p>
         </div>
-        <Button
-          className="h-12 w-36 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
-          disabled={confirmed}
-          onClick={complete && !confirmed ? onConfirm : undefined}
-        >
-          {complete ? "회의 확정" : "응답 현황 보기"}
-        </Button>
+        {requiredComplete && !optionalSent ? (
+          <Button
+            className="h-12 w-48 rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+            onClick={onSendOptional}
+          >
+            선택 참석자에게 일정 보내기
+          </Button>
+        ) : (
+          <Button
+            className="h-12 w-36 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+            disabled={!allComplete || confirmed}
+            onClick={allComplete && !confirmed ? onConfirm : undefined}
+          >
+            {confirmed ? "확정 완료" : "회의 확정"}
+          </Button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ResponseTable({
+  onRetry,
+  stage,
+}: {
+  onRetry: (id: string) => void;
+  stage: ResponseStage;
+}) {
+  return (
+    <section className="w-full max-w-[680px] rounded-xl border border-[#E0E4EB] bg-white p-5 shadow-[0_4px_16px_rgba(16,24,40,0.08)]">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-bold leading-7 text-[#101828]">
+            응답 현황
+          </h3>
+          <p className="mt-1 text-sm font-medium leading-[21px] text-[#667085]">
+            팀원별 선택 날짜와 시간을 확인합니다.
+          </p>
+        </div>
+      </div>
+      <div className="space-y-3">
+        {attendees.map((attendee) => {
+          const status = getMemberStatus(stage, attendee.id);
+          const pending = status === "미응답";
+
+          return (
+            <div
+              className="rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-4 py-3"
+              key={attendee.id}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold leading-[21px] text-[#101828]">
+                      {attendee.name}
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-[2px] text-[11px] font-bold leading-[16px]",
+                        attendee.required
+                          ? "bg-[#F0EEFF] text-[#635BFF]"
+                          : "bg-[#F3F4F6] text-[#667085]",
+                      )}
+                    >
+                      {roleBadge(attendee.required)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm font-medium leading-[21px] text-[#667085]">
+                    {getMemberSelectedTime(attendee.id, status)}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-bold leading-[18px]",
+                      status === "가능" && "bg-[#F0EEFF] text-[#635BFF]",
+                      status === "불가능" && "bg-[#FFF4ED] text-[#B54708]",
+                      status === "미응답" && "bg-[#F3F4F6] text-[#667085]",
+                      status === "요청 전" && "bg-[#F3F4F6] text-[#98A2B3]",
+                    )}
+                  >
+                    {status}
+                  </span>
+                  {pending ? (
+                    <Button
+                      className="h-8 rounded-lg border border-[#E0E4EB] bg-white px-3 text-xs font-bold leading-[18px] text-[#475467] hover:bg-[#F9FAFB]"
+                      onClick={() => onRetry(attendee.id)}
+                    >
+                      다시 요청
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -376,21 +619,18 @@ function ManagementCard({
 
 function StatusPanel({
   confirmedSchedule,
-  onReminder,
+  onRetry,
   onViewSchedule,
   stage,
 }: {
   confirmedSchedule: ReturnType<typeof getConfirmedScheduleInfo>;
-  onReminder: () => void;
+  onRetry: (id: string) => void;
   onViewSchedule: () => void;
   stage: ResponseStage;
 }) {
+  const { optionalCount, requiredCount, totalCount } = getCounts(stage);
   const confirmed = stage === "confirmed";
-  const complete = stage === "complete" || confirmed;
-  const reminded = stage === "reminded" || stage === "minResponded";
-  const responseCount = responseCountForStage(stage);
-  const missingNames = missingNamesForStage(stage);
-  const missingCount = 6 - responseCount;
+  const allComplete = stage === "allComplete" || confirmed;
 
   return (
     <aside className="flex h-[100dvh] max-h-[100dvh] w-[328px] shrink-0 flex-col overflow-hidden border-l border-[#E5E7EB] bg-[#F9FAFB]">
@@ -399,45 +639,67 @@ function StatusPanel({
           응답 현황
         </h2>
         <p className="mt-2 text-sm font-medium leading-[21px] text-[#475467]">
-          {confirmed
-            ? "참여자에게 일정을 공유했습니다"
-            : complete
-              ? "모든 참여자가 응답했습니다"
-              : "마감 전 응답 현황만 확인합니다"}
+          {requiredCount < 3
+            ? `필수 참석자 3명 중 ${requiredCount}명이 응답했어요.`
+            : optionalCount < 3
+              ? `선택 참석자 3명 중 ${optionalCount}명이 응답했어요.`
+              : "필수 참석자의 응답이 모두 완료됐어요."}
         </p>
 
         <section className="mt-6 rounded-xl border border-[#E0E4EB] bg-white p-5">
           <span className="rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#6F6A9F]">
-            {confirmed ? "회의 확정" : complete ? "응답 완료" : "응답 수집"}
+            {confirmed ? "회의 확정" : allComplete ? "집계 완료" : "응답 수집"}
           </span>
           <h3 className="mt-5 text-[30px] font-bold leading-10 text-[#635BFF]">
-            {responseCount}/6명 응답
+            {totalCount}/6명 응답
           </h3>
-          <p className="mt-5 text-sm font-bold leading-[21px] text-[#475467]">
-            {complete ? "회의 확정" : `미응답자 ${missingCount}명: ${missingNames}`}
-          </p>
           <div className="mt-4 h-1.5 rounded-full bg-[#E5E7EB]">
             <div
               className="h-1.5 rounded-full bg-[#635BFF] transition-all duration-500 ease-out"
-              style={{ width: complete ? "100%" : progressPercentForStage(stage) }}
+              style={{ width: confirmed ? "100%" : progressPercent(stage) }}
             />
           </div>
-          <p className="mt-3 text-xs font-medium leading-[18px] text-[#98A2B3]">
-            {complete ? "100% 완료" : `${Math.round((responseCount / 6) * 100)}% 완료`}
-          </p>
-
           <div className="mt-5 space-y-3">
-            {responseNames.map((attendee) => {
-              const done = hasResponded(stage, attendee.id);
+            <div className="flex items-center justify-between text-sm font-medium leading-[21px]">
+              <span className="text-[#475467]">필수 참석자</span>
+              <span className="text-[#635BFF]">{requiredCount}/3명 완료</span>
+            </div>
+            <div className="flex items-center justify-between text-sm font-medium leading-[21px]">
+              <span className="text-[#475467]">선택 참석자</span>
+              <span className="text-[#667085]">{optionalCount}/3명 완료</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-5 rounded-xl border border-[#E0E4EB] bg-white p-5">
+          <h3 className="text-sm font-bold leading-[21px] text-[#101828]">
+            팀원별 상태
+          </h3>
+          <div className="mt-4 space-y-3">
+            {attendees.map((attendee) => {
+              const status = getMemberStatus(stage, attendee.id);
 
               return (
                 <div
-                  className="flex items-center justify-between text-sm font-medium leading-[21px]"
+                  className="flex items-center justify-between gap-3 text-sm font-medium leading-[21px]"
                   key={attendee.id}
                 >
-                  <span className="text-[#475467]">{attendee.label}</span>
-                  <span className={done ? "text-[#635BFF]" : "text-[#98A2B3]"}>
-                    {done ? "응답 완료" : "대기 중"}
+                  <span className="flex min-w-0 items-center gap-2 text-[#475467]">
+                    {shortName(attendee.name)}
+                    {attendee.required ? (
+                      <span className="rounded-full bg-[#F0EEFF] px-2 py-[2px] text-[11px] font-bold leading-[16px] text-[#635BFF]">
+                        필수
+                      </span>
+                    ) : null}
+                  </span>
+                  <span
+                    className={cn(
+                      status === "가능" && "text-[#635BFF]",
+                      status === "미응답" && "text-[#98A2B3]",
+                      status === "요청 전" && "text-[#98A2B3]",
+                    )}
+                  >
+                    {status}
                   </span>
                 </div>
               );
@@ -445,25 +707,14 @@ function StatusPanel({
           </div>
         </section>
 
-        {stage === "partial" && (
+        {getCounts(stage).respondedIds.length < 6 ? (
           <Button
-            className="mt-5 h-14 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
-            onClick={onReminder}
+            className="mt-5 h-12 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+            onClick={() => onRetry("all")}
           >
-            미응답자에게 리마인드 보내기 (2명)
+            미응답자에게 다시 요청
           </Button>
-        )}
-
-        {reminded && (
-          <div className="mt-5 rounded-lg border border-[#D8D5F7] bg-[#F7F6FF] px-5 py-4">
-            <h3 className="text-sm font-bold leading-[21px] text-[#635BFF]">
-              리마인드 전송됨
-            </h3>
-            <p className="mt-2 text-sm font-medium leading-[21px] text-[#635BFF]">
-              미응답자 2명에게 리마인드를 보냈습니다. 응답을 기다리는 중입니다.
-            </p>
-          </div>
-        )}
+        ) : null}
 
         {confirmed && (
           <div className="mt-5 rounded-lg border border-[#D8D5F7] bg-[#F7F6FF] px-5 py-4">
@@ -497,82 +748,6 @@ function StatusPanel({
   );
 }
 
-function ReminderEntryPoint({ onReminder }: { onReminder: () => void }) {
-  return (
-    <section className="flex w-full max-w-[680px] items-center justify-between rounded-xl border border-[#D8D5F7] bg-[#F7F6FF] px-5 py-4">
-      <p className="text-sm font-bold leading-[21px] text-[#475467]">
-        민수, 태민님이 아직 응답하지 않았어요.
-      </p>
-      <Button
-        className="h-10 rounded-lg bg-[#635BFF] px-5 text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
-        onClick={onReminder}
-      >
-        리마인드 보내기
-      </Button>
-    </section>
-  );
-}
-
-function ConfirmEntryPoint({ onConfirm }: { onConfirm: () => void }) {
-  return (
-    <section className="flex w-full max-w-[680px] items-center justify-between rounded-xl border border-[#D8D5F7] bg-[#F7F6FF] px-5 py-4">
-      <p className="text-sm font-bold leading-[21px] text-[#475467]">
-        모든 응답이 모였어요. 회의를 확정해주세요.
-      </p>
-      <Button
-        className="h-10 rounded-lg bg-[#635BFF] px-5 text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
-        onClick={onConfirm}
-      >
-        회의 확정
-      </Button>
-    </section>
-  );
-}
-
-function ResponseLogList({
-  onConfirm,
-  messages,
-  onReminder,
-  showConfirm,
-  showReminder,
-}: {
-  onConfirm: () => void;
-  messages: FollowUpMessage[];
-  onReminder: () => void;
-  showConfirm: boolean;
-  showReminder: boolean;
-}) {
-  if (messages.length === 0 && !showReminder && !showConfirm) return null;
-
-  return (
-    <div className="flex w-full flex-col">
-      {messages.length > 0 ? (
-        <div className="flex w-full flex-col gap-3">
-          {messages.map((message) => (
-            <ChatLine
-              author={message.author}
-              initial={message.initial}
-              key={message.id}
-              message={message.message}
-              time={message.time}
-            />
-          ))}
-        </div>
-      ) : null}
-      {showReminder && (
-        <div className={messages.length > 0 ? "mt-6" : ""}>
-          <ReminderEntryPoint onReminder={onReminder} />
-        </div>
-      )}
-      {showConfirm && (
-        <div className={messages.length > 0 ? "mt-6" : ""}>
-          <ConfirmEntryPoint onConfirm={onConfirm} />
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ResponseComposer() {
   return (
     <div className="absolute bottom-0 left-0 flex h-[104px] w-full items-center gap-[34px] border-t border-[#E0E4EB] bg-white px-8 py-4">
@@ -590,184 +765,154 @@ function ResponseComposer() {
 
 export function ResponseStatusPage() {
   const navigate = useNavigate();
-  const { meeting, summaries } = useMeetingFlow();
-  const [stage, setStage] = useState<ResponseStage>("initial");
-  const [reminderStarted, setReminderStarted] = useState(false);
+  const { meeting } = useMeetingFlow();
+  const [stage, setStage] = useState<ResponseStage>("requiredCollecting");
+  const [optionalStarted, setOptionalStarted] = useState(false);
+  const [retryMessage, setRetryMessage] = useState("");
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
-  const previousFollowUpCountRef = useRef(0);
+  const previousMessageCountRef = useRef(0);
   const confirmedSchedule = useMemo(
-    () => getConfirmedScheduleInfo(meeting.title, summaries.selectedTimes),
-    [meeting.title, summaries.selectedTimes],
+    () => getConfirmedScheduleInfo(meeting.title),
+    [meeting.title],
   );
 
   useEffect(() => {
-    const seoTimer = window.setTimeout(() => {
-      setStage("seoResponded");
-    }, 1000);
-    const junTimer = window.setTimeout(() => {
-      setStage("junResponded");
-    }, 2000);
-    const jiTimer = window.setTimeout(() => {
-      setStage("partial");
-    }, 3000);
+    const hyeTimer = window.setTimeout(() => setStage("requiredOne"), 1000);
+    const minTimer = window.setTimeout(() => setStage("requiredTwo"), 2000);
+    const junTimer = window.setTimeout(() => setStage("requiredComplete"), 3000);
 
     return () => {
-      window.clearTimeout(seoTimer);
+      window.clearTimeout(hyeTimer);
+      window.clearTimeout(minTimer);
       window.clearTimeout(junTimer);
-      window.clearTimeout(jiTimer);
     };
   }, []);
 
   useEffect(() => {
-    if (!reminderStarted) return undefined;
+    if (!optionalStarted) return undefined;
 
-    const minResponseTimer = window.setTimeout(() => {
-      setStage("minResponded");
-    }, 3000);
-    const taeResponseTimer = window.setTimeout(() => {
-      setStage("complete");
-    }, 6000);
+    const sentTimer = window.setTimeout(() => setStage("optionalSent"), 0);
+    const seoTimer = window.setTimeout(() => setStage("optionalOne"), 1000);
+    const jiTimer = window.setTimeout(() => setStage("optionalTwo"), 2000);
+    const eunTimer = window.setTimeout(() => setStage("allComplete"), 3000);
 
     return () => {
-      window.clearTimeout(minResponseTimer);
-      window.clearTimeout(taeResponseTimer);
+      window.clearTimeout(sentTimer);
+      window.clearTimeout(seoTimer);
+      window.clearTimeout(jiTimer);
+      window.clearTimeout(eunTimer);
     };
-  }, [reminderStarted]);
+  }, [optionalStarted]);
 
   const followUpMessages = useMemo<FollowUpMessage[]>(() => {
-    return [
-      ...(stage === "seoResponded" ||
-      stage === "junResponded" ||
-      stage === "partial" ||
-      stage === "reminded" ||
-      stage === "minResponded" ||
-      stage === "complete" ||
-      stage === "confirmed"
-        ? [
-            {
-              id: "seo-response",
-              author: "MFlow",
-              initial: "M",
-              time: "오전 10:14",
-              message: "서연님이 응답했습니다.",
-            },
-          ]
-        : []),
-      ...(stage === "junResponded" ||
-      stage === "partial" ||
-      stage === "reminded" ||
-      stage === "minResponded" ||
-      stage === "complete" ||
-      stage === "confirmed"
-        ? [
-            {
-              id: "jun-response",
-              author: "MFlow",
-              initial: "M",
-              time: "오전 10:15",
-              message: "준혁님이 응답했습니다.",
-            },
-          ]
-        : []),
-      ...(stage === "partial" ||
-      stage === "reminded" ||
-      stage === "minResponded" ||
-      stage === "complete" ||
-      stage === "confirmed"
-        ? [
-            {
-              id: "ji-response",
-              author: "MFlow",
-              initial: "M",
-              time: "오전 10:18",
-              message: "지수님이 응답했습니다.",
-            },
-          ]
-        : []),
-      ...(reminderStarted
-        ? [
-            {
-              id: "reminder",
-              author: "MFlow",
-              initial: "M",
-              time: "오전 10:20",
-              message: "미응답자에게 리마인드를 보냈습니다.",
-            },
-          ]
-        : []),
-      ...(stage === "minResponded" ||
-      stage === "complete" ||
-      stage === "confirmed"
-        ? [
-            {
-              id: "min-response",
-              author: "MFlow",
-              initial: "M",
-              time: "오전 10:21",
-              message: "민수님이 응답했습니다.",
-            },
-          ]
-        : []),
-      ...(stage === "complete"
-        ? [
-            {
-              id: "tae-response",
-              author: "MFlow",
-              initial: "M",
-              time: "오전 10:22",
-              message: "태민님이 응답했습니다.",
-            },
-          ]
-        : []),
-      ...(stage === "confirmed"
-        ? [
-            {
-              id: "tae-response",
-              author: "MFlow",
-              initial: "M",
-              time: "오전 10:22",
-              message: "태민님이 응답했습니다.",
-            },
-            {
-              id: "meeting-confirmed",
-              author: "MFlow",
-              initial: "M",
-              time: "오전 10:23",
-              message: "회의를 확정했습니다.",
-            },
-            {
-              id: "schedule-shared",
-              author: "MFlow",
-              initial: "M",
-              time: "오전 10:24",
-              message: "참여자에게 일정을 공유했습니다.",
-            },
-            {
-              id: "confirmed-schedule",
-              author: "MFlow",
-              initial: "M",
-              time: "오전 10:25",
-              message: `${confirmedSchedule.title}가 ${confirmedSchedule.displayDateTime}로 확정되었습니다.`,
-            },
-          ]
-        : []),
-    ];
-  }, [confirmedSchedule, reminderStarted, stage]);
+    const messages: FollowUpMessage[] = [];
 
-  const showReminderPrompt = stage === "partial";
-  const showConfirmPrompt = stage === "complete";
+    if (["requiredOne", "requiredTwo", "requiredComplete", "optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
+      messages.push({
+        id: "owner-response",
+        author: "MFlow",
+        initial: "M",
+        time: "오전 10:12",
+        message: "허혜경님이 응답했습니다.",
+      });
+    }
+    if (["requiredTwo", "requiredComplete", "optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
+      messages.push({
+        id: "min-response",
+        author: "MFlow",
+        initial: "M",
+        time: "오전 10:13",
+        message: "김민서님이 응답했습니다.",
+      });
+    }
+    if (["requiredComplete", "optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
+      messages.push({
+        id: "jun-response",
+        author: "MFlow",
+        initial: "M",
+        time: "오전 10:14",
+        message: "필수 참석자의 응답이 모두 완료됐어요.",
+      });
+    }
+    if (["optionalSent", "optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
+      messages.push({
+        id: "optional-sent",
+        author: "MFlow",
+        initial: "M",
+        time: "오전 10:15",
+        message: "선택 참석자에게 후보 일정을 보냈습니다.",
+      });
+    }
+    if (["optionalOne", "optionalTwo", "allComplete", "confirmed"].includes(stage)) {
+      messages.push({
+        id: "seo-response",
+        author: "MFlow",
+        initial: "M",
+        time: "오전 10:16",
+        message: "윤서연님이 응답했습니다.",
+      });
+    }
+    if (["optionalTwo", "allComplete", "confirmed"].includes(stage)) {
+      messages.push({
+        id: "ji-response",
+        author: "MFlow",
+        initial: "M",
+        time: "오전 10:17",
+        message: "윤지은님이 응답했습니다.",
+      });
+    }
+    if (["allComplete", "confirmed"].includes(stage)) {
+      messages.push({
+        id: "eun-response",
+        author: "MFlow",
+        initial: "M",
+        time: "오전 10:18",
+        message: "박은주님이 응답했습니다. 전체 응답을 기반으로 일정 집계를 완료했습니다.",
+      });
+    }
+    if (retryMessage) {
+      messages.push({
+        id: "retry-request",
+        author: "MFlow",
+        initial: "M",
+        time: "오전 10:19",
+        message: retryMessage,
+      });
+    }
+    if (stage === "confirmed") {
+      messages.push(
+        {
+          id: "meeting-confirmed",
+          author: "MFlow",
+          initial: "M",
+          time: "오전 10:20",
+          message: "회의를 확정했습니다.",
+        },
+        {
+          id: "schedule-shared",
+          author: "MFlow",
+          initial: "M",
+          time: "오전 10:21",
+          message: "참여자에게 일정을 공유했습니다.",
+        },
+        {
+          id: "confirmed-schedule",
+          author: "MFlow",
+          initial: "M",
+          time: "오전 10:22",
+          message: `${confirmedSchedule.title}가 ${confirmedSchedule.displayDateTime}로 확정되었습니다.`,
+        },
+      );
+    }
+
+    return messages;
+  }, [confirmedSchedule, retryMessage, stage]);
 
   useEffect(() => {
-    const previousCount = previousFollowUpCountRef.current;
-    previousFollowUpCountRef.current = followUpMessages.length;
+    const previousCount = previousMessageCountRef.current;
+    previousMessageCountRef.current = followUpMessages.length;
 
-    if (
-      followUpMessages.length <= previousCount &&
-      !showReminderPrompt &&
-      !showConfirmPrompt
-    ) {
-      return;
-    }
+    if (followUpMessages.length <= previousCount && stage !== "allComplete") return;
 
     window.requestAnimationFrame(() => {
       const scrollContainer = chatScrollRef.current;
@@ -779,16 +924,22 @@ export function ResponseStatusPage() {
         top: scrollContainer.scrollHeight,
       });
     });
-  }, [followUpMessages.length, showConfirmPrompt, showReminderPrompt]);
+  }, [followUpMessages.length, stage]);
 
-  function sendReminder() {
-    if (reminderStarted) return;
-    setStage("reminded");
-    setReminderStarted(true);
+  function sendOptionalRequests() {
+    if (optionalStarted) return;
+    setOptionalStarted(true);
+  }
+
+  function retryRequest(id: string) {
+    const target =
+      id === "all" ? "미응답자" : `${attendeeById(id)?.name ?? "미응답자"}님`;
+
+    setRetryMessage(`${target}에게 다시 요청을 보냈습니다.`);
   }
 
   function confirmMeeting() {
-    if (stage !== "complete") return;
+    if (stage !== "allComplete") return;
     saveConfirmedSchedule(confirmedSchedule);
     setStage("confirmed");
   }
@@ -805,22 +956,36 @@ export function ResponseStatusPage() {
             className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7"
             ref={chatScrollRef}
           >
-            <div className="flex w-full flex-col gap-3">
-              <ManagementCard onConfirm={confirmMeeting} stage={stage} />
-              <ResponseLogList
+            <div className="flex w-full flex-col gap-5">
+              <ManagementCard
                 onConfirm={confirmMeeting}
-                messages={followUpMessages}
-                onReminder={sendReminder}
-                showConfirm={showConfirmPrompt}
-                showReminder={showReminderPrompt}
+                onSendOptional={sendOptionalRequests}
+                stage={stage}
               />
+              {followUpMessages.length > 0 ? (
+                <div className="flex w-full flex-col gap-3">
+                  {followUpMessages.map((message) => (
+                    <ChatLine
+                      author={message.author}
+                      initial={message.initial}
+                      key={message.id}
+                      message={message.message}
+                      time={message.time}
+                    />
+                  ))}
+                </div>
+              ) : null}
+              <ResponseTable onRetry={retryRequest} stage={stage} />
+              {(stage === "allComplete" || stage === "confirmed") && (
+                <RecommendationResults />
+              )}
             </div>
           </div>
           <ResponseComposer />
         </div>
         <StatusPanel
           confirmedSchedule={confirmedSchedule}
-          onReminder={sendReminder}
+          onRetry={retryRequest}
           onViewSchedule={viewConfirmedSchedule}
           stage={stage}
         />
