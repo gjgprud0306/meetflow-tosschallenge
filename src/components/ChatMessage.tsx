@@ -18,7 +18,7 @@ export function ChatMessage({
 
   return (
     <article
-      className={`flex items-end ${isHost ? "justify-end" : "justify-start"}`}
+      className={`flex items-end px-[clamp(20px,4vw,56px)] ${isHost ? "justify-end" : "justify-start"}`}
     >
       {!isHost ? (
         isCompact ? (
