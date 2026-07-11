@@ -14,7 +14,7 @@ export function ChatMessage({
 }: ChatMessageProps) {
   const isHost = message.author.includes("주최자");
   const isCompact = previousAuthor === message.author;
-  const bubbleMaxWidth = large ? "max-w-[600px]" : "max-w-[560px]";
+  const bubbleMaxWidth = large ? "max-w-[700px]" : "max-w-[660px]";
 
   return (
     <article
@@ -30,8 +30,8 @@ export function ChatMessage({
       <div
         className={`min-w-0 ${
           isHost
-            ? "mr-2 flex max-w-[600px] flex-col items-end"
-            : "ml-2 flex max-w-[600px] flex-col items-start"
+            ? "mr-2 flex max-w-[700px] flex-col items-end"
+            : "ml-2 flex max-w-[700px] flex-col items-start"
         }`}
       >
         {!isCompact ? (

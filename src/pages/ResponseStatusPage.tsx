@@ -242,8 +242,8 @@ function ChatLine({
       <div
         className={
           isHost
-            ? "mr-2 flex max-w-[600px] flex-col items-end"
-            : "ml-2 flex max-w-[600px] flex-col items-start"
+            ? "mr-2 flex max-w-[700px] flex-col items-end"
+            : "ml-2 flex max-w-[700px] flex-col items-start"
         }
       >
         <div
@@ -259,12 +259,12 @@ function ChatLine({
           </span>
         </div>
         {isSystem ? (
-          <div className="mt-2 inline-flex h-11 max-w-[560px] items-center rounded-2xl bg-[#F7F6FF] px-4 text-sm font-medium leading-[21px] text-[#6F6A9F]">
+          <div className="mt-2 inline-flex h-11 max-w-[660px] items-center rounded-2xl bg-[#F7F6FF] px-4 text-sm font-medium leading-[21px] text-[#6F6A9F]">
             {message}
           </div>
         ) : (
           <p
-            className={`mt-2 max-w-[560px] rounded-2xl px-4 py-2 text-[15px] font-normal leading-6 ${
+            className={`mt-2 max-w-[660px] rounded-2xl px-4 py-2 text-[15px] font-normal leading-6 ${
               isHost
                 ? "bg-[#F7F6FF] text-right text-[#101828]"
                 : "bg-[#F9FAFB] text-left text-[#1D2939]"
