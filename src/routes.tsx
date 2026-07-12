@@ -24,8 +24,11 @@ const upcomingMeetings = [
 
 const confirmedMeetings = [
   {
+    category: "회의" as const,
+    id: "confirmed-review-meeting",
     title: "리뷰회의",
     meta: `${slotById("slot-7-15-15").label} · 참여자 6명`,
+    source: "confirmed" as const,
     status: "확정됨",
   },
 ];
@@ -191,7 +194,7 @@ export const router = createBrowserRouter([
         element: <ResponseStatusPage />,
       },
       {
-        path: "meetings/detail",
+        path: "meetings/confirmed/:id",
         element: <MeetingDetailPage />,
       },
     ],

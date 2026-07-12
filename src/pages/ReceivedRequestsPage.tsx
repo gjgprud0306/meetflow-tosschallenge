@@ -164,7 +164,7 @@ export function ReceivedRequestsPage() {
               {confirmed ? (
                 <Button
                   className="col-span-2 h-12 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90"
-                  onClick={() => navigate("/meetings/detail")}
+                  onClick={() => navigate("/meetings/confirmed/received-review-meeting")}
                 >
                   확정 일정 보기
                 </Button>

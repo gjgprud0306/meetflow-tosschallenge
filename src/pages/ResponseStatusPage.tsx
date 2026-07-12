@@ -1597,7 +1597,7 @@ export function ResponseStatusPage() {
   }
 
   function viewConfirmedMeeting() {
-    navigate("/meetings/detail");
+    navigate("/meetings/confirmed/confirmed-review-meeting");
   }
 
   function changeConfirmedSchedule() {

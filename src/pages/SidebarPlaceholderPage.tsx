@@ -3,7 +3,7 @@ import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import {
   getParticipantRequestResponseLabel,
@@ -116,10 +116,12 @@ function PlaceholderMeetingCard({
   card,
   highlighted,
   onDelete,
+  onOpen,
 }: {
   card: MeetingCard;
   highlighted: boolean;
   onDelete?: (card: MeetingCard) => void;
+  onOpen?: (card: MeetingCard) => void;
 }) {
   const isPastMeeting = card.status === "지난 회의";
   const coordinating = isCoordinatingSchedule(card);
@@ -142,6 +144,9 @@ function PlaceholderMeetingCard({
             ? ""
             : "border-[#E0E4EB]"
       }`}
+      onClick={() => onOpen?.(card)}
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
@@ -167,7 +172,10 @@ function PlaceholderMeetingCard({
           <button
             aria-label="일정 삭제"
             className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#D0D5DD] bg-white text-[#98A2B3] transition hover:border-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#667085]"
-            onClick={() => onDelete?.(card)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete?.(card);
+            }}
             type="button"
           >
             <X className="h-4 w-4" />
@@ -187,6 +195,7 @@ export function SidebarPlaceholderPage({
   title,
 }: SidebarPlaceholderPageProps) {
   const { meeting, receivedRequestStatus } = useMeetingFlow();
+  const navigate = useNavigate();
   const location = useLocation();
   const highlightedId = new URLSearchParams(location.search).get("highlight");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -350,6 +359,14 @@ export function SidebarPlaceholderPage({
                 <PlaceholderMeetingCard
                   card={card}
                   highlighted={card.id === highlightedId}
+                  onOpen={
+                    title === "회의 확정" && isConfirmedSchedule(card)
+                      ? () =>
+                          navigate(
+                            `/meetings/confirmed/${card.id ?? confirmedScheduleId}`,
+                          )
+                      : undefined
+                  }
                   onDelete={showAddSchedule ? setDeleteTarget : undefined}
                   key={`${card.title}-${card.meta}`}
                 />

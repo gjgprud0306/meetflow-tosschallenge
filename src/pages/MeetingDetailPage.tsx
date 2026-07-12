@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,7 @@ function fallbackDetail(): ConfirmedMeetingDetail {
 
 export function MeetingDetailPage() {
   const navigate = useNavigate();
+  const { id } = useParams();
   const { meeting, updateMeeting } = useMeetingFlow();
   const [shareMessage, setShareMessage] = useState("");
   const [roomModalOpen, setRoomModalOpen] = useState(false);
@@ -188,7 +189,13 @@ export function MeetingDetailPage() {
             <div className="mt-6 grid grid-cols-3 gap-3">
               <Button
                 className="h-12 rounded-lg border border-[#D0D5DD] bg-white text-sm font-bold leading-[21px] text-[#475467] hover:bg-[#F9FAFB]"
-                onClick={() => navigate("/meetings/response-status")}
+                onClick={() =>
+                  navigate(
+                    id === "received-review-meeting"
+                      ? "/requests/candidate-select"
+                      : "/meetings/response-status",
+                  )
+                }
               >
                 일정 변경
               </Button>
