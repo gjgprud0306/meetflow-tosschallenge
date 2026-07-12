@@ -314,69 +314,51 @@ function makeDescription(
   totalCount: number,
 ) {
   if (kind === "all") {
-    return `${totalCount}명 모두 참석할 수 있는 가장 빠른 일정이에요.`;
+    return `${totalCount}명 모두 참석할 수 있는 일정이에요.`;
   }
 
   if (kind === "partialOptional") {
     return `필수 참석자 ${requiredCount}명과 선택 참석자 ${optionalAvailableCount}명이 가능한 가장 빠른 일정이에요.`;
   }
 
-  return `필수 참석자 ${requiredCount}명 모두가 가능한 가장 빠른 일정이에요.`;
+  return `필수 참석자가 모두 가능한 가장 빠른 일정이에요.`;
 }
 
 export function getRecommendationCards(meeting: MeetingCreateMock) {
   const { attendeeIds, optionalIds, requiredIds } = getParticipantGroups(meeting);
   const chronologicalSlots = getChronologicalEligibleSlots(meeting);
-  const used = new Set<string>();
-  const cards: RecommendationCardData[] = [];
   const totalCount = attendeeIds.length;
 
-  function pushCard(kind: RecommendationCardData["kind"], badge: string, emphasis = false) {
-    const slot = chronologicalSlots.find((item) => {
-      if (used.has(item.id)) return false;
-      const optionalAvailableCount = optionalIds.filter((id) =>
-        item.availableIds.includes(id),
-      ).length;
-
-      if (kind === "all") return item.availableIds.length === totalCount;
-      if (kind === "partialOptional") {
-        return optionalAvailableCount > 0 && item.availableIds.length < totalCount;
-      }
-
-      return optionalAvailableCount === 0;
-    });
-
-    if (!slot) return;
-
-    used.add(slot.id);
-
+  return chronologicalSlots.slice(0, 3).map((slot, index) => {
     const optionalAvailableCount = optionalIds.filter((id) =>
       slot.availableIds.includes(id),
     ).length;
+    const allAvailable = slot.availableIds.length === totalCount;
+    const kind: RecommendationCardData["kind"] = allAvailable
+      ? "all"
+      : optionalAvailableCount > 0
+        ? "partialOptional"
+        : "requiredOnly";
 
-    cards.push({
-      badge,
+    return {
+      badge:
+        index === 0
+          ? "추천 1 · 가장 추천"
+          : allAvailable
+            ? `추천 ${index + 1} · 전원 가능`
+            : `추천 ${index + 1}`,
       description: makeDescription(
         kind,
         requiredIds.length,
         optionalAvailableCount,
         totalCount,
       ),
-      emphasis,
+      emphasis: index === 0,
       id: `${kind}-${slot.id}`,
       kind,
       slot,
-    });
-  }
-
-  pushCard("all", "추천 1 · 전원 참석 가능", true);
-
-  if (optionalIds.length > 0) {
-    pushCard("partialOptional", `추천 ${cards.length + 1} · 선택 참석자 일부 가능`);
-    pushCard("requiredOnly", `추천 ${cards.length + 1} · 필수 참석자 우선`);
-  }
-
-  return cards;
+    };
+  });
 }
 
 export function getAdditionalAllAvailableSlots(meeting: MeetingCreateMock) {

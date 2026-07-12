@@ -8,6 +8,7 @@ import {
   baseAvailabilitySlots,
   getAdditionalAllAvailableSlots,
   getRecommendationCards,
+  type AvailabilitySlot,
 } from "@/context/availabilityUtils";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { attendees } from "@/mocks";
@@ -302,6 +303,12 @@ function getConfirmedScheduleInfo(
   };
 }
 
+function confirmActionLabel(slot: AvailabilitySlot) {
+  const startTime = slot.timeLabel.split("–")[0];
+
+  return `${slot.dateLabel.replace("요일", "").trim()} ${startTime} 일정 확정`;
+}
+
 function saveConfirmedSchedule(schedule: ReturnType<typeof getConfirmedScheduleInfo>) {
   const saved = window.localStorage.getItem(scheduleStorageKey);
   let cards: {
@@ -454,11 +461,15 @@ function ProgressBar({
 }
 
 function RecommendationResults({
+  onSelectSlot,
   optionalIds,
   requiredIds,
+  selectedSlotId,
 }: {
+  onSelectSlot: (slotId: string) => void;
   optionalIds: string[];
   requiredIds: string[];
+  selectedSlotId: string;
 }) {
   const { meeting } = useMeetingFlow();
   const totalAttendees = requiredIds.length + optionalIds.length;
@@ -477,6 +488,7 @@ function RecommendationResults({
       </div>
       <div className="space-y-3">
         {cards.map((card) => {
+          const selected = selectedSlotId === card.slot.id;
           const unavailableOptionalIds = optionalIds.filter((id) =>
             card.slot.unavailableIds.includes(id),
           );
@@ -491,13 +503,17 @@ function RecommendationResults({
 
           return (
           <article
+            aria-pressed={selected}
             className={cn(
-              "rounded-xl border p-4",
-              card.emphasis
+              "cursor-pointer rounded-xl border p-4 transition-colors",
+              selected
+                ? "border-[#837CFF] bg-[#F7F6FF]"
+                : card.emphasis
                 ? "border-[#837CFF] bg-[#F7F6FF]"
                 : "border-[#E0E4EB] bg-white",
             )}
             key={card.id}
+            onClick={() => onSelectSlot(card.slot.id)}
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -515,9 +531,21 @@ function RecommendationResults({
                   {card.slot.label}
                 </h4>
               </div>
-              <span className="shrink-0 text-sm font-bold leading-[21px] text-[#635BFF]">
-                {totalAttendees}명 중 {card.slot.availableIds.length}명 참석 가능
-              </span>
+              <div className="flex shrink-0 items-start gap-3">
+                <span className="text-sm font-bold leading-[21px] text-[#635BFF]">
+                  {totalAttendees}명 중 {card.slot.availableIds.length}명 참석 가능
+                </span>
+                <span
+                  className={cn(
+                    "mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border",
+                    selected
+                      ? "border-[#635BFF] bg-[#635BFF]"
+                      : "border-[#C9CED8] bg-white",
+                  )}
+                >
+                  {selected ? <span className="h-2 w-2 rounded-full bg-white" /> : null}
+                </span>
+              </div>
             </div>
             <div className="mt-3 space-y-1 text-sm font-medium leading-[21px] text-[#475467]">
               <p>필수 참석자 {requiredIds.length}명 참석 가능</p>
@@ -715,7 +743,7 @@ function ManagementCard({
           >
             선택 참석자에게 일정 보내기
           </Button>
-        ) : (
+        ) : allComplete ? null : (
           <Button
             className="h-12 w-36 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
             disabled={(!allComplete && optionalIds.length > 0) || confirmed || !dateConfirmed}
@@ -1095,6 +1123,28 @@ function ResponseComposer() {
   );
 }
 
+function ConfirmRecommendationBar({
+  onConfirm,
+  selectedSlot,
+}: {
+  onConfirm: () => void;
+  selectedSlot: AvailabilitySlot | null;
+}) {
+  return (
+    <div className="absolute bottom-[104px] left-0 z-10 flex h-[84px] w-full items-center justify-end border-t border-[#E0E4EB] bg-white px-8 py-4 shadow-[0_-8px_24px_rgba(16,24,40,0.06)]">
+      <Button
+        className="h-12 min-w-[240px] rounded-lg bg-[#635BFF] px-6 text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8] disabled:bg-[#C9CED8] disabled:text-white"
+        disabled={!selectedSlot}
+        onClick={selectedSlot ? onConfirm : undefined}
+      >
+        {selectedSlot
+          ? confirmActionLabel(selectedSlot)
+          : "확정할 일정을 선택해주세요"}
+      </Button>
+    </div>
+  );
+}
+
 export function ResponseStatusPage() {
   const navigate = useNavigate();
   const { meeting, setReceivedRequestStatus, updateMeeting } = useMeetingFlow();
@@ -1122,16 +1172,6 @@ export function ResponseStatusPage() {
     () => getRequiredAggregation(requiredParticipantIds, requiredResponseCount),
     [requiredParticipantIds, requiredResponseCount],
   );
-  const confirmedSchedule = useMemo(
-    () =>
-      getConfirmedScheduleInfo(
-        meeting.title,
-        requiredAggregation.selectedSlot,
-        meeting.attendeeIds.length,
-        getMeetingLocationLabel(meeting),
-      ),
-    [meeting, requiredAggregation.selectedSlot],
-  );
   const requiredComplete =
     requiredParticipantIds.length === 0 ||
     requiredResponseCount >= requiredParticipantIds.length;
@@ -1149,6 +1189,27 @@ export function ResponseStatusPage() {
   const [confirmed, setConfirmed] = useState(false);
   const [roomModalOpen, setRoomModalOpen] = useState(false);
   const [draftRoomId, setDraftRoomId] = useState(meeting.selectedRoomId);
+  const [selectedRecommendationSlotId, setSelectedRecommendationSlotId] = useState("");
+  const recommendationCards = useMemo(() => getRecommendationCards(meeting), [meeting]);
+  const activeSelectedRecommendationSlotId = recommendationCards.some(
+    (card) => card.slot.id === selectedRecommendationSlotId,
+  )
+    ? selectedRecommendationSlotId
+    : "";
+  const selectedRecommendationSlot = activeSelectedRecommendationSlotId
+    ? slotById(activeSelectedRecommendationSlotId)
+    : null;
+  const finalSelectedSlot = selectedRecommendationSlot ?? requiredAggregation.selectedSlot;
+  const confirmedSchedule = useMemo(
+    () =>
+      getConfirmedScheduleInfo(
+        meeting.title,
+        finalSelectedSlot,
+        meeting.attendeeIds.length,
+        getMeetingLocationLabel(meeting),
+      ),
+    [finalSelectedSlot, meeting],
+  );
   const stage: ResponseStage = confirmed
     ? "confirmed"
     : allComplete
@@ -1171,6 +1232,7 @@ export function ResponseStatusPage() {
       setAdjustmentResolved(false);
       setOptionalStarted(false);
       setConfirmed(false);
+      setSelectedRecommendationSlotId("");
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -1381,6 +1443,7 @@ export function ResponseStatusPage() {
 
   function confirmMeeting() {
     if (!allComplete) return;
+    if (!selectedRecommendationSlotId) return;
     if (
       meeting.locationType === "internal" &&
       !meeting.selectedRoomId &&
@@ -1406,7 +1469,7 @@ export function ResponseStatusPage() {
     saveConfirmedSchedule(
       getConfirmedScheduleInfo(
         meeting.title,
-        requiredAggregation.selectedSlot,
+        finalSelectedSlot,
         meeting.attendeeIds.length,
         roomName,
       ),
@@ -1424,7 +1487,7 @@ export function ResponseStatusPage() {
     saveConfirmedSchedule(
       getConfirmedScheduleInfo(
         meeting.title,
-        requiredAggregation.selectedSlot,
+        finalSelectedSlot,
         meeting.attendeeIds.length,
         "회의실 미정",
       ),
@@ -1447,7 +1510,10 @@ export function ResponseStatusPage() {
       <div className="flex h-full w-full min-w-0 bg-white">
         <div className="relative min-w-0 flex-1">
           <div
-            className="h-full w-full overflow-y-auto px-8 pb-[132px] pt-7"
+            className={cn(
+              "h-full w-full overflow-y-auto px-8 pt-7",
+              stage === "allComplete" ? "pb-[228px]" : "pb-[132px]",
+            )}
             ref={chatScrollRef}
           >
             <div className="flex w-full flex-col gap-5">
@@ -1485,17 +1551,25 @@ export function ResponseStatusPage() {
                 optionalResponseCount={optionalResponseCount}
                 requiredResponseCount={requiredResponseCount}
                 requiredIds={requiredParticipantIds}
-                selectedSlotId={requiredAggregation.selectedSlot.id}
+                selectedSlotId={finalSelectedSlot.id}
                 stage={stage}
               />
               {(stage === "allComplete" || stage === "confirmed") && (
                 <RecommendationResults
+                  onSelectSlot={setSelectedRecommendationSlotId}
                   optionalIds={optionalParticipantIds}
                   requiredIds={requiredParticipantIds}
+                  selectedSlotId={activeSelectedRecommendationSlotId}
                 />
               )}
             </div>
           </div>
+          {stage === "allComplete" ? (
+            <ConfirmRecommendationBar
+              onConfirm={confirmMeeting}
+              selectedSlot={selectedRecommendationSlot}
+            />
+          ) : null}
           <ResponseComposer />
         </div>
         <StatusPanel
@@ -1512,7 +1586,7 @@ export function ResponseStatusPage() {
           optionalStarted={optionalStarted}
           requiredResponseCount={requiredResponseCount}
           requiredIds={requiredParticipantIds}
-          selectedSlotId={requiredAggregation.selectedSlot.id}
+          selectedSlotId={finalSelectedSlot.id}
           stage={stage}
         />
       </div>
