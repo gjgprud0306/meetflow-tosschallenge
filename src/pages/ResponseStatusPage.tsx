@@ -224,25 +224,30 @@ function getMemberStatus(
   return "가능";
 }
 
-function getMemberSelectedTime(
-  id: string,
-  status: ResponseStatus,
-  selectedSlotId: string,
-) {
-  if (status === "미응답" || status === "요청 전") return "-";
+function getMemberScheduleDetail(id: string, status: ResponseStatus) {
+  if (status === "미응답" || status === "요청 전") return null;
 
   const response = responseProfile(id);
   const preferredSlot = slotById(response.preferredSlotId);
-  const selectedSlot = slotById(selectedSlotId);
-  const unavailableSlots = response.unavailableSlotIds
-    .map(slotById)
-    .map((slot) => slot.label)
-    .join(", ");
 
-  if (status === "불가능") return `희망: ${preferredSlot.label} · 불가능: ${selectedSlot.label}`;
-  if (unavailableSlots) return `희망: ${preferredSlot.label} · 불가능: ${unavailableSlots}`;
+  return {
+    preferredLabel: preferredSlot.label,
+    unavailableLabels: response.unavailableSlotIds.map(slotById).map((slot) => slot.label),
+  };
+}
 
-  return `희망: ${preferredSlot.label}`;
+function getResponseSummaryBadge(id: string, status: ResponseStatus) {
+  if (status === "미응답" || status === "요청 전") {
+    return { label: "미응답", tone: "pending" as const };
+  }
+
+  const response = responseProfile(id);
+
+  if (response.unavailableSlotIds.length === 0) {
+    return { label: "모두 가능", tone: "complete" as const };
+  }
+
+  return { label: "응답 완료", tone: "complete" as const };
 }
 
 const meetingRooms = [
@@ -774,6 +779,8 @@ function ResponseTable({
             selectedSlotId,
             adjustmentResolved,
           );
+          const scheduleDetail = getMemberScheduleDetail(attendee.id, status);
+          const summaryBadge = getResponseSummaryBadge(attendee.id, status);
           const pending = status === "미응답";
 
           return (
@@ -798,22 +805,42 @@ function ResponseTable({
                       {roleBadge(required)}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm font-medium leading-[21px] text-[#667085]">
-                    {getMemberSelectedTime(attendee.id, status, selectedSlotId)}
-                  </p>
+                  {scheduleDetail ? (
+                    <div className="mt-2 space-y-3 text-sm font-medium leading-[21px] text-[#475467]">
+                      <div>
+                        <p className="text-xs font-bold leading-[18px] text-[#98A2B3]">
+                          희망 일정
+                        </p>
+                        <p className="mt-1">{scheduleDetail.preferredLabel}</p>
+                      </div>
+                      {scheduleDetail.unavailableLabels.length > 0 ? (
+                        <div>
+                          <p className="text-xs font-bold leading-[18px] text-[#98A2B3]">
+                            참석 어려움
+                          </p>
+                          <div className="mt-1 space-y-1">
+                            {scheduleDetail.unavailableLabels.map((label) => (
+                              <p key={label}>{label}</p>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-sm font-medium leading-[21px] text-[#667085]">
+                      -
+                    </p>
+                  )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <span
                     className={cn(
                       "rounded-full px-3 py-1 text-xs font-bold leading-[18px]",
-                      status === "희망" && "bg-[#F0EEFF] text-[#635BFF]",
-                      status === "가능" && "bg-[#F0EEFF] text-[#635BFF]",
-                      status === "불가능" && "bg-[#FFF4ED] text-[#B54708]",
-                      status === "미응답" && "bg-[#F3F4F6] text-[#667085]",
-                      status === "요청 전" && "bg-[#F3F4F6] text-[#98A2B3]",
+                      summaryBadge.tone === "complete" && "bg-[#F0EEFF] text-[#635BFF]",
+                      summaryBadge.tone === "pending" && "bg-[#F3F4F6] text-[#667085]",
                     )}
                   >
-                    {status}
+                    {summaryBadge.label}
                   </span>
                   {pending ? (
                     <Button
@@ -1192,7 +1219,7 @@ export function ResponseStatusPage() {
           author: "MFlow",
           initial: "M",
           time: `오전 10:${String(12 + index).padStart(2, "0")}`,
-          message: `${attendee?.name ?? "필수 참석자"}님이 응답했습니다. 희망: ${preferredSlot.label}${unavailableSlots ? ` · 불가능: ${unavailableSlots}` : ""}`,
+          message: `${attendee?.name ?? "필수 참석자"}님이 응답했습니다. 희망: ${preferredSlot.label}${unavailableSlots ? ` · 참석 어려움: ${unavailableSlots}` : ""}`,
         });
       },
     );
