@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
+import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { cn } from "@/lib/utils";
 import {
   participantRequestAnswersKey,
@@ -21,6 +22,7 @@ const candidateOptions = [
 
 export function MeetingCandidateSelectPage() {
   const navigate = useNavigate();
+  const { setReceivedRequestStatus } = useMeetingFlow();
   const [answers, setAnswers] = useState<Record<string, CandidateAnswer>>(() => {
     const saved = window.localStorage.getItem(participantRequestAnswersKey);
 
@@ -40,6 +42,7 @@ export function MeetingCandidateSelectPage() {
   function submitResponse() {
     window.localStorage.setItem(participantRequestAnswersKey, JSON.stringify(answers));
     window.localStorage.setItem(participantRequestStatusKey, "completed");
+    setReceivedRequestStatus("completed");
     navigate("/requests/received");
   }
 

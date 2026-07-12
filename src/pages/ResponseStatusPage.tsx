@@ -1023,7 +1023,7 @@ function ResponseComposer() {
 
 export function ResponseStatusPage() {
   const navigate = useNavigate();
-  const { meeting } = useMeetingFlow();
+  const { meeting, setReceivedRequestStatus } = useMeetingFlow();
   const [requiredResponseCount, setRequiredResponseCount] = useState(0);
   const [optionalResponseCount, setOptionalResponseCount] = useState(0);
   const [adjustmentRequested, setAdjustmentRequested] = useState(false);
@@ -1306,6 +1306,7 @@ export function ResponseStatusPage() {
     if (!allComplete) return;
     saveConfirmedSchedule(confirmedSchedule);
     setConfirmed(true);
+    setReceivedRequestStatus("confirmed");
   }
 
   function viewConfirmedSchedule() {

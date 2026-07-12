@@ -2,8 +2,12 @@ import { createContext } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { MeetingCreateMock } from "@/types/meeting";
 
+export type ReceivedRequestStatus = "completed" | "confirmed";
+
 export type MeetingFlowContextValue = {
   meeting: MeetingCreateMock;
+  receivedRequestStatus: ReceivedRequestStatus;
+  setReceivedRequestStatus: Dispatch<SetStateAction<ReceivedRequestStatus>>;
   updateMeeting: (patch: Partial<MeetingCreateMock>) => void;
   setMeeting: Dispatch<SetStateAction<MeetingCreateMock>>;
   summaries: {

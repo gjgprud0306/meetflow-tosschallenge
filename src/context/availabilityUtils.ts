@@ -158,6 +158,10 @@ export function attendeeName(id: string) {
   return attendees.find((attendee) => attendee.id === id)?.name ?? "";
 }
 
+export function slotById(id: string) {
+  return baseAvailabilitySlots.find((slot) => slot.id === id) ?? baseAvailabilitySlots[2];
+}
+
 export function getParticipantGroups(meeting: MeetingCreateMock) {
   const attendeeIds = meeting.attendeeIds;
   const requiredIds = attendeeIds.filter((id) =>

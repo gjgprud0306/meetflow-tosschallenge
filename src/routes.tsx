@@ -13,22 +13,18 @@ import type { ChatMessage } from "@/types/meeting";
 
 const upcomingMeetings = [
   {
-    category: "회의" as const,
-    title: "디자인 시스템 점검",
-    meta: "오늘 오후 2:00 · 디자인팀",
-    status: "예정",
-  },
-  {
     category: "개인" as const,
-    title: "병원 예약",
-    meta: "오늘 오후 5:30",
+    title: "리더 미팅",
+    meta: "7/15(수) 13:00–14:00",
     status: "예정",
   },
   {
-    category: "외근" as const,
-    title: "고객사 미팅",
-    meta: "7/11(토) 오후 2:00",
-    status: "예정",
+    category: "회의" as const,
+    id: "received-review-meeting",
+    meta: "7/15(수) 15:00–16:00 · 허혜경 응답: 희망",
+    source: "coordinating" as const,
+    status: "조율 중",
+    title: "회의 일정 조율 중",
   },
 ];
 

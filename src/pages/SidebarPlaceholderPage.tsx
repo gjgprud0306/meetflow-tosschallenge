@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
+import { useMeetingFlow } from "@/context/useMeetingFlow";
 import type { ChatMessage as ChatMessageType } from "@/types/meeting";
 
 type ScheduleType = "회의" | "외근" | "휴가" | "개인";
@@ -14,7 +15,7 @@ type MeetingCard = {
   title: string;
   meta: string;
   status: string;
-  source?: "manual" | "confirmed";
+  source?: "manual" | "confirmed" | "coordinating";
 };
 
 type SidebarPlaceholderPageProps = {
@@ -103,6 +104,10 @@ function isConfirmedSchedule(card: MeetingCard) {
   return card.source === "confirmed";
 }
 
+function isCoordinatingSchedule(card: MeetingCard) {
+  return card.source === "coordinating";
+}
+
 function PlaceholderMeetingCard({
   card,
   highlighted,
@@ -113,20 +118,34 @@ function PlaceholderMeetingCard({
   onDelete?: (card: MeetingCard) => void;
 }) {
   const isPastMeeting = card.status === "지난 회의";
-  const canShowDelete = Boolean(onDelete) && !isConfirmedSchedule(card);
-  const badgeLabel = card.category ?? (isPastMeeting ? "완료" : card.status);
+  const coordinating = isCoordinatingSchedule(card);
+  const canShowDelete =
+    Boolean(onDelete) && !isConfirmedSchedule(card) && !coordinating;
+  const badgeLabel = coordinating
+    ? "조율 중"
+    : card.category ?? (isPastMeeting ? "완료" : card.status);
 
   return (
     <article
-      className={`w-full max-w-[520px] rounded-xl border bg-white px-5 py-4 shadow-[0_4px_16px_rgba(16,24,40,0.06)] ${
-        highlighted ? "border-[#837CFF] ring-4 ring-[#F7F6FF]" : "border-[#E0E4EB]"
+      className={`w-full max-w-[520px] rounded-xl border px-5 py-4 shadow-[0_4px_16px_rgba(16,24,40,0.06)] ${
+        coordinating
+          ? "border-dashed border-[#837CFF] bg-[#F7F6FF]"
+          : "bg-white"
+      } ${
+        highlighted && !coordinating
+          ? "border-[#837CFF] ring-4 ring-[#F7F6FF]"
+          : coordinating
+            ? ""
+            : "border-[#E0E4EB]"
       }`}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <span
             className={
-              isPastMeeting
+              coordinating
+                ? "inline-flex rounded-full bg-[#837CFF] px-3 py-1 text-xs font-bold leading-[18px] text-white"
+                : isPastMeeting
                 ? "inline-flex rounded-full bg-[#F2F4F7] px-3 py-1 text-xs font-bold leading-[18px] text-[#667085]"
                 : "inline-flex rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#6F6A9F]"
             }
@@ -163,6 +182,7 @@ export function SidebarPlaceholderPage({
   showAddSchedule = false,
   title,
 }: SidebarPlaceholderPageProps) {
+  const { receivedRequestStatus } = useMeetingFlow();
   const location = useLocation();
   const highlightedId = new URLSearchParams(location.search).get("highlight");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -178,6 +198,24 @@ export function SidebarPlaceholderPage({
     scheduleTitle.trim().length > 0 &&
     selectedDate.trim().length > 0 &&
     selectedTime.trim().length > 0;
+  const visibleScheduleCards = showAddSchedule
+    ? scheduleCards.map((card) => {
+        if (card.id !== "received-review-meeting") return card;
+
+        if (receivedRequestStatus === "confirmed") {
+          return {
+            ...card,
+            category: "회의" as const,
+            meta: "7/15(수) 15:00–16:00 · 참석자 6명",
+            source: "confirmed" as const,
+            status: "확정됨",
+            title: "리뷰회의",
+          };
+        }
+
+        return card;
+      })
+    : scheduleCards;
 
   function closeModal() {
     setIsModalOpen(false);
@@ -277,7 +315,7 @@ export function SidebarPlaceholderPage({
             </div>
           ) : (
             <div className="mt-8 flex flex-col gap-4">
-              {scheduleCards.map((card) => (
+              {visibleScheduleCards.map((card) => (
                 <PlaceholderMeetingCard
                   card={card}
                   highlighted={card.id === highlightedId}
