@@ -1293,7 +1293,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
 
   return (
     <>
-      <section className="h-[744px] w-[880px] rounded-xl border border-[#E0E4EB] bg-white px-7 py-6">
+      <section className="h-[744px] w-[880px] rounded-xl border border-[#E0E4EB] bg-white px-7 pb-8 pt-6">
         <div className="flex h-14 w-[824px] items-start justify-between">
           <div>
             <p className="text-[13px] font-medium leading-5 text-[#475467]">
@@ -1401,14 +1401,14 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                 </span>
                 응답하지 않은 참석자에게만 리마인드를 보냅니다.
               </button>
-              <div className="flex h-[70px] w-[360px] items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-[17px]">
-                <p className="w-[231px] text-[13px] font-medium leading-5 text-[#475467]">
+              <div className="flex min-h-[70px] w-[360px] items-center rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-[17px] py-3">
+                <p className="w-full text-[13px] font-medium leading-5 text-[#475467]">
                   {summaries.reminderText}
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               {options.reminders.map((option) => (
                 <ReminderOption
                   disabled={!meeting.reminderEnabled}
