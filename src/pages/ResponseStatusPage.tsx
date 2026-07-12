@@ -13,6 +13,7 @@ import {
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { attendees } from "@/mocks";
 import { cn } from "@/lib/utils";
+import type { MeetingCreateMock } from "@/types/meeting";
 
 type ResponseStage =
   | "requiredCollecting"
@@ -39,6 +40,7 @@ type ParticipantResponse = {
 };
 
 const scheduleStorageKey = "mflow-my-schedule-cards";
+const confirmedDetailStorageKey = "mflow-confirmed-meeting-detail";
 const confirmedScheduleId = "confirmed-review-meeting";
 
 function attendeeById(id: string) {
@@ -371,6 +373,24 @@ function saveConfirmedSchedule(schedule: ReturnType<typeof getConfirmedScheduleI
   ];
 
   window.localStorage.setItem(scheduleStorageKey, JSON.stringify(nextCards));
+}
+
+function saveConfirmedMeetingDetail(
+  schedule: ReturnType<typeof getConfirmedScheduleInfo>,
+  meeting: MeetingCreateMock,
+) {
+  window.localStorage.setItem(
+    confirmedDetailStorageKey,
+    JSON.stringify({
+      ...schedule,
+      attendeeIds: meeting.attendeeIds,
+      requiredAttendeeIds: meeting.requiredAttendeeIds,
+    }),
+  );
+}
+
+function hasAssignedLocation(locationLabel: string) {
+  return !["장소 미정", "회의실 미정", "외부 장소 미정"].includes(locationLabel);
 }
 
 function ChatLine({
@@ -937,11 +957,13 @@ function StatusPanel({
   adjustmentResolved,
   attendeeIds,
   confirmedSchedule,
+  locationAssigned,
+  onChangeSchedule,
   onRequestAdjustment,
   onRetry,
   onSendOptional,
   onChangeRoom,
-  onViewSchedule,
+  onViewDetail,
   optionalIds,
   optionalResponseCount,
   optionalStarted,
@@ -953,11 +975,13 @@ function StatusPanel({
   adjustmentResolved: boolean;
   attendeeIds: string[];
   confirmedSchedule: ReturnType<typeof getConfirmedScheduleInfo>;
+  locationAssigned: boolean;
+  onChangeSchedule: () => void;
   onRequestAdjustment: () => void;
   onRetry: (id: string) => void;
   onSendOptional: () => void;
   onChangeRoom: () => void;
-  onViewSchedule: () => void;
+  onViewDetail: () => void;
   optionalIds: string[];
   optionalResponseCount: number;
   optionalStarted: boolean;
@@ -1123,7 +1147,7 @@ function StatusPanel({
         {confirmed && (
           <div className="mt-5 rounded-lg border border-[#D8D5F7] bg-[#F7F6FF] px-5 py-4">
             <h3 className="text-sm font-bold leading-[21px] text-[#635BFF]">
-              일정 공유 완료
+              회의 확정 완료
             </h3>
             <p className="mt-2 text-sm font-bold leading-[21px] text-[#101828]">
               {confirmedSchedule.title}
@@ -1137,26 +1161,23 @@ function StatusPanel({
             <p className="mt-3 text-sm font-medium leading-[21px] text-[#635BFF]">
               모든 참여자 {totalAttendees}명에게 확정된 일정을 공유했습니다.
             </p>
-            <Button
-              className="mt-4 h-10 w-full rounded-lg border border-[#D8D5F7] bg-white text-sm font-bold leading-[21px] text-[#635BFF] hover:bg-[#F7F6FF]"
-              onClick={onChangeRoom}
-            >
-              회의실 지정/변경
-            </Button>
+            <div className="mt-4 space-y-2">
+              <Button
+                className="h-11 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+                onClick={locationAssigned ? onViewDetail : onChangeRoom}
+              >
+                {locationAssigned ? "확정된 회의 보기" : "회의실 지정"}
+              </Button>
+              <Button
+                className="h-11 w-full rounded-lg border border-[#D0D5DD] bg-white text-sm font-bold leading-[21px] text-[#475467] hover:bg-[#F9FAFB]"
+                onClick={onChangeSchedule}
+              >
+                일정 변경
+              </Button>
+            </div>
           </div>
         )}
       </div>
-
-      {confirmed && (
-        <div className="sticky bottom-0 shrink-0 border-t border-[#E5E7EB] bg-[#F9FAFB] px-6 pb-6 pt-4">
-          <Button
-            className="h-11 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
-            onClick={onViewSchedule}
-          >
-            내 일정에서 보기
-          </Button>
-        </div>
-      )}
     </aside>
   );
 }
@@ -1513,6 +1534,7 @@ export function ResponseStatusPage() {
       return;
     }
     saveConfirmedSchedule(confirmedSchedule);
+    saveConfirmedMeetingDetail(confirmedSchedule, meeting);
     setConfirmed(true);
     setReceivedRequestStatus("confirmed");
   }
@@ -1520,37 +1542,51 @@ export function ResponseStatusPage() {
   function completeRoomSelection(roomId: string) {
     const roomName = roomById(roomId)?.name ?? "회의실 미정";
 
+    const nextMeeting: MeetingCreateMock = {
+      ...meeting,
+      locationType: "internal",
+      roomSelectionDeferred: false,
+      selectedRoomId: roomId,
+    };
+
     updateMeeting({
+      locationType: "internal",
       roomSelectionDeferred: false,
       selectedRoomId: roomId,
     });
     setRoomModalOpen(false);
-    saveConfirmedSchedule(
-      getConfirmedScheduleInfo(
-        meeting.title,
-        finalSelectedSlot,
-        meeting.attendeeIds.length,
-        roomName,
-      ),
+    const nextSchedule = getConfirmedScheduleInfo(
+      meeting.title,
+      finalSelectedSlot,
+      meeting.attendeeIds.length,
+      roomName,
     );
+    saveConfirmedSchedule(nextSchedule);
+    saveConfirmedMeetingDetail(nextSchedule, nextMeeting);
     setConfirmed(true);
     setReceivedRequestStatus("confirmed");
   }
 
   function deferRoomSelection() {
+    const nextMeeting: MeetingCreateMock = {
+      ...meeting,
+      roomSelectionDeferred: true,
+      selectedRoomId: "",
+    };
+
     updateMeeting({
       roomSelectionDeferred: true,
       selectedRoomId: "",
     });
     setRoomModalOpen(false);
-    saveConfirmedSchedule(
-      getConfirmedScheduleInfo(
-        meeting.title,
-        finalSelectedSlot,
-        meeting.attendeeIds.length,
-        "회의실 미정",
-      ),
+    const nextSchedule = getConfirmedScheduleInfo(
+      meeting.title,
+      finalSelectedSlot,
+      meeting.attendeeIds.length,
+      "회의실 미정",
     );
+    saveConfirmedSchedule(nextSchedule);
+    saveConfirmedMeetingDetail(nextSchedule, nextMeeting);
     setConfirmed(true);
     setReceivedRequestStatus("confirmed");
   }
@@ -1560,8 +1596,13 @@ export function ResponseStatusPage() {
     setRoomModalOpen(true);
   }
 
-  function viewConfirmedSchedule() {
-    navigate(`/my-schedule?highlight=${confirmedSchedule.id}`);
+  function viewConfirmedMeeting() {
+    navigate("/meetings/detail");
+  }
+
+  function changeConfirmedSchedule() {
+    setConfirmed(false);
+    setReceivedRequestStatus("completed");
   }
 
   return (
@@ -1636,11 +1677,13 @@ export function ResponseStatusPage() {
           adjustmentResolved={adjustmentResolved}
           attendeeIds={meeting.attendeeIds}
           confirmedSchedule={confirmedSchedule}
+          locationAssigned={hasAssignedLocation(confirmedSchedule.locationLabel)}
+          onChangeSchedule={changeConfirmedSchedule}
           onRequestAdjustment={requestAdjustment}
           onRetry={retryRequest}
           onSendOptional={sendOptionalRequests}
           onChangeRoom={openRoomModal}
-          onViewSchedule={viewConfirmedSchedule}
+          onViewDetail={viewConfirmedMeeting}
           optionalIds={optionalParticipantIds}
           optionalResponseCount={optionalResponseCount}
           optionalStarted={optionalStarted}

@@ -3,6 +3,7 @@ import { RootLayout } from "@/layouts/RootLayout";
 import { HomePage } from "@/pages/HomePage";
 import { MeetingCandidateSelectPage } from "@/pages/MeetingCandidateSelectPage";
 import { MeetingCreatePage } from "@/pages/MeetingCreatePage";
+import { MeetingDetailPage } from "@/pages/MeetingDetailPage";
 import { MeetingInvitePage } from "@/pages/MeetingInvitePage";
 import { MeetingRequestedPage } from "@/pages/MeetingRequestedPage";
 import { ReceivedRequestsPage } from "@/pages/ReceivedRequestsPage";
@@ -188,6 +189,10 @@ export const router = createBrowserRouter([
       {
         path: "meetings/response-status",
         element: <ResponseStatusPage />,
+      },
+      {
+        path: "meetings/detail",
+        element: <MeetingDetailPage />,
       },
     ],
   },
