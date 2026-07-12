@@ -74,7 +74,7 @@ export const meetingCreateIntro: ChatMessage = {
 
 export const meetingCreateMock: MeetingCreateMock = {
   title: "",
-  attendeeIds: ["owner", "min", "jun", "seo", "ji", "eun"],
+  attendeeIds: [],
   requiredAttendeeIds: [],
   locationType: "undecided",
   videoLink: "",

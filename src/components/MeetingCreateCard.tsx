@@ -358,6 +358,13 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
     ? getEligibleAvailabilitySlots(meeting)
     : [];
   const chronologicalSlots = getChronologicalEligibleSlots(meeting);
+  const allAttendeeIds = attendees.map((attendee) => attendee.id);
+  const allAttendeesSelected = allAttendeeIds.every((attendeeId) =>
+    meeting.attendeeIds.includes(attendeeId),
+  );
+  const partiallySelectedAttendees =
+    !allAttendeesSelected &&
+    allAttendeeIds.some((attendeeId) => meeting.attendeeIds.includes(attendeeId));
   const orderedTeamSchedules = teamRegisteredSchedules
     .filter((item) => meeting.attendeeIds.includes(item.attendeeId))
     .sort((a, b) => {
@@ -389,6 +396,23 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
       requiredAttendeeIds: meeting.requiredAttendeeIds.includes(attendeeId)
         ? meeting.requiredAttendeeIds.filter((id) => id !== attendeeId)
         : [...meeting.requiredAttendeeIds, attendeeId],
+    });
+  }
+
+  function toggleAllAttendees() {
+    if (allAttendeesSelected) {
+      updateMeeting({
+        attendeeIds: [],
+        requiredAttendeeIds: [],
+      });
+      return;
+    }
+
+    updateMeeting({
+      attendeeIds: allAttendeeIds,
+      requiredAttendeeIds: meeting.requiredAttendeeIds.filter((attendeeId) =>
+        allAttendeeIds.includes(attendeeId),
+      ),
     });
   }
 
@@ -675,22 +699,60 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
       return (
         <ChoiceModal onClose={() => setModal(null)} title="참석자 선택">
           <div className="max-h-[360px] space-y-3 overflow-y-auto pr-1">
+            <button
+              className={cn(
+                "flex h-11 w-full items-center justify-between rounded-lg border px-4 text-left",
+                allAttendeesSelected || partiallySelectedAttendees
+                  ? "border-[#837CFF] bg-[#F7F6FF]"
+                  : "border-[#E0E4EB] bg-white",
+              )}
+              onClick={toggleAllAttendees}
+              type="button"
+            >
+              <span className="text-sm font-bold leading-[21px] text-[#101828]">
+                모두 선택
+              </span>
+              <span
+                className={cn(
+                  "flex h-[18px] w-[18px] items-center justify-center rounded border",
+                  allAttendeesSelected || partiallySelectedAttendees
+                    ? "border-[#837CFF] bg-[#837CFF] text-white"
+                    : "border-[#D0D5DD] bg-white text-transparent",
+                )}
+              >
+                {partiallySelectedAttendees ? (
+                  <span className="h-[2px] w-2.5 rounded bg-white" />
+                ) : (
+                  <Check className="h-[11px] w-[11px]" strokeWidth={3} />
+                )}
+              </span>
+            </button>
             {attendees.map((attendee) => {
               const selected = meeting.attendeeIds.includes(attendee.id);
               const required = meeting.requiredAttendeeIds.includes(attendee.id);
 
               return (
                 <div
-                  className="flex h-[58px] items-center justify-between rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-4"
+                  className={cn(
+                    "flex h-[58px] cursor-pointer items-center justify-between rounded-lg border px-4",
+                    selected
+                      ? "border-[#837CFF] bg-[#F7F6FF]"
+                      : "border-[#E0E4EB] bg-white",
+                  )}
                   key={attendee.id}
+                  onClick={() => toggleAttendee(attendee.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      toggleAttendee(attendee.id);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                 >
-                  <button
-                    className="flex flex-1 items-center text-left"
-                    onClick={() => toggleAttendee(attendee.id)}
-                    type="button"
-                  >
+                  <div className="flex min-w-0 flex-1 items-center text-left">
                     <AvatarBadge color={attendee.color} initial={attendee.initial} />
-                    <span className="ml-3">
+                    <span className="ml-3 min-w-0">
                       <span className="flex items-center gap-2 text-sm font-bold leading-[21px] text-[#101828]">
                         {attendee.name}
                         <span
@@ -708,7 +770,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                         {attendee.role}
                       </span>
                     </span>
-                  </button>
+                  </div>
                   <div className="flex items-center gap-3">
                     <button
                       className={cn(
@@ -717,7 +779,10 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                           ? "bg-[#F7F6FF] text-[#837CFF]"
                           : "bg-[#F3F4F6] text-[#98A2B3]",
                       )}
-                      onClick={() => toggleAttendee(attendee.id)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toggleAttendee(attendee.id);
+                      }}
                       type="button"
                     >
                       {selected ? "선택됨" : "선택"}
@@ -731,7 +796,10 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                         !selected && "opacity-40",
                       )}
                       disabled={!selected}
-                      onClick={() => toggleRequired(attendee.id)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toggleRequired(attendee.id);
+                      }}
                       type="button"
                     >
                       필수
@@ -743,14 +811,14 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
           </div>
           <div className="sticky bottom-0 mt-5 border-t border-[#E0E4EB] bg-white pt-4">
             <div className="mb-2 text-center text-xs font-bold leading-[18px] text-[#667085]">
-              {meeting.attendeeIds.length}명 선택 완료
+              {meeting.attendeeIds.length}명 선택
             </div>
             <Button
               className="h-12 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 disabled:bg-[#C9CED8] disabled:text-white"
               disabled={meeting.attendeeIds.length === 0}
               onClick={() => setModal(null)}
             >
-              선택 완료
+              {meeting.attendeeIds.length}명 선택 완료
             </Button>
           </div>
         </ChoiceModal>
