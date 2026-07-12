@@ -520,16 +520,28 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
 
     if (modal === "teamSchedule") {
       return (
-        <ChoiceModal
-          onClose={() => setModal(null)}
-          title={`팀원 일정 (${meeting.attendeeIds.length}명)`}
-        >
-          <div className="flex h-full min-h-0 flex-col">
-            <div className="min-h-0 flex-1 overflow-y-auto pr-2">
-              <p className="mb-4 text-sm font-medium leading-[21px] text-[#667085]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-[#101828]/20 p-6">
+          <section className="flex max-h-[85vh] w-[480px] flex-col overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_20px_60px_rgba(16,24,40,0.16)]">
+            <header className="shrink-0 px-6 pb-4 pt-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold leading-7 text-[#101828]">
+                  팀원 일정 ({meeting.attendeeIds.length}명)
+                </h2>
+                <button
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-[#667085] hover:bg-[#F3F4F6]"
+                  onClick={() => setModal(null)}
+                  type="button"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="mt-4 text-sm font-medium leading-[21px] text-[#667085]">
                 회의 전 팀원들의 등록된 일정을 확인하세요.
               </p>
-              <div className="space-y-2.5">
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 pr-4">
+              <div className="space-y-2.5 pr-2">
                 {orderedTeamSchedules.map((item) => {
                   const required = requiredAttendeeIds.has(item.attendeeId);
 
@@ -581,8 +593,9 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                 })}
               </div>
             </div>
-            <div className="shrink-0 border-t border-[#E0E4EB] bg-white pt-4">
-              <div className="mb-4 rounded-lg border border-[#E0E4EB] bg-white px-4 py-3">
+
+            <section className="shrink-0 border-t border-[#E0E4EB] bg-white px-6 py-4">
+              <div className="rounded-lg border border-[#E0E4EB] bg-white px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-bold leading-[21px] text-[#101828]">
                     일정 집계 결과
@@ -601,7 +614,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                       className="truncate text-xs font-medium leading-[18px] text-[#475467]"
                       key={item.id}
                     >
-                      {index === 0 ? "추천: " : ""}
+                      {index === 0 ? "추천 · " : ""}
                       {item.shortDateLabel.replace(" (", " ").replace(")", "")}{" "}
                       {item.timeLabel} · {item.availableIds.length}명 가능
                     </p>
@@ -613,15 +626,18 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                   ) : null}
                 </div>
               </div>
+            </section>
+
+            <footer className="shrink-0 border-t border-[#E0E4EB] bg-white px-6 pb-6 pt-4">
               <Button
                 className="h-11 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
                 onClick={openDateModal}
               >
                 후보 날짜 선택하기
               </Button>
-            </div>
-          </div>
-        </ChoiceModal>
+            </footer>
+          </section>
+        </div>
       );
     }
 
