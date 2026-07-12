@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
+import { ownerCalendarSchedules } from "@/context/availabilityUtils";
 import { cn } from "@/lib/utils";
 
 const steps = ["회의 초대", "일정 확인", "후보 선택"] as const;
@@ -114,18 +115,12 @@ function ScheduleCard() {
             내 일정
           </h4>
           <ul className="mt-4 space-y-4 text-sm font-medium leading-[21px] text-[#475467]">
-            <li className="flex items-center gap-3">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#635BFF]" />
-              화요일 오후 외근
-            </li>
-            <li className="flex items-center gap-3">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#635BFF]" />
-              수요일 13:00 고객 미팅
-            </li>
-            <li className="flex items-center gap-3">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#635BFF]" />
-              목요일 오전 팀 회의
-            </li>
+            {ownerCalendarSchedules.slice(1, 4).map((schedule) => (
+              <li className="flex items-center gap-3" key={schedule.id}>
+                <span className="h-1.5 w-1.5 rounded-full bg-[#635BFF]" />
+                {schedule.meta} {schedule.title}
+              </li>
+            ))}
           </ul>
         </div>
 

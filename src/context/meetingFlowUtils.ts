@@ -1,4 +1,5 @@
 import { attendees, meetingCreateOptions } from "@/mocks";
+import { demoWeekDates } from "@/context/demoDates";
 import type { MeetingCreateMock, SelectOption } from "@/types/meeting";
 
 const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
@@ -24,9 +25,17 @@ function getDateRangeDates(meeting: MeetingCreateMock) {
 
   if (matches.length < 1) return null;
 
-  const start = new Date(2026, Number(matches[0][1]) - 1, Number(matches[0][2]));
+  const yearFor = (month: number, day: number) =>
+    demoWeekDates.find(
+      (date) => date.getMonth() + 1 === month && date.getDate() === day,
+    )?.getFullYear() ?? demoWeekDates[0].getFullYear();
+  const startMonth = Number(matches[0][1]);
+  const startDay = Number(matches[0][2]);
+  const start = new Date(yearFor(startMonth, startDay), startMonth - 1, startDay);
   const endMatch = matches[1] ?? matches[0];
-  const end = new Date(2026, Number(endMatch[1]) - 1, Number(endMatch[2]));
+  const endMonth = Number(endMatch[1]);
+  const endDay = Number(endMatch[2]);
+  const end = new Date(yearFor(endMonth, endDay), endMonth - 1, endDay);
 
   return { start, end };
 }

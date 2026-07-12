@@ -10,6 +10,7 @@ import {
   teamRegisteredSchedules,
   type AvailabilitySlot,
 } from "@/context/availabilityUtils";
+import { demoDate, formatCalendarTitle } from "@/context/demoDates";
 import { createDeadlineOptions } from "@/context/meetingFlowUtils";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import { attendees } from "@/mocks";
@@ -195,24 +196,37 @@ function ChoiceModal({
   );
 }
 
-const calendarYear = 2026;
-const calendarMonthIndex = 6;
 const calendarWeekdays = ["일", "월", "화", "수", "목", "금", "토"];
-const calendarLeadingDays = new Date(calendarYear, calendarMonthIndex, 1).getDay();
+const calendarStart = new Date(demoDate(0).getFullYear(), demoDate(0).getMonth(), 1);
+const calendarEnd = new Date(demoDate(4).getFullYear(), demoDate(4).getMonth() + 1, 0);
+const calendarLeadingDays = calendarStart.getDay();
 
-const calendarCandidateDates = Array.from({ length: 31 }, (_, index) => {
-  const date = new Date(calendarYear, calendarMonthIndex, index + 1);
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const weekday = calendarWeekdays[date.getDay()];
+const calendarCandidateDates = Array.from(
+  {
+    length:
+      Math.round((calendarEnd.getTime() - calendarStart.getTime()) / 86400000) + 1,
+  },
+  (_, index) => {
+    const date = new Date(calendarStart);
+    date.setDate(calendarStart.getDate() + index);
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const weekday = calendarWeekdays[date.getDay()];
 
-  return {
-    id: `date-${month}-${day}`,
-    day,
-    label: `${month}/${day} (${weekday})`,
-    value: date,
-  };
-});
+    return {
+      id: `date-${month}-${day}`,
+      day,
+      label: `${month}/${day} (${weekday})`,
+      value: date,
+    };
+  },
+);
+
+const calendarTitle =
+  demoDate(0).getFullYear() === demoDate(4).getFullYear() &&
+  demoDate(0).getMonth() === demoDate(4).getMonth()
+    ? formatCalendarTitle(demoDate(0))
+    : `${formatCalendarTitle(demoDate(0))} - ${formatCalendarTitle(demoDate(4))}`;
 
 const calendarCells = [
   ...Array.from({ length: calendarLeadingDays }, () => null),
@@ -751,7 +765,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
           </p>
           <div className="rounded-xl border border-[#E0E4EB] bg-[#F9FAFB] p-4">
             <div className="mb-4 text-center text-sm font-bold leading-[21px] text-[#101828]">
-              2026년 7월
+              {calendarTitle}
             </div>
             <div className="grid grid-cols-7 gap-1 text-center">
               {calendarWeekdays.map((weekday) => (
@@ -1086,7 +1100,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
               setModal(null);
             }}
             onToggle={() => setShowCustomDeadline(true)}
-            placeholder="예: 7/11 (토) 18:00"
+            placeholder="예: 24시간 후 또는 직접 날짜/시간"
             setValue={setCustomDeadlineInput}
             show={showCustomDeadline}
             suffix=""

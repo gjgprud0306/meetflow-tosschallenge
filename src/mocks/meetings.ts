@@ -4,6 +4,11 @@ import type {
   MeetingCreateOptions,
   MeetingDraft,
 } from "@/types/meeting";
+import { demoDate, formatShortDate } from "@/context/demoDates";
+
+function dateRangeLabel(startIndex: number, endIndex: number) {
+  return `${formatShortDate(demoDate(startIndex), true)} ~ ${formatShortDate(demoDate(endIndex), true)}`;
+}
 
 export const meetingDrafts: MeetingDraft[] = [
   {
@@ -93,10 +98,9 @@ export const meetingCreateMock: MeetingCreateMock = {
 
 export const meetingCreateOptions: MeetingCreateOptions = {
   dateRanges: [
-    { id: "july-7-9", label: "7/7 (화) ~ 7/9 (목)" },
-    { id: "july-8-10", label: "7/8 (수) ~ 7/10 (금)" },
-    { id: "july-9-11", label: "7/9 (목) ~ 7/11 (토)" },
-    { id: "july-13-15", label: "7/13 (월) ~ 7/15 (수)" },
+    { id: "weekday-1-3", label: dateRangeLabel(0, 2) },
+    { id: "weekday-2-4", label: dateRangeLabel(1, 3) },
+    { id: "weekday-3-5", label: dateRangeLabel(2, 4) },
   ],
   candidateTimes: [
     { id: "mon-10", label: "월 10:00" },

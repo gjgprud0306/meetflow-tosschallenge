@@ -1,12 +1,15 @@
+import { formatDeadlineLabel } from "@/context/demoDates";
+import { slotById } from "@/context/availabilityUtils";
+
 export const participantRequestAnswersKey = "mflow-participant-request-answers";
 export const participantRequestStatusKey = "mflow-participant-request-status";
 
 export type ParticipantRequestAnswer = "preferred" | "available" | "unavailable";
 
 export const participantRequest = {
-  candidateDateLabel: "7월 15일 수요일",
-  candidateTimes: ["7월 15일 수요일 15:00–16:00"],
-  deadline: "7/14(화) 18:00",
+  candidateDateLabel: slotById("slot-7-15-15").dateLabel,
+  candidateTimes: [slotById("slot-7-15-15").label],
+  deadline: formatDeadlineLabel(1, "18:00"),
   hostName: "윤지은",
   location: "MFlow 온라인 회의실",
   requiredAttendees: "허혜경, 김민서, 박준호, 윤서연",

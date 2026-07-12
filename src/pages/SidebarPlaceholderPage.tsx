@@ -228,7 +228,7 @@ export function SidebarPlaceholderPage({
           return {
             ...card,
             category: "회의" as const,
-            meta: `7/15(수) 15:00–16:00 · 참석자 ${meeting.attendeeIds.length}명 · ${locationLabel}`,
+            meta: `${participantRequest.candidateTimes[0]} · 참석자 ${meeting.attendeeIds.length}명 · ${locationLabel}`,
             source: "confirmed" as const,
             status: "확정됨",
             title: "리뷰회의",

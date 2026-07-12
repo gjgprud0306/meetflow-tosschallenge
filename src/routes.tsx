@@ -12,6 +12,7 @@ import { SidebarPlaceholderPage } from "@/pages/SidebarPlaceholderPage";
 import {
   ownerCalendarSchedules,
   receivedReviewMeetingCalendarSchedule,
+  slotById,
 } from "@/context/availabilityUtils";
 import type { ChatMessage } from "@/types/meeting";
 
@@ -23,7 +24,7 @@ const upcomingMeetings = [
 const confirmedMeetings = [
   {
     title: "리뷰회의",
-    meta: "7/10 (금) 오후 6:00 · 참여자 6명",
+    meta: `${slotById("slot-7-15-15").label} · 참여자 6명`,
     status: "확정됨",
   },
 ];
