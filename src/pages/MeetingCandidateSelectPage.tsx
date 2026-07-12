@@ -226,7 +226,7 @@ export function MeetingCandidateSelectPage() {
                           onClick={() => selectAnswer(option.id, "unavailable")}
                           type="button"
                         >
-                          불가능
+                          참석 어려움
                         </button>
                       </section>
                     );

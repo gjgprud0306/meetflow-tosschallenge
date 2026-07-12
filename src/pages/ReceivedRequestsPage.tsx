@@ -3,36 +3,18 @@ import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
 import { slotById } from "@/context/availabilityUtils";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
-import { participantRequestAnswersKey } from "@/mocks/participantRequest";
-
-function getStoredResponse() {
-  const saved = window.localStorage.getItem(participantRequestAnswersKey);
-
-  if (!saved) return null;
-
-  try {
-    const parsed = JSON.parse(saved) as Record<string, string>;
-    const entries = Object.values(parsed).filter(Boolean);
-
-    return entries.length > 0 ? entries : null;
-  } catch {
-    return null;
-  }
-}
-
-function answerLabel(answer: string) {
-  if (answer === "preferred") return "희망";
-  if (answer === "available") return "가능";
-  if (answer === "unavailable") return "불가능";
-
-  return "";
-}
+import {
+  getStoredParticipantRequestAnswers,
+  participantRequest,
+  participantRequestAnswerLabel,
+} from "@/mocks/participantRequest";
 
 export function ReceivedRequestsPage() {
   const navigate = useNavigate();
   const { receivedRequestStatus } = useMeetingFlow();
-  const responseValues = getStoredResponse();
-  const hasResponse = Boolean(responseValues);
+  const responseAnswers = getStoredParticipantRequestAnswers();
+  const responseValues = responseAnswers ? Object.values(responseAnswers) : null;
+  const hasResponse = Boolean(responseValues?.length);
   const confirmed = receivedRequestStatus === "confirmed";
   const candidateSlot = slotById("slot-7-15-15");
 
@@ -84,11 +66,11 @@ export function ReceivedRequestsPage() {
               </div>
               {responseValues ? (
                 <div className="flex gap-6">
-                  <span className="w-[72px] shrink-0 text-[#98A2B3]">내 응답</span>
-                  <span className="font-bold text-[#635BFF]">
-                    {responseValues.map(answerLabel).filter(Boolean).join(" · ")}
-                  </span>
-                </div>
+                <span className="w-[72px] shrink-0 text-[#98A2B3]">내 응답</span>
+                <span className="font-bold text-[#635BFF]">
+                    {responseValues.map(participantRequestAnswerLabel).join(" · ")}
+                </span>
+              </div>
               ) : null}
               <div className="flex gap-6">
                 <span className="w-[72px] shrink-0 text-[#98A2B3]">예상 시간</span>
@@ -96,11 +78,11 @@ export function ReceivedRequestsPage() {
               </div>
               <div className="flex gap-6">
                 <span className="w-[72px] shrink-0 text-[#98A2B3]">장소</span>
-                <span className="text-[#475467]">MFlow 온라인 회의실</span>
+                <span className="text-[#475467]">{participantRequest.location}</span>
               </div>
               <div className="flex gap-6">
                 <span className="w-[72px] shrink-0 text-[#98A2B3]">응답 마감</span>
-                <span className="text-[#475467]">7/14(화) 18:00</span>
+                <span className="text-[#475467]">{participantRequest.deadline}</span>
               </div>
             </div>
 

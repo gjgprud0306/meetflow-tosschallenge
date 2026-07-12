@@ -5,6 +5,10 @@ import { X } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
+import {
+  getParticipantRequestResponseLabel,
+  participantRequest,
+} from "@/mocks/participantRequest";
 import type { ChatMessage as ChatMessageType } from "@/types/meeting";
 
 type ScheduleType = "회의" | "외근" | "휴가" | "개인";
@@ -198,6 +202,7 @@ export function SidebarPlaceholderPage({
     scheduleTitle.trim().length > 0 &&
     selectedDate.trim().length > 0 &&
     selectedTime.trim().length > 0;
+  const participantRequestResponseLabel = getParticipantRequestResponseLabel();
   const visibleScheduleCards = showAddSchedule
     ? scheduleCards.map((card) => {
         if (card.id !== "received-review-meeting") return card;
@@ -230,7 +235,16 @@ export function SidebarPlaceholderPage({
           };
         }
 
-        return card;
+        return {
+          ...card,
+          meta:
+            participantRequestResponseLabel === "응답 필요"
+              ? `${participantRequest.candidateTimes[0]} · 허혜경 역할: 필수 참석자 · 응답 필요`
+              : `${participantRequest.candidateTimes[0]} · 허혜경 역할: 필수 참석자 · 허혜경 응답: ${participantRequestResponseLabel}`,
+          source: "coordinating" as const,
+          status: "조율 중",
+          title: participantRequest.title,
+        };
       })
     : scheduleCards;
 

@@ -9,23 +9,15 @@ import { ReceivedRequestsPage } from "@/pages/ReceivedRequestsPage";
 import { MeetingMySchedulePage } from "@/pages/MeetingSchedulePage";
 import { ResponseStatusPage } from "@/pages/ResponseStatusPage";
 import { SidebarPlaceholderPage } from "@/pages/SidebarPlaceholderPage";
+import {
+  ownerCalendarSchedules,
+  receivedReviewMeetingCalendarSchedule,
+} from "@/context/availabilityUtils";
 import type { ChatMessage } from "@/types/meeting";
 
 const upcomingMeetings = [
-  {
-    category: "개인" as const,
-    title: "리더 미팅",
-    meta: "7/15(수) 13:00–14:00",
-    status: "예정",
-  },
-  {
-    category: "회의" as const,
-    id: "received-review-meeting",
-    meta: "7/15(수) 15:00–16:00 · 허혜경 응답: 희망",
-    source: "coordinating" as const,
-    status: "조율 중",
-    title: "회의 일정 조율 중",
-  },
+  ...ownerCalendarSchedules,
+  receivedReviewMeetingCalendarSchedule,
 ];
 
 const confirmedMeetings = [

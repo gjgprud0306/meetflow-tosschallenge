@@ -32,6 +32,62 @@ export type RecommendationCardData = {
   slot: AvailabilitySlot;
 };
 
+export type CalendarScheduleCard = {
+  category?: "회의" | "외근" | "휴가" | "개인";
+  id?: string;
+  meta: string;
+  source?: "manual" | "confirmed" | "coordinating";
+  status: string;
+  title: string;
+};
+
+export const ownerCalendarSchedules: CalendarScheduleCard[] = [
+  {
+    category: "회의",
+    id: "owner-weekly-work-meeting",
+    meta: "7/13(월) 09:00–10:00",
+    status: "회의",
+    title: "주간 업무 회의",
+  },
+  {
+    category: "회의",
+    id: "owner-project-sync",
+    meta: "7/14(화) 10:00–11:00",
+    status: "회의",
+    title: "프로젝트 진행 상황 공유",
+  },
+  {
+    category: "회의",
+    id: "owner-leader-meeting",
+    meta: "7/15(수) 13:00–14:00",
+    status: "회의",
+    title: "리더 미팅",
+  },
+  {
+    category: "회의",
+    id: "owner-dev-schedule-check",
+    meta: "7/16(목) 15:00–16:00",
+    status: "회의",
+    title: "개발 일정 점검",
+  },
+  {
+    category: "회의",
+    id: "owner-retrospective",
+    meta: "7/17(금) 10:00–11:00",
+    status: "회의",
+    title: "회고 회의",
+  },
+];
+
+export const receivedReviewMeetingCalendarSchedule: CalendarScheduleCard = {
+  category: "회의",
+  id: "received-review-meeting",
+  meta: "7/15(수) 15:00–16:00 · 허혜경 역할: 필수 참석자 · 응답 필요",
+  source: "coordinating",
+  status: "조율 중",
+  title: "리뷰회의",
+};
+
 export const teamRegisteredSchedules = [
   {
     attendeeId: "owner",
