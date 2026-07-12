@@ -3,10 +3,36 @@ import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
 import { slotById } from "@/context/availabilityUtils";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
+import { participantRequestAnswersKey } from "@/mocks/participantRequest";
+
+function getStoredResponse() {
+  const saved = window.localStorage.getItem(participantRequestAnswersKey);
+
+  if (!saved) return null;
+
+  try {
+    const parsed = JSON.parse(saved) as Record<string, string>;
+    const entries = Object.values(parsed).filter(Boolean);
+
+    return entries.length > 0 ? entries : null;
+  } catch {
+    return null;
+  }
+}
+
+function answerLabel(answer: string) {
+  if (answer === "preferred") return "희망";
+  if (answer === "available") return "가능";
+  if (answer === "unavailable") return "불가능";
+
+  return "";
+}
 
 export function ReceivedRequestsPage() {
   const navigate = useNavigate();
   const { receivedRequestStatus } = useMeetingFlow();
+  const responseValues = getStoredResponse();
+  const hasResponse = Boolean(responseValues);
   const confirmed = receivedRequestStatus === "confirmed";
   const candidateSlot = slotById("slot-7-15-15");
 
@@ -28,15 +54,15 @@ export function ReceivedRequestsPage() {
                   윤지은님이 보낸 회의 요청
                 </p>
               </div>
-              <span
-                className={
-                  confirmed
-                    ? "rounded-full bg-[#F2F4F7] px-3 py-1 text-xs font-bold leading-[18px] text-[#667085]"
-                    : "rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#837CFF]"
-                }
-              >
-                {confirmed ? "확정됨" : "응답 완료"}
-              </span>
+              {confirmed ? (
+                <span className="rounded-full bg-[#F2F4F7] px-3 py-1 text-xs font-bold leading-[18px] text-[#667085]">
+                  확정됨
+                </span>
+              ) : hasResponse ? (
+                <span className="rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#837CFF]">
+                  응답 완료
+                </span>
+              ) : null}
             </div>
 
             <div className="space-y-3 px-5 py-5 text-sm font-medium leading-[21px]">
@@ -53,13 +79,17 @@ export function ReceivedRequestsPage() {
               <div className="flex gap-6">
                 <span className="w-[72px] shrink-0 text-[#98A2B3]">응답 상태</span>
                 <span className="text-[#475467]">
-                  {confirmed ? "확정됨" : "응답 완료"}
+                  {confirmed ? "확정됨" : hasResponse ? "응답 완료" : "미응답"}
                 </span>
               </div>
-              <div className="flex gap-6">
-                <span className="w-[72px] shrink-0 text-[#98A2B3]">내 응답</span>
-                <span className="font-bold text-[#635BFF]">희망</span>
-              </div>
+              {responseValues ? (
+                <div className="flex gap-6">
+                  <span className="w-[72px] shrink-0 text-[#98A2B3]">내 응답</span>
+                  <span className="font-bold text-[#635BFF]">
+                    {responseValues.map(answerLabel).filter(Boolean).join(" · ")}
+                  </span>
+                </div>
+              ) : null}
               <div className="flex gap-6">
                 <span className="w-[72px] shrink-0 text-[#98A2B3]">예상 시간</span>
                 <span className="text-[#475467]">1시간</span>
@@ -76,13 +106,21 @@ export function ReceivedRequestsPage() {
 
             <div className="grid grid-cols-2 gap-2 border-t border-[#E0E4EB] p-5">
                 <Button
-                  className="h-12 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#837CFF] hover:bg-[#E4E2FF]"
+                  className={
+                    hasResponse
+                      ? "h-12 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#837CFF] hover:bg-[#E4E2FF]"
+                      : "h-12 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90"
+                  }
                   onClick={() => navigate("/requests/candidate-select")}
                 >
-                  응답 수정
+                  {hasResponse ? "응답 수정" : "응답하기"}
                 </Button>
                 <Button
-                  className="h-12 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90"
+                  className={
+                    hasResponse
+                      ? "h-12 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90"
+                      : "h-12 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#837CFF] hover:bg-[#E4E2FF]"
+                  }
                   onClick={() => navigate("/my-schedule?highlight=received-review-meeting")}
                 >
                   일정 보기

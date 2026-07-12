@@ -12,7 +12,7 @@ import {
   participantRequestStatusKey,
 } from "@/mocks/participantRequest";
 
-type CandidateAnswer = "available" | "unavailable";
+type CandidateAnswer = "preferred" | "available" | "unavailable";
 
 const candidateOptions = [
   { id: "candidate-1", label: participantRequest.candidateTimes[0] },
@@ -192,6 +192,18 @@ export function MeetingCandidateSelectPage() {
                             {option.label}
                           </p>
                         </div>
+                        <button
+                          className={cn(
+                            "flex h-11 w-full items-center border-t border-[#E0E4EB] px-4 text-left text-sm font-medium leading-[21px]",
+                            selected === "preferred"
+                               ? "bg-[#F7F6FF] text-[#837CFF]"
+                              : "bg-white text-[#475467]",
+                          )}
+                          onClick={() => selectAnswer(option.id, "preferred")}
+                          type="button"
+                        >
+                          희망
+                        </button>
                         <button
                           className={cn(
                             "flex h-11 w-full items-center border-t border-[#E0E4EB] px-4 text-left text-sm font-medium leading-[21px]",
