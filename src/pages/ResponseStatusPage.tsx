@@ -251,6 +251,35 @@ function getResponseSummaryBadge(id: string, status: ResponseStatus) {
   return { label: "응답 완료", tone: "complete" as const };
 }
 
+function isFinalRequiredConfirmationTarget({
+  attendeeId,
+  requiredIds,
+  requiredResponseCount,
+  selectedSlotId,
+  status,
+}: {
+  attendeeId: string;
+  requiredIds: string[];
+  requiredResponseCount: number;
+  selectedSlotId: string;
+  status: ResponseStatus;
+}) {
+  if (status !== "미응답") return false;
+  if (!requiredIds.includes(attendeeId)) return false;
+
+  const remainingRequiredCount =
+    requiredIds.length - Math.min(requiredResponseCount, requiredIds.length);
+
+  if (remainingRequiredCount !== 1) return false;
+
+  const respondedIds = respondedRequiredIds(requiredIds, requiredResponseCount);
+  const selectedCount = respondedIds.filter(
+    (id) => responseProfile(id).preferredSlotId === selectedSlotId,
+  ).length;
+
+  return selectedCount > requiredIds.length / 2;
+}
+
 const meetingRooms = [
   { capacity: 6, id: "room-a", name: "A 회의실" },
   { capacity: 8, id: "room-b", name: "B 회의실" },
@@ -760,6 +789,7 @@ function ManagementCard({
 function ResponseTable({
   adjustmentResolved,
   attendeeIds,
+  onConfirmAvailabilityRequest,
   onRetry,
   optionalIds,
   optionalResponseCount,
@@ -770,6 +800,7 @@ function ResponseTable({
 }: {
   adjustmentResolved: boolean;
   attendeeIds: string[];
+  onConfirmAvailabilityRequest: (id: string) => void;
   onRetry: (id: string) => void;
   optionalIds: string[];
   optionalResponseCount: number;
@@ -809,6 +840,13 @@ function ResponseTable({
           );
           const scheduleDetail = getMemberScheduleDetail(attendee.id, status);
           const summaryBadge = getResponseSummaryBadge(attendee.id, status);
+          const confirmationTarget = isFinalRequiredConfirmationTarget({
+            attendeeId: attendee.id,
+            requiredIds,
+            requiredResponseCount,
+            selectedSlotId,
+            status,
+          });
           const pending = status === "미응답";
 
           return (
@@ -864,18 +902,25 @@ function ResponseTable({
                   <span
                     className={cn(
                       "rounded-full px-3 py-1 text-xs font-bold leading-[18px]",
+                      confirmationTarget && "bg-[#F7F6FF] text-[#837CFF]",
                       summaryBadge.tone === "complete" && "bg-[#F0EEFF] text-[#635BFF]",
-                      summaryBadge.tone === "pending" && "bg-[#F3F4F6] text-[#667085]",
+                      summaryBadge.tone === "pending" &&
+                        !confirmationTarget &&
+                        "bg-[#F3F4F6] text-[#667085]",
                     )}
                   >
-                    {summaryBadge.label}
+                    {confirmationTarget ? "확인 요청 전송" : summaryBadge.label}
                   </span>
                   {pending ? (
                     <Button
                       className="h-8 rounded-lg border border-[#E0E4EB] bg-white px-3 text-xs font-bold leading-[18px] text-[#475467] hover:bg-[#F9FAFB]"
-                      onClick={() => onRetry(attendee.id)}
+                      onClick={() =>
+                        confirmationTarget
+                          ? onConfirmAvailabilityRequest(attendee.id)
+                          : onRetry(attendee.id)
+                      }
                     >
-                      다시 요청
+                      {confirmationTarget ? "확정 가능 여부 묻기" : "다시 요청"}
                     </Button>
                   ) : null}
                 </div>
@@ -1013,6 +1058,13 @@ function StatusPanel({
                 selectedSlotId,
                 adjustmentResolved,
               );
+              const confirmationTarget = isFinalRequiredConfirmationTarget({
+                attendeeId: attendee.id,
+                requiredIds,
+                requiredResponseCount,
+                selectedSlotId,
+                status,
+              });
 
               return (
                 <div
@@ -1029,14 +1081,15 @@ function StatusPanel({
                   </span>
                   <span
                     className={cn(
+                      confirmationTarget && "text-[#837CFF]",
                       status === "희망" && "text-[#635BFF]",
                       status === "가능" && "text-[#635BFF]",
                       status === "불가능" && "text-[#B54708]",
-                      status === "미응답" && "text-[#98A2B3]",
+                      status === "미응답" && !confirmationTarget && "text-[#98A2B3]",
                       status === "요청 전" && "text-[#98A2B3]",
                     )}
                   >
-                    {status}
+                    {confirmationTarget ? "확인 요청 전송" : status}
                   </span>
                 </div>
               );
@@ -1441,6 +1494,12 @@ export function ResponseStatusPage() {
     setRetryMessage(`${target}에게 다시 요청을 보냈습니다.`);
   }
 
+  function requestAvailabilityConfirmation(id: string) {
+    const target = attendeeById(id)?.name ?? "마지막 필수 참석자";
+
+    setRetryMessage(`${target}님에게 확정 가능 여부를 물었습니다.`);
+  }
+
   function confirmMeeting() {
     if (!allComplete) return;
     if (!selectedRecommendationSlotId) return;
@@ -1543,10 +1602,11 @@ export function ResponseStatusPage() {
                   ))}
                 </div>
               ) : null}
-              <ResponseTable
-                adjustmentResolved={adjustmentResolved}
-                attendeeIds={meeting.attendeeIds}
-                onRetry={retryRequest}
+                <ResponseTable
+                  adjustmentResolved={adjustmentResolved}
+                  attendeeIds={meeting.attendeeIds}
+                  onConfirmAvailabilityRequest={requestAvailabilityConfirmation}
+                  onRetry={retryRequest}
                 optionalIds={optionalParticipantIds}
                 optionalResponseCount={optionalResponseCount}
                 requiredResponseCount={requiredResponseCount}

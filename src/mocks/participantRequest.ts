@@ -9,9 +9,11 @@ export type ParticipantRequestAnswer = "preferred" | "available" | "unavailable"
 export const participantRequest = {
   candidateDateLabel: slotById("slot-7-15-15").dateLabel,
   candidateTimes: [slotById("slot-7-15-15").label],
+  confirmationSlotId: "slot-7-15-15",
   deadline: formatDeadlineLabel(1, "18:00"),
   hostName: "윤지은",
   location: "MFlow 온라인 회의실",
+  majorityCount: 5,
   requiredAttendees: "허혜경, 김민서, 박준호, 윤서연",
   title: "리뷰회의",
 };

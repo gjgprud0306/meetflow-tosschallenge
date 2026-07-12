@@ -5,18 +5,31 @@ import { slotById } from "@/context/availabilityUtils";
 import { useMeetingFlow } from "@/context/useMeetingFlow";
 import {
   getStoredParticipantRequestAnswers,
+  participantRequestAnswersKey,
+  participantRequestStatusKey,
   participantRequest,
   participantRequestAnswerLabel,
 } from "@/mocks/participantRequest";
 
 export function ReceivedRequestsPage() {
   const navigate = useNavigate();
-  const { receivedRequestStatus } = useMeetingFlow();
+  const { receivedRequestStatus, setReceivedRequestStatus } = useMeetingFlow();
   const responseAnswers = getStoredParticipantRequestAnswers();
   const responseValues = responseAnswers ? Object.values(responseAnswers) : null;
   const hasResponse = Boolean(responseValues?.length);
   const confirmed = receivedRequestStatus === "confirmed";
-  const candidateSlot = slotById("slot-7-15-15");
+  const candidateSlot = slotById(participantRequest.confirmationSlotId);
+  const confirmationRequestActive = !confirmed && !hasResponse;
+
+  function confirmAvailability() {
+    window.localStorage.setItem(
+      participantRequestAnswersKey,
+      JSON.stringify({ "candidate-1": "available" }),
+    );
+    window.localStorage.setItem(participantRequestStatusKey, "completed");
+    setReceivedRequestStatus("completed");
+    navigate("/requests/received");
+  }
 
   return (
     <MeetFlowLayout title="받은 요청">
@@ -44,6 +57,10 @@ export function ReceivedRequestsPage() {
                 <span className="rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#837CFF]">
                   응답 완료
                 </span>
+              ) : confirmationRequestActive ? (
+                <span className="rounded-full bg-[#F7F6FF] px-3 py-1 text-xs font-bold leading-[18px] text-[#837CFF]">
+                  확정 가능 여부 확인
+                </span>
               ) : null}
             </div>
 
@@ -58,10 +75,24 @@ export function ReceivedRequestsPage() {
                 <span className="w-[72px] shrink-0 text-[#98A2B3]">후보 일정</span>
                 <span className="text-[#475467]">{candidateSlot.label}</span>
               </div>
+              {confirmationRequestActive ? (
+                <div className="flex gap-6">
+                  <span className="w-[72px] shrink-0 text-[#98A2B3]">안내</span>
+                  <span className="text-[#475467]">
+                    현재 필수 참석자 {participantRequest.majorityCount}명이 {candidateSlot.label}을 선택했어요. 이 시간에 참석할 수 있나요?
+                  </span>
+                </div>
+              ) : null}
               <div className="flex gap-6">
                 <span className="w-[72px] shrink-0 text-[#98A2B3]">응답 상태</span>
                 <span className="text-[#475467]">
-                  {confirmed ? "확정됨" : hasResponse ? "응답 완료" : "미응답"}
+                  {confirmed
+                    ? "확정됨"
+                    : hasResponse
+                      ? "응답 완료"
+                      : confirmationRequestActive
+                        ? "확정 가능 여부 확인"
+                        : "미응답"}
                 </span>
               </div>
               {responseValues ? (
@@ -93,9 +124,18 @@ export function ReceivedRequestsPage() {
                       ? "h-12 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#837CFF] hover:bg-[#E4E2FF]"
                       : "h-12 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90"
                   }
-                  onClick={() => navigate("/requests/candidate-select")}
+                  disabled={confirmed}
+                  onClick={
+                    confirmationRequestActive
+                      ? confirmAvailability
+                      : () => navigate("/requests/candidate-select")
+                  }
                 >
-                  {hasResponse ? "응답 수정" : "응답하기"}
+                  {hasResponse
+                    ? "응답 수정"
+                    : confirmationRequestActive
+                      ? "네, 가능해요"
+                      : "응답하기"}
                 </Button>
                 <Button
                   className={
@@ -103,9 +143,14 @@ export function ReceivedRequestsPage() {
                       ? "h-12 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90"
                       : "h-12 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#837CFF] hover:bg-[#E4E2FF]"
                   }
-                  onClick={() => navigate("/my-schedule?highlight=received-review-meeting")}
+                  disabled={confirmed}
+                  onClick={
+                    confirmationRequestActive
+                      ? () => navigate("/requests/candidate-select")
+                      : () => navigate("/my-schedule?highlight=received-review-meeting")
+                  }
                 >
-                  일정 보기
+                  {confirmationRequestActive ? "다른 시간 제안" : "일정 보기"}
                 </Button>
             </div>
           </article>
