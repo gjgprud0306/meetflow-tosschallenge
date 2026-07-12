@@ -11,12 +11,19 @@ import type { MeetingCreateMock } from "@/types/meeting";
 export function MeetingFlowProvider({ children }: { children: ReactNode }) {
   const [meeting, setMeeting] = useState<MeetingCreateMock>(meetingCreateMock);
   const [receivedRequestStatus, setReceivedRequestStatus] =
-    useState<ReceivedRequestStatus>(() =>
-      window.localStorage.getItem("mflow-participant-request-status") ===
-      "confirmed"
-        ? "confirmed"
-        : "completed",
-    );
+    useState<ReceivedRequestStatus>(() => {
+      const saved = window.localStorage.getItem("mflow-participant-request-status");
+      const savedAnswers = window.localStorage.getItem(
+        "mflow-participant-request-answers",
+      );
+
+      if (saved === "confirmed") return saved;
+      if (saved === "completed" && savedAnswers && savedAnswers !== "{}") {
+        return saved;
+      }
+
+      return "pending";
+    });
 
   const value = useMemo<MeetingFlowContextValue>(
     () => ({

@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MeetFlowLayout } from "@/components/MeetFlowLayout";
 import { Button } from "@/components/ui/button";
@@ -15,11 +16,32 @@ export function ReceivedRequestsPage() {
   const navigate = useNavigate();
   const { receivedRequestStatus, setReceivedRequestStatus } = useMeetingFlow();
   const responseAnswers = getStoredParticipantRequestAnswers();
-  const responseValues = responseAnswers ? Object.values(responseAnswers) : null;
-  const hasResponse = Boolean(responseValues?.length);
+  const finalResponse = useMemo(() => {
+    const responseValues = responseAnswers ? Object.values(responseAnswers) : [];
+
+    if (responseValues.includes("preferred")) return "preferred";
+    if (responseValues.includes("available")) return "available";
+    if (responseValues.includes("unavailable")) return "unavailable";
+
+    return null;
+  }, [responseAnswers]);
+  const hasResponse = Boolean(finalResponse);
   const confirmed = receivedRequestStatus === "confirmed";
   const candidateSlot = slotById(participantRequest.confirmationSlotId);
-  const confirmationRequestActive = !confirmed && !hasResponse;
+  const confirmationTime = candidateSlot.timeLabel.split("–")[0];
+  const confirmationRequestActive =
+    receivedRequestStatus === "pending" && !confirmed && !hasResponse;
+  const [showConfirmationToast, setShowConfirmationToast] = useState(() => {
+    if (!confirmationRequestActive) return false;
+
+    return window.sessionStorage.getItem("mflow-confirmation-request-toast") !== "seen";
+  });
+
+  useEffect(() => {
+    if (!showConfirmationToast) return;
+
+    window.sessionStorage.setItem("mflow-confirmation-request-toast", "seen");
+  }, [showConfirmationToast]);
 
   function confirmAvailability() {
     window.localStorage.setItem(
@@ -27,6 +49,7 @@ export function ReceivedRequestsPage() {
       JSON.stringify({ "candidate-1": "available" }),
     );
     window.localStorage.setItem(participantRequestStatusKey, "completed");
+    setShowConfirmationToast(false);
     setReceivedRequestStatus("completed");
     navigate("/requests/received");
   }
@@ -37,6 +60,22 @@ export function ReceivedRequestsPage() {
         <p className="text-sm font-medium leading-[21px] text-[#667085]">
           초대받은 회의의 후보 시간을 확인하고 응답해주세요.
         </p>
+        {showConfirmationToast && confirmationRequestActive ? (
+          <div className="mt-4 flex w-full max-w-[680px] items-center justify-between rounded-lg border border-[#D8D5F7] bg-[#F7F6FF] px-4 py-3">
+            <p className="text-sm font-bold leading-[21px] text-[#635BFF]">
+              현재 필수 참석자 {participantRequest.requiredTotalCount}명 중{" "}
+              {participantRequest.majorityCount}명이 {candidateSlot.dateLabel}{" "}
+              {confirmationTime}를 선택했어요. 이 시간 괜찮으신가요?
+            </p>
+            <button
+              className="ml-4 shrink-0 text-xs font-bold leading-[18px] text-[#667085]"
+              onClick={() => setShowConfirmationToast(false)}
+              type="button"
+            >
+              닫기
+            </button>
+          </div>
+        ) : null}
 
         <div className="mt-8 flex w-full flex-col gap-4">
           <article className="w-full max-w-[680px] overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.06)]">
@@ -79,7 +118,9 @@ export function ReceivedRequestsPage() {
                 <div className="flex gap-6">
                   <span className="w-[72px] shrink-0 text-[#98A2B3]">안내</span>
                   <span className="text-[#475467]">
-                    현재 필수 참석자 {participantRequest.majorityCount}명이 {candidateSlot.label}을 선택했어요. 이 시간에 참석할 수 있나요?
+                    현재 필수 참석자 {participantRequest.requiredTotalCount}명 중{" "}
+                    {participantRequest.majorityCount}명이 {candidateSlot.dateLabel}{" "}
+                    {confirmationTime}를 선택했어요. 이 시간 괜찮으신가요?
                   </span>
                 </div>
               ) : null}
@@ -95,11 +136,11 @@ export function ReceivedRequestsPage() {
                         : "미응답"}
                 </span>
               </div>
-              {responseValues ? (
+              {finalResponse ? (
                 <div className="flex gap-6">
                 <span className="w-[72px] shrink-0 text-[#98A2B3]">내 응답</span>
                 <span className="font-bold text-[#635BFF]">
-                    {responseValues.map(participantRequestAnswerLabel).join(" · ")}
+                    {participantRequestAnswerLabel(finalResponse)}
                 </span>
               </div>
               ) : null}
@@ -111,32 +152,42 @@ export function ReceivedRequestsPage() {
                 <span className="w-[72px] shrink-0 text-[#98A2B3]">장소</span>
                 <span className="text-[#475467]">{participantRequest.location}</span>
               </div>
-              <div className="flex gap-6">
-                <span className="w-[72px] shrink-0 text-[#98A2B3]">응답 마감</span>
-                <span className="text-[#475467]">{participantRequest.deadline}</span>
-              </div>
+              {!confirmed ? (
+                <div className="flex gap-6">
+                  <span className="w-[72px] shrink-0 text-[#98A2B3]">응답 마감</span>
+                  <span className="text-[#475467]">{participantRequest.deadline}</span>
+                </div>
+              ) : null}
             </div>
 
             <div className="grid grid-cols-2 gap-2 border-t border-[#E0E4EB] p-5">
+              {confirmed ? (
                 <Button
-                  className={
-                    hasResponse
-                      ? "h-12 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#837CFF] hover:bg-[#E4E2FF]"
-                      : "h-12 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90"
-                  }
-                  disabled={confirmed}
-                  onClick={
-                    confirmationRequestActive
-                      ? confirmAvailability
-                      : () => navigate("/requests/candidate-select")
-                  }
+                  className="col-span-2 h-12 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90"
+                  onClick={() => navigate("/meetings/detail")}
                 >
-                  {hasResponse
-                    ? "응답 수정"
-                    : confirmationRequestActive
-                      ? "네, 가능해요"
-                      : "응답하기"}
+                  확정 일정 보기
                 </Button>
+              ) : (
+                <>
+                  <Button
+                    className={
+                      hasResponse
+                        ? "h-12 rounded-lg bg-[#ECEBFF] text-base font-bold leading-6 text-[#837CFF] hover:bg-[#E4E2FF]"
+                        : "h-12 rounded-lg bg-[#635BFF] text-base font-bold leading-6 text-white hover:bg-[#635BFF]/90"
+                    }
+                    onClick={
+                      confirmationRequestActive
+                        ? confirmAvailability
+                        : () => navigate("/requests/candidate-select")
+                    }
+                  >
+                    {hasResponse
+                      ? "응답 수정"
+                      : confirmationRequestActive
+                        ? "네, 가능해요"
+                        : "응답하기"}
+                  </Button>
                 <Button
                   className={
                     hasResponse
@@ -152,6 +203,8 @@ export function ReceivedRequestsPage() {
                 >
                   {confirmationRequestActive ? "다른 시간 제안" : "일정 보기"}
                 </Button>
+              </>
+              )}
             </div>
           </article>
         </div>

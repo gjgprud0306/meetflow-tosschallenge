@@ -2,7 +2,7 @@ import { createContext } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { MeetingCreateMock } from "@/types/meeting";
 
-export type ReceivedRequestStatus = "completed" | "confirmed";
+export type ReceivedRequestStatus = "pending" | "completed" | "confirmed";
 
 export type MeetingFlowContextValue = {
   meeting: MeetingCreateMock;

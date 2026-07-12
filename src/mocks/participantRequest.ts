@@ -13,7 +13,8 @@ export const participantRequest = {
   deadline: formatDeadlineLabel(1, "18:00"),
   hostName: "윤지은",
   location: "MFlow 온라인 회의실",
-  majorityCount: 5,
+  majorityCount: 2,
+  requiredTotalCount: 3,
   requiredAttendees: "허혜경, 김민서, 박준호, 윤서연",
   title: "리뷰회의",
 };
