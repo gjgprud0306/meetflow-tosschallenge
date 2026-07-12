@@ -176,9 +176,9 @@ function ChoiceModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101828]/20">
-      <section className="flex max-h-[calc(100vh-48px)] w-[480px] flex-col overflow-hidden rounded-xl border border-[#E0E4EB] bg-white p-6 shadow-[0_20px_60px_rgba(16,24,40,0.16)]">
-        <div className="flex shrink-0 items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101828]/20 p-6">
+      <section className="flex max-h-[85vh] w-[480px] flex-col overflow-hidden rounded-xl border border-[#E0E4EB] bg-white shadow-[0_20px_60px_rgba(16,24,40,0.16)]">
+        <div className="flex shrink-0 items-center justify-between px-6 pt-6">
           <h2 className="text-lg font-bold leading-7 text-[#101828]">{title}</h2>
           <button
             className="flex h-8 w-8 items-center justify-center rounded-lg text-[#667085] hover:bg-[#F3F4F6]"
@@ -188,7 +188,7 @@ function ChoiceModal({
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="mt-5 min-h-0 flex-1">{children}</div>
+        <div className="min-h-0 flex-1 px-6 pb-6 pt-5">{children}</div>
       </section>
     </div>
   );
@@ -457,21 +457,21 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
           title={`팀원 일정 (${meeting.attendeeIds.length}명)`}
         >
           <div className="flex h-full min-h-0 flex-col">
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="min-h-0 flex-1 overflow-y-auto pr-2">
               <p className="mb-4 text-sm font-medium leading-[21px] text-[#667085]">
                 회의 전 팀원들의 등록된 일정을 확인하세요.
               </p>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {orderedTeamSchedules.map((item) => {
                   const required = requiredAttendeeIds.has(item.attendeeId);
 
                   return (
                     <div
-                      className="rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-4 py-3"
+                      className="rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-4 py-2.5"
                       key={item.name}
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex min-w-0 items-center gap-2">
                           <div className="text-sm font-bold leading-[21px] text-[#101828]">
                             {item.name}
                           </div>
@@ -493,10 +493,10 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                         ) : null}
                       </div>
                       {item.schedules.length > 0 ? (
-                        <div className="mt-2 space-y-1">
+                        <div className="mt-1.5 space-y-0.5">
                           {item.schedules.map((schedule) => (
                             <div
-                              className="text-sm font-medium leading-[21px] text-[#475467]"
+                              className="text-[13px] font-medium leading-5 text-[#475467]"
                               key={schedule}
                             >
                               {schedule}
@@ -504,7 +504,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                           ))}
                         </div>
                       ) : (
-                        <div className="mt-2 text-sm font-medium leading-[21px] text-[#98A2B3]">
+                        <div className="mt-1.5 text-[13px] font-medium leading-5 text-[#98A2B3]">
                           등록된 일정이 없습니다.
                         </div>
                       )}
@@ -512,7 +512,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                   );
                 })}
               </div>
-              <div className="mt-5 rounded-lg border border-[#E0E4EB] bg-white px-4 py-3">
+              <div className="mt-4 rounded-lg border border-[#E0E4EB] bg-white px-4 py-3">
                 <h3 className="text-sm font-bold leading-[21px] text-[#101828]">
                   일정 집계 결과
                 </h3>
