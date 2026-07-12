@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { Button } from "@/components/ui/button";
 import {
-  attendeeName,
   getAvailabilityStatus,
   getChronologicalEligibleSlots,
   getEligibleAvailabilitySlots,
@@ -479,27 +478,41 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
               일정 집계 결과
             </h3>
             <div className="mt-3 space-y-2">
-              {eligibleSlots.map((item) => {
-                const optionalAvailableNames = item.availableIds
-                  .filter((id) => !requiredAttendeeIds.has(id))
-                  .map(attendeeName)
-                  .filter(Boolean);
+              {eligibleSlots.map((item, index) => {
+                const status = getAvailabilityStatus(item, meeting);
+                const isRecommended = index === 0;
+                const dateLabel = item.dateLabel.replace("요일", "");
+                const description =
+                  item.availableIds.length === meeting.attendeeIds.length
+                    ? index === 0
+                      ? "가장 빠른 전원 가능 일정"
+                      : `${index + 1}번째 전원 가능 일정`
+                    : "필수 전원 가능 일정";
 
                 return (
-                <div
-                  className="text-sm font-medium leading-[21px] text-[#475467]"
-                  key={item.id}
-                >
-                  <span className="font-bold text-[#101828]">
-                    {item.dateLabel} {item.timeLabel}
-                  </span>
-                  <span className="ml-2">
-                    가능 {item.availableIds.length}명 · 필수 전원 가능
-                    {optionalAvailableNames.length > 0
-                      ? ` · 선택 가능: ${optionalAvailableNames.join(", ")}`
-                      : ""}
-                  </span>
-                </div>
+                  <div
+                    className={cn(
+                      "rounded-lg border px-4 py-3",
+                      isRecommended
+                        ? "border-[#837CFF] bg-[#F7F6FF]"
+                        : "border-[#E0E4EB] bg-[#F9FAFB]",
+                    )}
+                    key={item.id}
+                  >
+                    <div className="flex items-center gap-2 text-sm font-bold leading-[21px] text-[#101828]">
+                      {isRecommended ? (
+                        <span className="rounded-full bg-[#837CFF] px-2 py-[2px] text-[11px] font-bold leading-[16px] text-white">
+                          추천
+                        </span>
+                      ) : null}
+                      <span>
+                        {dateLabel} {item.timeLabel} · {item.availableIds.length}명 가능
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs font-medium leading-[18px] text-[#667085]">
+                      {status.label === "추천" ? "필수 전원 가능" : status.label} · {description}
+                    </p>
+                  </div>
                 );
               })}
               {eligibleSlots.length === 0 ? (
@@ -522,7 +535,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
     if (modal === "attendees") {
       return (
         <ChoiceModal onClose={() => setModal(null)} title="참석자 선택">
-          <div className="space-y-3">
+          <div className="max-h-[360px] space-y-3 overflow-y-auto pr-1">
             {attendees.map((attendee) => {
               const selected = meeting.attendeeIds.includes(attendee.id);
               const required = meeting.requiredAttendeeIds.includes(attendee.id);
@@ -588,6 +601,18 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                 </div>
               );
             })}
+          </div>
+          <div className="sticky bottom-0 mt-5 border-t border-[#E0E4EB] bg-white pt-4">
+            <div className="mb-2 text-center text-xs font-bold leading-[18px] text-[#667085]">
+              {meeting.attendeeIds.length}명 선택 완료
+            </div>
+            <Button
+              className="h-12 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 disabled:bg-[#C9CED8] disabled:text-white"
+              disabled={meeting.attendeeIds.length === 0}
+              onClick={() => setModal(null)}
+            >
+              선택 완료
+            </Button>
           </div>
         </ChoiceModal>
       );
