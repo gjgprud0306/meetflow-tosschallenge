@@ -245,16 +245,52 @@ function getMemberSelectedTime(
   return `희망: ${preferredSlot.label}`;
 }
 
+const meetingRooms = [
+  { capacity: 6, id: "room-a", name: "A 회의실" },
+  { capacity: 8, id: "room-b", name: "B 회의실" },
+  { capacity: 10, id: "room-c", name: "C 회의실" },
+];
+
+function roomById(id: string) {
+  return meetingRooms.find((room) => room.id === id);
+}
+
+function getMeetingLocationLabel(meeting: ReturnType<typeof useMeetingFlow>["meeting"]) {
+  if (meeting.locationType === "internal") {
+    if (meeting.selectedRoomId) {
+      const room = roomById(meeting.selectedRoomId);
+
+      return room ? room.name : "회의실 미정";
+    }
+
+    return "회의실 미정";
+  }
+
+  if (meeting.locationType === "online") {
+    return meeting.videoLinkMode === "manual" && meeting.videoLink.trim()
+      ? meeting.videoLink
+      : "화상회의 링크 추후 생성";
+  }
+
+  if (meeting.locationType === "external") {
+    return meeting.externalLocationName.trim() || "외부 장소 미정";
+  }
+
+  return "장소 미정";
+}
+
 function getConfirmedScheduleInfo(
   title: string,
   slot = slotById("slot-7-15-15"),
   attendeeCount = 6,
+  locationLabel = "장소 미정",
 ) {
   return {
     dateLabel: slot.dateLabel,
     displayDateTime: slot.label,
     id: confirmedScheduleId,
-    meta: `${slot.shortDateLabel} ${slot.timeLabel} · 참석자 ${attendeeCount}명`,
+    locationLabel,
+    meta: `${slot.shortDateLabel} ${slot.timeLabel} · 참석자 ${attendeeCount}명 · ${locationLabel}`,
     timeLabel: slot.timeLabel,
     title: title || "리뷰회의",
     weekday: slot.dateLabel.replace(/^.+\s/, ""),
@@ -804,6 +840,7 @@ function StatusPanel({
   onRequestAdjustment,
   onRetry,
   onSendOptional,
+  onChangeRoom,
   onViewSchedule,
   optionalIds,
   optionalResponseCount,
@@ -819,6 +856,7 @@ function StatusPanel({
   onRequestAdjustment: () => void;
   onRetry: (id: string) => void;
   onSendOptional: () => void;
+  onChangeRoom: () => void;
   onViewSchedule: () => void;
   optionalIds: string[];
   optionalResponseCount: number;
@@ -985,9 +1023,18 @@ function StatusPanel({
             <p className="mt-1 text-sm font-medium leading-[21px] text-[#635BFF]">
               {confirmedSchedule.dateLabel} · {confirmedSchedule.timeLabel}
             </p>
+            <p className="mt-1 text-sm font-medium leading-[21px] text-[#635BFF]">
+              {confirmedSchedule.locationLabel}
+            </p>
             <p className="mt-3 text-sm font-medium leading-[21px] text-[#635BFF]">
               모든 참여자 {totalAttendees}명에게 확정된 일정을 공유했습니다.
             </p>
+            <Button
+              className="mt-4 h-10 w-full rounded-lg border border-[#D8D5F7] bg-white text-sm font-bold leading-[21px] text-[#635BFF] hover:bg-[#F7F6FF]"
+              onClick={onChangeRoom}
+            >
+              회의실 지정/변경
+            </Button>
           </div>
         )}
       </div>
@@ -1023,7 +1070,7 @@ function ResponseComposer() {
 
 export function ResponseStatusPage() {
   const navigate = useNavigate();
-  const { meeting, setReceivedRequestStatus } = useMeetingFlow();
+  const { meeting, setReceivedRequestStatus, updateMeeting } = useMeetingFlow();
   const [requiredResponseCount, setRequiredResponseCount] = useState(0);
   const [optionalResponseCount, setOptionalResponseCount] = useState(0);
   const [adjustmentRequested, setAdjustmentRequested] = useState(false);
@@ -1054,8 +1101,9 @@ export function ResponseStatusPage() {
         meeting.title,
         requiredAggregation.selectedSlot,
         meeting.attendeeIds.length,
+        getMeetingLocationLabel(meeting),
       ),
-    [meeting.attendeeIds.length, meeting.title, requiredAggregation.selectedSlot],
+    [meeting, requiredAggregation.selectedSlot],
   );
   const requiredComplete =
     requiredParticipantIds.length === 0 ||
@@ -1072,6 +1120,8 @@ export function ResponseStatusPage() {
     dateConfirmed &&
     (optionalParticipantIds.length === 0 || optionalComplete);
   const [confirmed, setConfirmed] = useState(false);
+  const [roomModalOpen, setRoomModalOpen] = useState(false);
+  const [draftRoomId, setDraftRoomId] = useState(meeting.selectedRoomId);
   const stage: ResponseStage = confirmed
     ? "confirmed"
     : allComplete
@@ -1304,9 +1354,61 @@ export function ResponseStatusPage() {
 
   function confirmMeeting() {
     if (!allComplete) return;
+    if (
+      meeting.locationType === "internal" &&
+      !meeting.selectedRoomId &&
+      !meeting.roomSelectionDeferred
+    ) {
+      setDraftRoomId("");
+      setRoomModalOpen(true);
+      return;
+    }
     saveConfirmedSchedule(confirmedSchedule);
     setConfirmed(true);
     setReceivedRequestStatus("confirmed");
+  }
+
+  function completeRoomSelection(roomId: string) {
+    const roomName = roomById(roomId)?.name ?? "회의실 미정";
+
+    updateMeeting({
+      roomSelectionDeferred: false,
+      selectedRoomId: roomId,
+    });
+    setRoomModalOpen(false);
+    saveConfirmedSchedule(
+      getConfirmedScheduleInfo(
+        meeting.title,
+        requiredAggregation.selectedSlot,
+        meeting.attendeeIds.length,
+        roomName,
+      ),
+    );
+    setConfirmed(true);
+    setReceivedRequestStatus("confirmed");
+  }
+
+  function deferRoomSelection() {
+    updateMeeting({
+      roomSelectionDeferred: true,
+      selectedRoomId: "",
+    });
+    setRoomModalOpen(false);
+    saveConfirmedSchedule(
+      getConfirmedScheduleInfo(
+        meeting.title,
+        requiredAggregation.selectedSlot,
+        meeting.attendeeIds.length,
+        "회의실 미정",
+      ),
+    );
+    setConfirmed(true);
+    setReceivedRequestStatus("confirmed");
+  }
+
+  function openRoomModal() {
+    setDraftRoomId(meeting.selectedRoomId);
+    setRoomModalOpen(true);
   }
 
   function viewConfirmedSchedule() {
@@ -1376,6 +1478,7 @@ export function ResponseStatusPage() {
           onRequestAdjustment={requestAdjustment}
           onRetry={retryRequest}
           onSendOptional={sendOptionalRequests}
+          onChangeRoom={openRoomModal}
           onViewSchedule={viewConfirmedSchedule}
           optionalIds={optionalParticipantIds}
           optionalResponseCount={optionalResponseCount}
@@ -1386,6 +1489,76 @@ export function ResponseStatusPage() {
           stage={stage}
         />
       </div>
+      {roomModalOpen ? (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#101828]/30 p-6">
+          <section className="w-[440px] rounded-xl border border-[#E0E4EB] bg-white p-6 shadow-[0_20px_60px_rgba(16,24,40,0.16)]">
+            <h2 className="text-lg font-bold leading-7 text-[#101828]">
+              회의실 선택
+            </h2>
+            <p className="mt-2 text-sm font-medium leading-[21px] text-[#667085]">
+              {confirmedSchedule.displayDateTime} · 참석 인원 {meeting.attendeeIds.length}명
+            </p>
+            <div className="mt-5 space-y-2">
+              {meetingRooms.map((room) => {
+                const disabled = room.capacity < meeting.attendeeIds.length;
+                const selected = draftRoomId === room.id;
+
+                return (
+                  <button
+                    className={cn(
+                      "flex h-14 w-full items-center justify-between rounded-lg border px-4 text-left",
+                      selected
+                        ? "border-[#837CFF] bg-[#F7F6FF]"
+                        : "border-[#E0E4EB] bg-[#F9FAFB]",
+                      disabled && "cursor-not-allowed opacity-45",
+                    )}
+                    disabled={disabled}
+                    key={room.id}
+                    onClick={() => setDraftRoomId(room.id)}
+                    type="button"
+                  >
+                    <span>
+                      <span className="block text-sm font-bold leading-[21px] text-[#101828]">
+                        {room.name} · {room.capacity}명
+                      </span>
+                      {disabled ? (
+                        <span className="block text-xs font-medium leading-[18px] text-[#98A2B3]">
+                          참석 인원보다 수용 인원이 적습니다.
+                        </span>
+                      ) : null}
+                    </span>
+                    <span
+                      className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded-full border",
+                        selected
+                          ? "border-[#837CFF] bg-[#837CFF] text-white"
+                          : "border-[#D0D5DD] bg-white",
+                      )}
+                    >
+                      {selected ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : null}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-2">
+              <Button
+                className="h-11 rounded-lg border border-[#D0D5DD] bg-white text-sm font-bold leading-[21px] text-[#475467] hover:bg-[#F9FAFB]"
+                onClick={deferRoomSelection}
+              >
+                나중에 지정
+              </Button>
+              <Button
+                className="h-11 rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 disabled:bg-[#C9CED8] disabled:text-white"
+                disabled={!draftRoomId}
+                onClick={() => completeRoomSelection(draftRoomId)}
+              >
+                회의실 선택 완료
+              </Button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </MeetFlowLayout>
   );
 }

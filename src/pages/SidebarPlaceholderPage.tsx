@@ -182,7 +182,7 @@ export function SidebarPlaceholderPage({
   showAddSchedule = false,
   title,
 }: SidebarPlaceholderPageProps) {
-  const { receivedRequestStatus } = useMeetingFlow();
+  const { meeting, receivedRequestStatus } = useMeetingFlow();
   const location = useLocation();
   const highlightedId = new URLSearchParams(location.search).get("highlight");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -203,10 +203,27 @@ export function SidebarPlaceholderPage({
         if (card.id !== "received-review-meeting") return card;
 
         if (receivedRequestStatus === "confirmed") {
+          const locationLabel =
+            meeting.locationType === "internal"
+              ? meeting.selectedRoomId === "room-a"
+                ? "A 회의실"
+                : meeting.selectedRoomId === "room-b"
+                  ? "B 회의실"
+                  : meeting.selectedRoomId === "room-c"
+                    ? "C 회의실"
+                    : "회의실 미정"
+              : meeting.locationType === "online"
+                ? meeting.videoLinkMode === "manual" && meeting.videoLink.trim()
+                  ? meeting.videoLink
+                  : "화상회의 링크 추후 생성"
+                : meeting.locationType === "external"
+                  ? meeting.externalLocationName.trim() || "외부 장소 미정"
+                  : "장소 미정";
+
           return {
             ...card,
             category: "회의" as const,
-            meta: "7/15(수) 15:00–16:00 · 참석자 6명",
+            meta: `7/15(수) 15:00–16:00 · 참석자 ${meeting.attendeeIds.length}명 · ${locationLabel}`,
             source: "confirmed" as const,
             status: "확정됨",
             title: "리뷰회의",

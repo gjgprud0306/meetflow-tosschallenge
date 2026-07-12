@@ -27,6 +27,7 @@ type ModalType =
   | "dateRange"
   | "times"
   | "deadline"
+  | "location"
   | null;
 
 type FieldProps = {
@@ -237,6 +238,13 @@ function isPastCalendarDate(date: { value: Date }) {
 
   return date.value < todayStart;
 }
+
+const locationTypeLabels = {
+  external: "외부 장소",
+  internal: "사내 회의실",
+  online: "온라인",
+  undecided: "미정",
+} as const;
 
 function dateIdFromAvailability(dateLabel: string) {
   const match = dateLabel.match(/(\d+)월\s+(\d+)일/);
@@ -697,6 +705,8 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                   customTimeOptions: [],
                   deadlineId: "",
                   customDeadline: "",
+                  roomSelectionDeferred: false,
+                  selectedRoomId: "",
                 });
               }}
               type="button"
@@ -719,6 +729,8 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                   customTimeOptions: [],
                   deadlineId: "",
                   customDeadline: "",
+                  roomSelectionDeferred: false,
+                  selectedRoomId: "",
                 });
                 setModal(null);
               }}
@@ -876,6 +888,8 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                   updateMeeting({
                     timeIds: draftTimeIds,
                     customTimeOptions: draftCustomTimeOptions,
+                    roomSelectionDeferred: false,
+                    selectedRoomId: "",
                   });
                   setModal(null);
                 }}
@@ -932,6 +946,116 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
       );
     }
 
+    if (modal === "location") {
+      return (
+        <ChoiceModal onClose={() => setModal(null)} title="장소 유형 선택">
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { id: "internal", label: "사내 회의실" },
+              { id: "online", label: "온라인" },
+              { id: "external", label: "외부 장소" },
+              { id: "undecided", label: "미정" },
+            ].map((option) => {
+              const selected = meeting.locationType === option.id;
+
+              return (
+                <button
+                  className={cn(
+                    "h-12 rounded-lg border text-sm font-bold leading-[21px]",
+                    selected
+                      ? "border-[#837CFF] bg-[#F7F6FF] text-[#837CFF]"
+                      : "border-[#E0E4EB] bg-[#F9FAFB] text-[#475467]",
+                  )}
+                  key={option.id}
+                  onClick={() =>
+                    updateMeeting({
+                      externalLocationName:
+                        option.id === "external"
+                          ? meeting.externalLocationName
+                          : "",
+                      locationType: option.id as typeof meeting.locationType,
+                      roomSelectionDeferred: false,
+                      selectedRoomId: "",
+                      videoLink: option.id === "online" ? meeting.videoLink : "",
+                      videoLinkMode:
+                        option.id === "online" ? meeting.videoLinkMode : "later",
+                    })
+                  }
+                  type="button"
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {meeting.locationType === "internal" ? (
+            <p className="mt-4 rounded-lg border border-[#E0E4EB] bg-[#F9FAFB] px-4 py-3 text-sm font-medium leading-[21px] text-[#667085]">
+              회의 시간이 확정되면 사용 가능한 회의실을 선택할 수 있어요.
+            </p>
+          ) : null}
+
+          {meeting.locationType === "online" ? (
+            <div className="mt-4 space-y-3">
+              <label className="block">
+                <span className="text-sm font-bold leading-[21px] text-[#344054]">
+                  화상회의 링크
+                </span>
+                <input
+                  className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none placeholder:text-[#98A2B3] focus:border-[#635BFF]"
+                  onChange={(event) =>
+                    updateMeeting({
+                      videoLink: event.target.value,
+                      videoLinkMode: "manual",
+                    })
+                  }
+                  placeholder="https://"
+                  value={meeting.videoLink}
+                />
+              </label>
+              <button
+                className={cn(
+                  "h-11 w-full rounded-lg border text-sm font-bold leading-[21px]",
+                  meeting.videoLinkMode === "later"
+                    ? "border-[#837CFF] bg-[#F7F6FF] text-[#837CFF]"
+                    : "border-[#E0E4EB] bg-white text-[#667085]",
+                )}
+                onClick={() =>
+                  updateMeeting({ videoLink: "", videoLinkMode: "later" })
+                }
+                type="button"
+              >
+                화상회의 링크 추후 생성
+              </button>
+            </div>
+          ) : null}
+
+          {meeting.locationType === "external" ? (
+            <label className="mt-4 block">
+              <span className="text-sm font-bold leading-[21px] text-[#344054]">
+                장소명
+              </span>
+              <input
+                className="mt-2 h-11 w-full rounded-lg border border-[#D0D5DD] px-3 text-sm font-medium leading-[21px] text-[#101828] outline-none placeholder:text-[#98A2B3] focus:border-[#635BFF]"
+                onChange={(event) =>
+                  updateMeeting({ externalLocationName: event.target.value })
+                }
+                placeholder="외부 장소명을 입력해주세요"
+                value={meeting.externalLocationName}
+              />
+            </label>
+          ) : null}
+
+          <Button
+            className="mt-5 h-11 w-full rounded-lg bg-[#635BFF] text-sm font-bold leading-[21px] text-white hover:bg-[#635BFF]/90 active:bg-[#554DE8]"
+            onClick={() => setModal(null)}
+          >
+            선택 완료
+          </Button>
+        </ChoiceModal>
+      );
+    }
+
     return null;
   }
 
@@ -953,7 +1077,7 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
           </Button>
         </div>
 
-        <div className="mt-10 grid w-[824px] grid-cols-2 grid-rows-3 gap-x-8 gap-y-5">
+        <div className="mt-10 grid w-[824px] grid-cols-2 gap-x-8 gap-y-5">
           <TitleField
             onChange={(title) => updateMeeting({ title })}
             value={meeting.title}
@@ -987,6 +1111,18 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
             onClick={() => setModal("deadline")}
             placeholder={summaries.deadline === "응답 마감 선택"}
             value={summaries.deadline}
+          />
+          <Field
+            label="7. 장소 유형"
+            onClick={() => setModal("location")}
+            value={
+              meeting.locationType === "online" && meeting.videoLinkMode === "manual"
+                ? "온라인 · 링크 입력"
+                : meeting.locationType === "external" &&
+                    meeting.externalLocationName.trim()
+                  ? `외부 장소 · ${meeting.externalLocationName}`
+                  : locationTypeLabels[meeting.locationType]
+            }
           />
         </div>
 

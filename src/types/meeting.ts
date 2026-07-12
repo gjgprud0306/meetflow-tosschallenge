@@ -28,6 +28,12 @@ export type MeetingCreateMock = {
   title: string;
   attendeeIds: string[];
   requiredAttendeeIds: string[];
+  locationType: "internal" | "online" | "external" | "undecided";
+  videoLink: string;
+  videoLinkMode: "manual" | "later";
+  externalLocationName: string;
+  selectedRoomId: string;
+  roomSelectionDeferred: boolean;
   dateRangeId: string;
   customDateRange: string;
   timeIds: string[];
