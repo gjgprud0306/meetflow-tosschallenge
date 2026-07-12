@@ -609,16 +609,32 @@ export function MeetingCreateCard({ options }: MeetingCreateCardProps) {
                   </button>
                 </div>
                 <div className="mt-2 space-y-1">
-                  {eligibleSlots.slice(0, 3).map((item, index) => (
-                    <p
-                      className="truncate text-xs font-medium leading-[18px] text-[#475467]"
-                      key={item.id}
-                    >
-                      {index === 0 ? "추천 · " : ""}
-                      {item.shortDateLabel.replace(" (", " ").replace(")", "")}{" "}
-                      {item.timeLabel} · {item.availableIds.length}명 가능
-                    </p>
-                  ))}
+                  {eligibleSlots.slice(0, 3).map((item, index) => {
+                    const label = `${item.shortDateLabel
+                      .replace(" (", " ")
+                      .replace(")", "")} ${item.timeLabel} · ${item.availableIds.length}명 가능`;
+
+                    return index === 0 ? (
+                      <div
+                        className="flex items-center gap-2 rounded-lg border border-[#837CFF] bg-[#F7F6FF] px-3 py-2"
+                        key={item.id}
+                      >
+                        <span className="shrink-0 rounded-full bg-[#837CFF] px-2 py-[2px] text-[11px] font-bold leading-[16px] text-white">
+                          추천
+                        </span>
+                        <span className="min-w-0 truncate text-xs font-bold leading-[18px] text-[#635BFF]">
+                          {label}
+                        </span>
+                      </div>
+                    ) : (
+                      <p
+                        className="truncate text-xs font-medium leading-[18px] text-[#475467]"
+                        key={item.id}
+                      >
+                        {label}
+                      </p>
+                    );
+                  })}
                   {eligibleSlots.length === 0 ? (
                     <p className="text-xs font-medium leading-[18px] text-[#98A2B3]">
                       필수 참석자 전원이 가능한 후보 일정이 없습니다.
